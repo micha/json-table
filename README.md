@@ -190,11 +190,11 @@ for all of the `Parts` in the JSON data:
 
 ```
 $ cat units.json | jt \
-```
-```
 -   -d Region -p -u \
 -   -d Units -d Type -p -u \
 -   -d Parts -d Id -p -u -d Price -p
+```
+```
 US	1	 100	00.0
 US	1	 101	00.0
 US	2	 200	7.95
