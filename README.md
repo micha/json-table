@@ -18,7 +18,8 @@ and **uniq** can be used to further manipulate the data to produce whatever
 final format is required.
 
 You can get an idea of what **jt** can do from this one-liner that produces
-a table of ELB name to instance ID for all of your ELBs:
+a table of Elastic Load Balancer names to EC2 instance IDs for all of your
+ELBs:
 
 ```
 $ aws elb describe-load-balancers \
