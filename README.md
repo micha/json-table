@@ -92,6 +92,8 @@ make
 sudo make install
 ```
 
+See the [man page](http://htmlpreview.github.io/?https://raw.githubusercontent.com/micha/json-table/master/jt.1.html).
+
 ## Traveral
 
 The first step to extract data from a large JSON blob is to drill down
@@ -175,22 +177,30 @@ US
 all of the unit `Type` IDs for that region we can use a combination of drilling
 down and rewinding, and **jt** will perform an implicit join:
 
-    $ cat units.json | jt -d Region -p -u -d Units -d Type -p
-    US	1
-    US	2
+```
+$ cat units.json | jt -d Region -p -u -d Units -d Type -p
+```
+```
+US	1
+US	2
+```
 
 And finally, suppose we want to extract the `Region`, `Type`, `Id`, and `Price`
 for all of the `Parts` in the JSON data:
 
-    $ cat units.json | jt \
-    -   -d Region -p -u \
-    -   -d Units -d Type -p -u \
-    -   -d Parts -d Id -p -u -d Price -p
-    US	1	 100	00.0
-    US	1	 101	00.0
-    US	2	 200	7.95
-    US	2	 201	2.5
-    US	2	 202	60.49
+```
+$ cat units.json | jt \
+```
+```
+-   -d Region -p -u \
+-   -d Units -d Type -p -u \
+-   -d Parts -d Id -p -u -d Price -p
+US	1	 100	00.0
+US	1	 101	00.0
+US	2	 200	7.95
+US	2	 201	2.5
+US	2	 202	60.49
+```
 
 Notice that each time we use the `-p` or `--print` command we create a new
 column in the resulting table.
@@ -203,33 +213,45 @@ JSON APIs in the wild do not choose weird names for keys **jt** can internally
 add those commands when necessary. The previous example can be simplified by
 leaving out the `-d` commands:
 
-    $ cat test.json | jt Region -p -u Units Type -p -u Parts Id -p -u Price -p
-    US	1	 100	00.0
-    US	1	 101	00.0
-    US	2	 200	7.95
-    US	2	 201	2.5
-    US	2	 202	60.49
+```
+$ cat test.json | jt Region -p -u Units Type -p -u Parts Id -p -u Price -p
+```
+```
+US	1	 100	00.0
+US	1	 101	00.0
+US	2	 200	7.95
+US	2	 201	2.5
+US	2	 202	60.49
+```
 
 The `-g` or `--gosub` and `-r` or `--return` commands can shave some more
 keystrokes sometimes:
 
-    $ cat test.json | jt -g Region -r Units -g Type -r Parts -g Id -r Price -p
-    US	1	 100	00.0
-    US	1	 101	00.0
-    US	2	 200	7.95
-    US	2	 201	2.5
-    US	2	 202	60.49
+```
+$ cat test.json | jt -g Region -r Units -g Type -r Parts -g Id -r Price -p
+```
+```
+US	1	 100	00.0
+US	1	 101	00.0
+US	2	 200	7.95
+US	2	 201	2.5
+US	2	 202	60.49
+```
 
 And finally, there are the `[` and `]` aliases for the `--gosub` and `--return`
 commands. Note that there must be space between the `[` or `]` and the next
 command:
 
-    $ cat test.json | jt [ Region ] Units [ Type ] Parts [ Id ] [ Price ]
-    US	1	 100	00.0
-    US	1	 101	00.0
-    US	2	 200	7.95
-    US	2	 201	2.5
-    US	2	 202	60.49
+```
+$ cat test.json | jt [ Region ] Units [ Type ] Parts [ Id ] [ Price ]
+```
+```
+US	1	 100	00.0
+US	1	 101	00.0
+US	2	 200	7.95
+US	2	 201	2.5
+US	2	 202	60.49
+```
 
 This notation nicely highlights the columns that will be included in the table
 of results, in this case `Region`, `Type`, `Id`, and `Price`.
@@ -295,5 +317,4 @@ US|2|202|60.49
 
 ## Copyright
 
-Copyright © 2016 Micha Niskin. Distributed under the Eclipse Public License,
-version 1.0: https://www.eclipse.org/legal/epl-v10.html.
+Copyright © 2016 Micha Niskin. Distributed under the Eclipse Public License.
