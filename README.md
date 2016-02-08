@@ -17,6 +17,24 @@ format the standard shell tools like **cut**, **paste**, **join**, **sort**,
 and **uniq** can be used to further manipulate the data to produce whatever
 final format is required.
 
+You can get an idea of what **jt** can do from this one-liner that produces
+a table of ELB name to instance ID for all of your ELBs:
+
+```
+$ aws elb describe-load-balancers \
+-   | jt LoadBalancerDescriptions [ LoadBalancerName ] Instances [ InstanceId ]
+```
+
+## Installation
+
+```
+make &&  sudo make install
+```
+
+See the [man page](http://htmlpreview.github.io/?https://raw.githubusercontent.com/micha/json-table/master/jt.1.html).
+
+## Getting Started
+
 Consider the following JSON data:
 
 ```json
@@ -82,17 +100,6 @@ join -j 1 <(sort -k 1 units.txt) <(echo 1) | cut -f2
 and the work is done. **Jt** is the tool that converts the JSON tree into the
 table of tab-delimited rows that tools like **join** and **cut** are designed
 to work with.
-
-## Installation
-
-```
-make
-```
-```
-sudo make install
-```
-
-See the [man page](http://htmlpreview.github.io/?https://raw.githubusercontent.com/micha/json-table/master/jt.1.html).
 
 ## Traveral
 
