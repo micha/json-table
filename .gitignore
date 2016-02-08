@@ -1,0 +1,17 @@
+.lein-*
+*.jar
+*.war
+pom.xml
+pom.xml.asc
+.repl-*
+.nrepl-*
+hs_err_pid*.log
+.DS_Store
+[#]*[#]
+*.swn
+*.swo
+*.swp
+target/
+/zzz/
+/jt
+/jt.1

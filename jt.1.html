@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv='content-type' value='text/html;charset=utf8'>
+  <meta name='generator' value='Ronn/v0.7.3 (http://github.com/rtomayko/ronn/tree/0.7.3)'>
+  <title>jt(1) - transform JSON data to tabular format</title>
+  <style type='text/css' media='all'>
+  /* style: man */
+  body#manpage {margin:0}
+  .mp {max-width:100ex;padding:0 9ex 1ex 4ex}
+  .mp p,.mp pre,.mp ul,.mp ol,.mp dl {margin:0 0 20px 0}
+  .mp h2 {margin:10px 0 0 0}
+  .mp > p,.mp > pre,.mp > ul,.mp > ol,.mp > dl {margin-left:8ex}
+  .mp h3 {margin:0 0 0 4ex}
+  .mp dt {margin:0;clear:left}
+  .mp dt.flush {float:left;width:8ex}
+  .mp dd {margin:0 0 0 9ex}
+  .mp h1,.mp h2,.mp h3,.mp h4 {clear:left}
+  .mp pre {margin-bottom:20px}
+  .mp pre+h2,.mp pre+h3 {margin-top:22px}
+  .mp h2+pre,.mp h3+pre {margin-top:5px}
+  .mp img {display:block;margin:auto}
+  .mp h1.man-title {display:none}
+  .mp,.mp code,.mp pre,.mp tt,.mp kbd,.mp samp,.mp h3,.mp h4 {font-family:monospace;font-size:14px;line-height:1.42857142857143}
+  .mp h2 {font-size:16px;line-height:1.25}
+  .mp h1 {font-size:20px;line-height:2}
+  .mp {text-align:justify;background:#fff}
+  .mp,.mp code,.mp pre,.mp pre code,.mp tt,.mp kbd,.mp samp {color:#131211}
+  .mp h1,.mp h2,.mp h3,.mp h4 {color:#030201}
+  .mp u {text-decoration:underline}
+  .mp code,.mp strong,.mp b {font-weight:bold;color:#131211}
+  .mp em,.mp var {font-style:italic;color:#232221;text-decoration:none}
+  .mp a,.mp a:link,.mp a:hover,.mp a code,.mp a pre,.mp a tt,.mp a kbd,.mp a samp {color:#0000ff}
+  .mp b.man-ref {font-weight:normal;color:#434241}
+  .mp pre {padding:0 4ex}
+  .mp pre code {font-weight:normal;color:#434241}
+  .mp h2+pre,h3+pre {padding-left:0}
+  ol.man-decor,ol.man-decor li {margin:3px 0 10px 0;padding:0;float:left;width:33%;list-style-type:none;text-transform:uppercase;color:#999;letter-spacing:1px}
+  ol.man-decor {width:100%}
+  ol.man-decor li.tl {text-align:left}
+  ol.man-decor li.tc {text-align:center;letter-spacing:4px}
+  ol.man-decor li.tr {text-align:right;float:right}
+  </style>
+</head>
+<!--
+  The following styles are deprecated and will be removed at some point:
+  div#man, div#man ol.man, div#man ol.head, div#man ol.man.
+
+  The .man-page, .man-decor, .man-head, .man-foot, .man-title, and
+  .man-navigation should be used instead.
+-->
+<body id='manpage'>
+  <div class='mp' id='man'>
+
+  <div class='man-navigation' style='display:none'>
+    <a href="#NAME">NAME</a>
+    <a href="#SYNOPSIS">SYNOPSIS</a>
+    <a href="#DESCRIPTION">DESCRIPTION</a>
+    <a href="#TRAVERSAL">TRAVERSAL</a>
+    <a href="#STACKS">STACKS</a>
+    <a href="#EXTRACTION">EXTRACTION</a>
+    <a href="#SHORTCUTS">SHORTCUTS</a>
+    <a href="#OUTPUT-OPTIONS">OUTPUT OPTIONS</a>
+    <a href="#COMMANDS">COMMANDS</a>
+    <a href="#COPYRIGHT">COPYRIGHT</a>
+    <a href="#SEE-ALSO">SEE ALSO</a>
+  </div>
+
+  <ol class='man-decor man-head man head'>
+    <li class='tl'>jt(1)</li>
+    <li class='tc'></li>
+    <li class='tr'>jt(1)</li>
+  </ol>
+
+  <h2 id="NAME">NAME</h2>
+<p class="man-name">
+  <code>jt</code> - <span class="man-whatis">transform JSON data to tabular format</span>
+</p>
+
+<h2 id="SYNOPSIS">SYNOPSIS</h2>
+
+<p><code>jt</code> [<code>-h</code>|<code>--help</code>]<br />
+<code>jt</code> [<code>-F</code> <var>char</var>] [<code>-R</code> <var>char</var>] [<code>-kpqu</code>|<code>-d</code> <var>prop</var>]...</p>
+
+<h2 id="DESCRIPTION">DESCRIPTION</h2>
+
+<p><strong>Jt</strong> transforms JSON data structures into tables of columns and rows for
+processing in the shell. Extracting information from deeply nested JSON data
+is difficult and unreliable with tools like <strong>sed</strong> and <strong>awk</strong>, and tools
+that are specially designed for manipulating JSON are cumbersome to use in
+the shell because they either return their results as JSON or introduce a
+new turing complete scripting language that needs to be quoted and constructed
+via string interpolation.</p>
+
+<p><strong>Jt</strong> provides only what is needed to extract data from nested JSON data
+structures and organize the data into a table. Once the data is in tabular
+format the standard shell tools like <strong>cut</strong>, <strong>paste</strong>, <strong>join</strong>, <strong>sort</strong>,
+and <strong>uniq</strong> can be used to further manipulate the data to produce whatever
+final format is required.</p>
+
+<p>Consider the following JSON data:</p>
+
+<pre><code>{
+  "Region": "US",
+  "Units": [
+    {
+      "Type": 1,
+      "Parts": [
+        {
+          "Id": 100,
+          "Price": 200.00
+        },
+        {
+          "Id": 101,
+          "Price": 400.00
+        }
+      ]
+    },
+    {
+      "Type": 2,
+      "Parts": [
+        {
+          "Id": 200,
+          "Price": 17.95
+        },
+        {
+          "Id": 201,
+          "Price": 92.50
+        },
+        {
+          "Id": 202,
+          "Price": 760.49
+        }
+      ]
+    }
+  ]
+}
+</code></pre>
+
+<p>One thing we might want to do is get a list of all the part IDs for a type 1
+unit. If this were in tabular format it would be trivial:</p>
+
+<pre><code>Type Id
+1    100
+1    101
+2    200
+2    201
+2    202
+</code></pre>
+
+<p>With the data in this pleasant format we could simply do</p>
+
+<pre><code>$ join -j 1 &lt;(sort -k 1 units.txt) &lt;(echo 1) | cut -f2
+</code></pre>
+
+<p>and the work is done. <strong>Jt</strong> is the tool that converts the JSON tree into the
+table of tab-delimited rows that tools like <strong>join</strong> and <strong>cut</strong> are designed
+to work with.</p>
+
+<h2 id="TRAVERSAL">TRAVERSAL</h2>
+
+<p>The first step to extract data from a large JSON blob is to drill down
+incrementally, exploring as you go. <strong>Jt</strong> supports this with the <code>-k</code> or
+<code>--keys</code> command. Using the JSON above as an example:</p>
+
+<pre><code>$ cat units.json | jt -k
+Region
+Units
+</code></pre>
+
+<p>The top-level object was inspected, and its keys were printed, one per line.
+We can explore deeper using the <code>-d</code> or <code>--down</code> command to traverse the
+<var>Units</var> property of the JSON object and get access to the objects nested more
+deeply:</p>
+
+<pre><code>$ cat units.json | jt -d Units -k
+Type
+Parts
+</code></pre>
+
+<p>and so on:</p>
+
+<pre><code>$ cat units.json | jt -d Units -d Parts -k
+Id
+Price
+</code></pre>
+
+<p>Now that we know where the information we are interested in is located and we
+know how to move around we can direct <strong>jt</strong> to extract the parts we want into
+a table for further processing with the familiar shell tools.</p>
+
+<h2 id="STACKS">STACKS</h2>
+
+<p>The traversal operations make use of a stack to store the piece of the JSON
+blob that is currently being worked on: <strong>the JSON stack</strong>. Commands operate
+on the object at the top of this stack. The <code>-d</code> or <code>--down</code> command, for
+example, extracts the value associated with some key from the object at the
+top of the stack and pushes that value onto the stack, making it the new top.
+The <code>-u</code> or <code>--up</code> command pops the JSON stack, "rewinding" the current focus
+to the previous location in the JSON data.</p>
+
+<p>There is also another stack where data is stored for extraction: <strong>the OUTPUT
+stack</strong>. This stack holds the data for the row of the table that is currently
+being processed. The <code>-p</code> or <code>--print</code> command, for example, copies the object
+at the top of the JSON stack and pushes it onto the output stack, adding it to
+the current row.</p>
+
+<p>Finally, there is a third stack where "subroutines" may store a pointer into
+the JSON stack: <strong>the GOSUB stack</strong>. This makes it possible to drill down into
+one part of the JSON data, extract a value to the output stack, and then rewind
+back to some earlier location so that another branch may be followed to find
+the next value. The <code>-g</code> or <code>--gosub</code> command pushes the current JSON stack
+pointer onto the gosub stack. The <code>-r</code> or <code>--return</code> command expands into a
+<code>--print</code> command and a number of <code>--up</code> commands (enough to restore the JSON
+stack to where the gosub pointer indicates), and it pops the gosub stack.</p>
+
+<h2 id="EXTRACTION">EXTRACTION</h2>
+
+<p>The <code>-p</code> or <code>--print</code> command pushes whatever is at the top of the JSON stack
+onto the output stack, without modifying the JSON stack. So we can extract the
+<var>Region</var> value from the example JSON like this:</p>
+
+<pre><code>$ cat units.json | jt -d Region -p
+US
+</code></pre>
+
+<p><strong>Jt</strong> iterates over arrays automatically, so to extract the <var>Region</var> ID plus
+all of the unit <var>Type</var> IDs for that region we can use a combination of drilling
+down and rewinding, and <strong>jt</strong> will perform an implicit join:</p>
+
+<pre><code>$ cat units.json | jt -d Region -p -u -d Units -d Type -p
+US  1
+US  2
+</code></pre>
+
+<p>And finally, suppose we want to extract the <var>Region</var>, <var>Type</var>, <var>Id</var>, and <var>Price</var>
+for all of the <var>Parts</var> in the JSON data:</p>
+
+<pre><code>$ cat units.json | jt \
+-   -d Region -p -u \
+-   -d Units -d Type -p -u \
+-   -d Parts -d Id -p -u -d Price -p
+US  1    100    00.0
+US  1    101    00.0
+US  2    200    7.95
+US  2    201    2.5
+US  2    202    60.49
+</code></pre>
+
+<p>Notice that each time we use the <code>-p</code> or <code>--print</code> command we create a new
+column in the resulting table.</p>
+
+<h2 id="SHORTCUTS">SHORTCUTS</h2>
+
+<p>It can get tedious typing all those <code>-d</code>, <code>-u</code>, and <code>-p</code> commands, and it can
+get confusing to see where you're at in the traversal sometimes. Since most
+JSON APIs in the wild do not choose weird names for keys <strong>jt</strong> can internally
+add those commands when necessary. The previous example can be simplified by
+leaving out the <code>-d</code> commands:</p>
+
+<pre><code>$ cat test.json | jt Region -p -u Units Type -p -u Parts Id -p -u Price -p
+US  1    100    00.0
+US  1    101    00.0
+US  2    200    7.95
+US  2    201    2.5
+US  2    202    60.49
+</code></pre>
+
+<p>The <code>-g</code> or <code>--gosub</code> and <code>-r</code> or <code>--return</code> commands can shave some more
+keystrokes sometimes:</p>
+
+<pre><code>$ cat test.json | jt -g Region -r Units -g Type -r Parts -g Id -r Price -p
+US  1    100    00.0
+US  1    101    00.0
+US  2    200    7.95
+US  2    201    2.5
+US  2    202    60.49
+</code></pre>
+
+<p>And finally, there are the <code>[</code> and <code>]</code> aliases for the <code>--gosub</code> and <code>--return</code>
+commands. Note that there must be space between the <code>[</code> or <code>]</code> and the next
+command:</p>
+
+<pre><code>$ cat test.json | jt [ Region ] Units [ Type ] Parts [ Id ] [ Price ]
+US  1    100    00.0
+US  1    101    00.0
+US  2    200    7.95
+US  2    201    2.5
+US  2    202    60.49
+</code></pre>
+
+<p>This notation nicely highlights the columns that will be included in the table
+of results, in this case <var>Region</var>, <var>Type</var>, <var>Id</var>, and <var>Price</var>.</p>
+
+<h2 id="OUTPUT-OPTIONS">OUTPUT OPTIONS</h2>
+
+<p>These options regulate how the results table is presented:</p>
+
+<dl>
+<dt><code>-F</code> <var>CHAR</var>, <code>--col-delim=</code><var>CHAR</var></dt><dd><p>Sets the field delimiter character to <var>CHAR</var>. Each row in the results table
+consists of a number of fields separated by this character. The default is
+"\t".</p></dd>
+<dt><code>-R</code> <var>CHAR</var>, <code>--record-delim=</code><var>CHAR</var></dt><dd><p>Sets the record delimiter character to <var>CHAR</var>. The results table consists
+of a number of records separated by this character. The default is "\n".</p></dd>
+</dl>
+
+
+<p>  For example:</p>
+
+<pre><code>$ cat test.json | jt -F \| [ Region ] Units [ Type ] Parts [ Id ] [ Price ]
+US|1|100|00.0
+US|1|101|00.0
+US|2|200|7.95
+US|2|201|2.5
+US|2|202|60.49
+</code></pre>
+
+<h2 id="COMMANDS">COMMANDS</h2>
+
+<dl>
+<dt><code>-k</code>, <code>--keys</code></dt><dd><p>Prints the names of any keys the object at the top of the JSON stack may
+contain, one per line, and then exits.</p></dd>
+<dt><code>-d</code> <var>PROP</var>, <code>--down=</code><var>PROP</var></dt><dd><p>Pushes the value of <code>x.PROP</code> onto the JSON stack, where <code>x</code> is the object
+at the top of the JSON stack.</p></dd>
+<dt><code>-u</code>, <code>--up</code></dt><dd><p>Pops the top value off of the JSON stack.</p></dd>
+<dt><code>-p</code>, <code>--print</code></dt><dd><p>Pushes the object at the top of the JSON stack onto the output stack. (No
+effect on the JSON stack.)</p></dd>
+<dt><code>-q</code>, <code>--quote</code></dt><dd><p>Pushes a JSON encoded string representation of the object at the top of the
+JSON stack onto the JSON stack.</p></dd>
+<dt><code>-g</code>, <code>--gosub</code>, <code>[</code></dt><dd><p>Pushes the current JSON stack pointer onto the gosub stack. Note that when
+using the <code>[</code> alias there must be at least one space before and after the
+<code>[</code> token. Otherwise it will be interpreted as being part of a JSON property
+name.</p></dd>
+<dt><code>-r</code>, <code>--return</code>, <code>]</code></dt><dd><p>Expands to a <code>--print</code> command and a number of <code>--up</code> commands, enough to
+restore the JSON stack to the place where the corresponding <code>--gosub</code> was
+called. Also pops the gosub stack, removing the corresponding <code>--gosub</code>
+from it.</p></dd>
+</dl>
+
+
+<h2 id="COPYRIGHT">COPYRIGHT</h2>
+
+<p>Copyright © 2016 Micha Niskin. Distributed under the Eclipse Public License,
+version 1.0: https://www.eclipse.org/legal/epl-v10.html.</p>
+
+<h2 id="SEE-ALSO">SEE ALSO</h2>
+
+<p><span class="man-ref">jshon<span class="s">(1)</span></span>, <span class="man-ref">jq<span class="s">(1)</span></span>, <span class="man-ref">comm<span class="s">(1)</span></span>, <span class="man-ref">diff<span class="s">(1)</span></span>, <span class="man-ref">sort<span class="s">(1)</span></span>, <span class="man-ref">join<span class="s">(1)</span></span>, <span class="man-ref">uniq<span class="s">(1)</span></span>, <span class="man-ref">bash<span class="s">(1)</span></span></p>
+
+
+  <ol class='man-decor man-foot man foot'>
+    <li class='tl'></li>
+    <li class='tc'>February 2016</li>
+    <li class='tr'>jt(1)</li>
+  </ol>
+
+  </div>
+</body>
+</html>
