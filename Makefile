@@ -12,4 +12,4 @@ libjsmn.a: jsmn.o
 	$(CC) -c $(CFLAGS) $< -o $@
 
 jt: jt.o libjsmn.a
-	$(CC) $(LDFLAGS) $^ -o $@
+	$(CC) -static $(LDFLAGS) $^ -o $@
