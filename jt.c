@@ -1,13 +1,22 @@
 #define _GNU_SOURCE
+#define JSMN_STRICT
+#define JSMN_PARENT_LINKS
+
 #include <stdarg.h>
 #include <stdio.h>
+#include <errno.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <jansson.h>
+#include <search.h>
+#include "jsmn.c"
 
 char *colsep     = "\t";
 char *rowsep     = "\n";
+
+/*
+ * helpers
+ *****************************************************************************/
 
 void die(const char *fmt, ...) {
   va_list ap;
@@ -15,15 +24,45 @@ void die(const char *fmt, ...) {
   va_start(ap, fmt);
   vfprintf(stderr, fmt, ap);
   va_end(ap);
+  if (errno != 0)
+    fprintf(stderr, ": %s", strerror(errno));
   fprintf(stderr, "\n");
   exit(1);
 }
 
 void die_mem() {
-  die("failed to allocate memory");
+  die("can't allocate memory");
 }
 
-char* read_stream(FILE *in) {
+void *jalloc(size_t size) {
+  void *ret;
+  if (! (ret = malloc(size))) die_mem();
+  return ret;
+}
+
+void *jrealloc(void *ptr, size_t size) {
+  void *ret;
+  if (! (ret = realloc(ptr, size))) die_mem();
+  return ret;
+}
+
+char *str(const char *fmt, ...) {
+  char *s;
+  va_list ap;
+  va_start(ap, fmt);
+  if (vasprintf(&s, fmt, ap) < 0) die_mem();
+  va_end(ap);
+  return s;
+}
+
+FILE *open(const char *path, const char *mode) {
+  FILE *ret;
+  if (! (ret = fopen(path, mode)))
+    die("can't open %s", path);
+  return ret;
+}
+
+char *read_stream(FILE *in) {
   char    buf[BUFSIZ];
   char    *ret         = NULL;
   size_t  ret_size     = 0;
@@ -32,18 +71,18 @@ char* read_stream(FILE *in) {
   ssize_t bytes_r      = NULL;
   int     fd           = fileno(in);
 
-  if(! (ret = malloc(ret_capacity))) die_mem();
+  ret = jalloc(ret_capacity);
 
   for (;;) {
     bytes_r = read(fd, buf, sizeof(buf));
 
     if (bytes_r < 0)
-      die("read stdin failed");
+      die("can't read input");
     else if (bytes_r == 0)
       return ret;
 
     if ((ret_newsize = ret_size + bytes_r) >= ret_capacity)
-      if (! (ret = realloc(ret, (ret_capacity *= 2.5)))) die_mem();
+      ret = jrealloc(ret, (ret_capacity *= 2.5));
 
     memcpy(&ret[ret_size], buf, bytes_r);
     ret_size = ret_newsize;
@@ -60,255 +99,248 @@ char* read_stream(FILE *in) {
 #define STACKSIZE 128
 
 typedef struct Stack {
-  void** items;
-  int    head;
+  void **items;
+  char *name;
+  int head;
 } Stack;
-
-Stack *stack_new() {
-  void **items = malloc(STACKSIZE);
-  Stack *stack = malloc(sizeof(Stack));
-  if (! items || ! stack) die_mem();
-  stack->head = -1;
-  stack->items = items;
-  return stack;
-}
 
 void stack_push(Stack *stack, void *item) {
   if (stack->head >= STACKSIZE)
-    die("maximum stack depth exceeded");
+    die("maximum %s stack depth exceeded", stack->name);
   stack->items[(stack->head += 1)] = item;
 }
 
 void stack_pop(Stack *stack) {
   if ((stack->head -= 1) < -1)
-    die("stack underflow");
+    die("%s stack underflow", stack->name);
 }
 
-void *stack_head(Stack *stack) {
-  return stack->head < 0 ? NULL : stack->items[stack->head];
+void stack_pop_to(Stack *stack, int n) {
+  if (n < -1) die("%s stack underflow", stack->name);
+  else if (n >= STACKSIZE) die("%s stack overflow", stack->name);
+  stack->head = n;
 }
 
-void *stack_nth(Stack *stack, int i) {
-  return stack->head <= i ? NULL : stack->items[i];
+void *stack_head(Stack stack) {
+  return stack.head < 0 ? NULL : stack.items[stack.head];
 }
 
-int stack_depth(Stack *stack) {
-  return stack->head + 1;
+int stack_depth(Stack stack) {
+  return stack.head + 1;
 }
+
+void  *in_i[STACKSIZE];
+void *out_i[STACKSIZE];
+void  *go_i[STACKSIZE];
+void *idx_i[STACKSIZE];
+void *itr_i[STACKSIZE];
+
+Stack IN  = { in_i,  "data",     -1 };
+Stack OUT = { out_i, "output",   -1 };
+Stack GO  = { go_i,  "gosub",    -1 };
+Stack IDX = { idx_i, "index",    -1 };
+Stack ITR = { itr_i, "iterator", -1 };
 
 /*
- * iterators
+ * json
  *****************************************************************************/
 
-typedef struct Iter {
-  void *val;
-  int  len;
-  int  pos;
-} Iter;
+jsmntok_t *parse_string(char *js) {
+  int r;
+  jsmn_parser p;
+  jsmntok_t *tok;
+  size_t tokcount = 256, jslen = strlen(js);
 
-void *iter_peek(Iter *it) {
-  return it->val + it->pos;
-}
+  jsmn_init(&p);
 
-void iter_next(Iter *it) {
-  if (it->pos++ >= it->len)
-    die("index out of bounds");
-}
+  tok = jalloc(sizeof(*tok) * tokcount);
 
-void iter_reset(Iter *it) {
-  it->pos = 0;
-}
-
-int iter_nexts(Iter *it) {
-  return (it->len - 1) - it->pos;
-}
-
-int iter_fin(Iter *it) {
-  return iter_nexts(it) < 0;
-}
-
-int iter_hasnext(Iter *it) {
-  return iter_nexts(it) > 0;
-}
-
-/*
- * functions
- *****************************************************************************/
-
-void print_keys(json_t *obj) {
-  const char *k;
-  json_t *v;
-  json_object_foreach(obj, k, v)
-    fprintf(stderr, "%s\n", k);
-  fflush(stderr);
-  exit(0);
-}
-
-void print_atom(json_t *x) {
-  int jtype = json_typeof(x);
-  switch (jtype) {
-    case JSON_STRING:
-      printf("%s", json_string_value(x));
-      break;
-    case JSON_INTEGER:
-      printf("%" JSON_INTEGER_FORMAT, json_integer_value(x));
-      break;
-    case JSON_REAL:
-      printf("%f", json_real_value(x));
-      break;
-    case JSON_TRUE:
-      printf("true");
-      break;
-    case JSON_FALSE:
-      printf("false");
-      break;
-    case JSON_NULL:
-      printf("%s", "");
-      break;
-    default:
-      die("unknown json type: %d", jtype);
-  }
-  fflush(stdout);
-}
-
-void do_gosub(Stack *input, Stack *gosub) {
-  stack_push(gosub, stack_head(input));
-}
-
-void do_return(Stack *input, Stack *gosub) {
-  if (! stack_head(gosub))
-    die("return with no gosub on the stack");
-  while (stack_head(input) != stack_head(gosub))
-    stack_pop(input);
-  stack_pop(gosub);
-}
-
-json_t *json_get(json_t *t, char *k) {
-  if (json_typeof(t) != JSON_OBJECT)
-    die("not an object, no such key: %s", k);
-  json_t *ret = json_object_get(t, k);
-  if (! ret) die("no such key: %s", k);
-  return ret;
-}
-
-void run(Stack *in, Stack *out, Stack *go, Stack *idx, Stack *itr, Iter *arg) {
-  json_t  *t = (json_t*) stack_head(in), *v, *w;
-  char *k, *a = iter_fin(arg) ? NULL : ((char**) arg->val)[arg->pos];
-  int i, j, ret, jtype = json_typeof(t);
-  json_int_t *ix, *iy;
-
-  if (jtype == JSON_ARRAY) {
-    if (stack_depth(itr) > 0) {
-      ix = stack_head(itr);
-      stack_pop(itr);
-      if (*ix < 0) *ix = 0;
-    } else {
-      if (! (ix = malloc(sizeof(json_int_t*)))) die_mem();
-      *ix = 0;
-    }
-    stack_push(idx, (void*) ix);
-    stack_push(in, json_array_get(t, *ix));
-    run(in, out, go, idx, itr, arg);
-    stack_pop(idx);
-    if (! stack_depth(itr) || *((json_int_t*) stack_head(itr)) < 0)
-      *ix = *ix + 1;
-    if (*ix == json_array_size(t))
-      *ix = -1;
-    stack_push(itr, ix);
-    return;
-  } else if (! a) {
-    return;
-  } else if (! strcmp(a, "[")) {
-    iter_next(arg);
-    do_gosub(in, go);
-  } else if (! strcmp(a, "]")) {
-    iter_next(arg);
-    do_return(in, go);
-  } else if (! strcmp(a, "%")) {
-    iter_next(arg);
-    stack_push(out, t);
-  } else if (! strcmp(a, "^")) {
-    v = stack_head(idx);
-    if (! v)
-      die("no array index to print");
-    iter_next(arg);
-    stack_push(out, json_integer(* (json_int_t*) v));
-  } else if (! strcmp(a, "@")) {
-  } else if (! strcmp(a, "?")) {
-    if (jtype == JSON_OBJECT)
-      json_object_foreach(t, k, v)
-        fprintf(stderr, "%s\n", k);
-    else if (jtype == JSON_ARRAY)
-      fprintf(stderr, "<<array: %d>>\n", (int) json_array_size(t));
-    else if (jtype == JSON_STRING)
-      fprintf(stderr, "<<string: %s>>\n", json_string_value(t));
+  while ((r = jsmn_parse(&p, js, jslen, tok, tokcount)) < 0) {
+    if (r == JSMN_ERROR_NOMEM)
+      tok = jrealloc(tok, sizeof(*tok) * (tokcount *= 2));
     else
-      fprintf(stderr, "<<primitive>>\n");
-    exit(0);
-  } else {
-    iter_next(arg);
-    stack_push(in, json_get(t, a));
+      die("can't parse json: %s", (r == JSMN_ERROR_PART)
+          ? "unexpected eof" : "invalid token");
   }
 
-  run(in, out, go, idx, itr, arg);
+  return tok;
+}
+
+int jnext(jsmntok_t *tok) {
+  int i, j = 0;
+  for (i = 0; i < tok->size; i++)
+    j += jnext(tok + 1 + j);
+  return j + 1;
+}
+
+jsmntok_t *toknext(jsmntok_t *tok) {
+  int i, j = 0;
+  for (i = 0; i < tok->size; i++)
+    j += jnext(tok + 1 + j);
+  return tok + 1 + j;
+}
+
+char *jstr(const char *js, jsmntok_t *tok) {
+  return str("%.*s", tok->end - tok->start, js + tok->start);
+}
+
+void jprint(const char *fmt, const char *js, jsmntok_t *tok) {
+  char *s = jstr(js, tok);
+  fprintf(stderr, fmt, s);
+  free(s);
+}
+
+void obj_print_keys(const char *js, jsmntok_t *tok) {
+  int i;
+  jsmntok_t *v = tok + 1;
+  if (tok->type != JSMN_OBJECT) die("not an object");
+  for (i = 0; i < tok->size; i++, v = toknext(v))
+    jprint("%s\n", js, v);
+}
+
+jsmntok_t *obj_get(const char *js, jsmntok_t *tok, const char *k) {
+  int i;
+  jsmntok_t *v;
+
+  if (tok->type != JSMN_OBJECT) die("not an object");
+
+  for (i = 0, v = tok + 1; i < tok->size; i++, v = toknext(v))
+    if (! strncmp(k, js + v->start, v->end - v->start))
+      return v + 1;
+
+  return NULL;
+}
+
+jsmntok_t *ary_get(const char *js, jsmntok_t *tok, int n) {
+  int i;
+  jsmntok_t *v;
+
+  if (n < 0 || n >= tok->size)
+    die("array index out of bounds: %d", n);
+
+  for (i = 0, v = tok + 1; i < n; i++)
+    v = toknext(v);
+
+  return v;
+}
+
+/*
+ * runner
+ *****************************************************************************/
+
+void run(char *js, int argc, char *argv[]) {
+  jsmntok_t *data = stack_head(IN);
+  int *i, *j;
+
+  if (data && data->type == JSMN_ARRAY) {
+    if (data->size == 0) {
+      stack_push(&IN, NULL);
+      run(js, argc, argv);
+    } else {
+      i = (int*) stack_head(ITR);
+
+      if (i) {
+        stack_pop(&ITR);
+      } else {
+        i = jalloc(sizeof(int*));
+        *i = 0;
+      }
+
+      stack_push(&IN, ary_get(js, data, *i));
+      stack_push(&IDX, i);
+      run(js, argc, argv);
+      stack_pop(&IDX);
+
+      if (! stack_head(ITR)) (*i)++;
+      if (*i < data->size) stack_push(&ITR, i);
+    }
+    return;
+  }
+
+  if (argc <= 0) return;
+
+  if (! strcmp(argv[0], "?")) {
+    if (data && data->type == JSMN_OBJECT)
+      obj_print_keys(js, data);
+    exit(0);
+  }
+
+  if (! strcmp(argv[0], "%")) {
+    stack_push(&OUT, data ? jstr(js, data) : str(""));
+  }
+
+  else if (! strcmp(argv[0], "^")) {
+    if (! (i = stack_head(IDX)))
+      die("no index to print");
+    stack_push(&OUT, str("%d", * (int*) i));
+  }
+
+  else if (! strcmp(argv[0], "[")) {
+    stack_push(&GO, stack_head(IN));
+  }
+
+  else if (! strcmp(argv[0], "]")) {
+    while (stack_head(IN) != stack_head(GO))
+      stack_pop(&IN);
+    stack_pop(&GO);
+  }
+
+  else if (data) {
+    stack_push(&IN, obj_get(js, data, argv[0]));
+  }
+
+  run(js, argc - 1, argv + 1);
 }
 
 /*
  * main
  *****************************************************************************/
 
-#define OPTSPEC "+F:i:R:"
-
 int main(int argc, char *argv[]) {
-  int opt;
-  FILE *infile = NULL;
+  jsmntok_t *tok, *v;
+  char      *js, **o;
+  int       opt, *ret, i, j;
+  FILE      *infile = NULL, *outfile = NULL;
 
-  while ((opt = getopt(argc, argv, OPTSPEC)) != -1) {
+  while ((opt = getopt(argc, argv, "+i:o:F:R:")) != -1) {
     switch (opt) {
       case 'i':
-        if (! (infile = fopen((char*) strdup(optarg), "r")))
-          die("can't open file for reading: %s", optarg);
+        infile = open((char*) strdup(optarg), "r");
+        break;
+      case 'o':
+        outfile = open((char*) strdup(optarg), "w");
+        break;
       case 'F':
         colsep = (char*) strdup(optarg);
         break;
       case 'R':
         rowsep = (char*) strdup(optarg);
         break;
+      default:
+        exit(1);
     }
   }
 
-  char  *json   = read_stream(infile ? infile : stdin);
-  Stack *input  = stack_new();
-  Stack *output = stack_new();
-  Stack *gosub  = stack_new();
-  Stack *index  = stack_new();
-  Stack *depth  = stack_new();
-  Iter   argv_i = { argv + optind, argc - 1, 0 };
+  infile  = infile  ? infile  : stdin;
+  outfile = outfile ? outfile : stdout;
 
-  json_t *root, *itrp;
-  json_int_t *ret;
-  json_error_t error;
-  if (! (root = json_loads(json, 0, &error)))
-    die("json line %d: %s", error.line, error.text);
-  free(json);
+  js  = read_stream(infile);
+  tok = parse_string(js);
 
-  stack_push(input, root);
+  stack_push(&IN, tok);
 
   do {
-    run(input, output, gosub, index, depth, &argv_i);
-    input->head = 0; // implicit gosub - return
-    iter_reset(&argv_i);
+    run(js, argc - optind, argv + optind);
 
-    for (int i = 0; i <= output->head; i++) {
-      print_atom(((json_t**)output->items)[i]);
-      printf("%s", i < output->head ? colsep : rowsep);
+    o = (char **)(OUT.items);
+    for (i = 0; i <= OUT.head; i++) {
+      fprintf(outfile, "%s%s", o[i], i < OUT.head ? colsep : rowsep);
+      free(o[i]);
     }
 
-    while (stack_depth(output) > 0)
-      stack_pop(output);
-
-    ret = stack_head(depth);
-  } while (ret && *ret >= 0);
+    stack_pop_to(&IN, 0);
+    stack_pop_to(&OUT, -1);
+  } while (stack_depth(ITR) > 0);
 
   return 0;
 }
