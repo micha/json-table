@@ -1,16 +1,13 @@
 #define _GNU_SOURCE
-#include <stdio.h>
-#include <unistd.h>
-#include <string.h>
 #include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include <jansson.h>
 
 char *colsep     = "\t";
 char *rowsep     = "\n";
-char *gosubarg   = "[";
-char *returnarg  = "]";
-char *explodearg = "@";
 
 void die(const char *fmt, ...) {
   va_list ap;
@@ -26,18 +23,14 @@ void die_mem() {
   die("failed to allocate memory");
 }
 
-void die_json(json_error_t err) {
-  fprintf(stderr, "jt: error: json line %d: %s\n", err.line, err.text);
-}
-
-char* read_stdin() {
+char* read_stream(FILE *in) {
   char    buf[BUFSIZ];
   char    *ret         = NULL;
   size_t  ret_size     = 0;
   size_t  ret_newsize  = 0;
   size_t  ret_capacity = BUFSIZ * 2.5;
   ssize_t bytes_r      = NULL;
-  int     fd           = fileno(stdin);
+  int     fd           = fileno(in);
 
   if(! (ret = malloc(ret_capacity))) die_mem();
 
@@ -69,22 +62,19 @@ char* read_stdin() {
 typedef struct Stack {
   void** items;
   int    head;
-  int    size;
 } Stack;
 
 Stack *stack_new() {
   void **items = malloc(STACKSIZE);
   Stack *stack = malloc(sizeof(Stack));
   if (! items || ! stack) die_mem();
-  stack->size = STACKSIZE;
   stack->head = -1;
   stack->items = items;
   return stack;
 }
 
 void stack_push(Stack *stack, void *item) {
-  int capacity = stack->size;
-  if (stack->head >= capacity)
+  if (stack->head >= STACKSIZE)
     die("maximum stack depth exceeded");
   stack->items[(stack->head += 1)] = item;
 }
@@ -145,24 +135,13 @@ int iter_hasnext(Iter *it) {
  * functions
  *****************************************************************************/
 
-void print_keys_and_exit(json_t *obj) {
+void print_keys(json_t *obj) {
   const char *k;
   json_t *v;
   json_object_foreach(obj, k, v)
     fprintf(stderr, "%s\n", k);
+  fflush(stderr);
   exit(0);
-}
-
-void do_gosub(Stack *input, Stack *gosub) {
-  stack_push(gosub, stack_head(input));
-}
-
-void do_return(Stack *input, Stack *gosub) {
-  if (! stack_head(gosub))
-    die("return with no gosub on the stack");
-  while (stack_head(input) != stack_head(gosub))
-    stack_pop(input);
-  stack_pop(gosub);
 }
 
 void print_atom(json_t *x) {
@@ -189,73 +168,106 @@ void print_atom(json_t *x) {
     default:
       die("unknown json type: %d", jtype);
   }
+  fflush(stdout);
 }
 
-int is_collection(json_t *x) {
-  int jtype = json_typeof(x);
-  return jtype == JSON_ARRAY || jtype == JSON_OBJECT;
+void do_gosub(Stack *input, Stack *gosub) {
+  stack_push(gosub, stack_head(input));
 }
 
-int run(Stack *input, Stack *gosub, Stack *output, Iter *argv, int iters) {
-  json_t *y, *x = stack_head(input);
-  char *arg = NULL;
-  int jtype, tmp, size, idx, ret, ret2;
+void do_return(Stack *input, Stack *gosub) {
+  if (! stack_head(gosub))
+    die("return with no gosub on the stack");
+  while (stack_head(input) != stack_head(gosub))
+    stack_pop(input);
+  stack_pop(gosub);
+}
 
-  if (! x) return 1;
+json_t *json_get(json_t *t, char *k) {
+  if (json_typeof(t) != JSON_OBJECT)
+    die("not an object, no such key: %s", k);
+  json_t *ret = json_object_get(t, k);
+  if (! ret) die("no such key: %s", k);
+  return ret;
+}
 
-  jtype = json_typeof(x);
+void run(Stack *in, Stack *out, Stack *go, Stack *idx, Stack *itr, Iter *arg) {
+  json_t  *t = (json_t*) stack_head(in), *v, *w;
+  char *k, *a = iter_fin(arg) ? NULL : ((char**) arg->val)[arg->pos];
+  int i, j, ret, jtype = json_typeof(t);
+  json_int_t *ix, *iy;
 
   if (jtype == JSON_ARRAY) {
-    size = json_array_size(x);
-    if (size == 0) return 1;
-    idx = (iters < 0) ? 0 : ((-iters % size) + size) % size;
-    y = json_array_get(x, idx);
-    if (! is_collection(y))
-      stack_push(output, y);
-    stack_push(input, y);
-    return run(input, gosub, output, argv, iters) * size;
-  }
-
-  if (! iter_fin(argv))
-    arg = ((char**)argv->val)[argv->pos];
-
-  if (arg) {
-    if (! strcmp(arg, gosubarg)) {
-      do_gosub(input, gosub);
-      iter_next(argv);
-      return run(input, gosub, output, argv, iters);
-    } else if (! strcmp(arg, returnarg)) {
-      do_return(input, gosub);
-      iter_next(argv);
-      return run(input, gosub, output, argv, iters);
-    } else if (jtype == JSON_OBJECT) {
-      if (! (y = json_object_get(x, arg))) return 1;
-      if (! is_collection(y))
-        stack_push(output, y);
-      iter_next(argv);
-      stack_push(input, y);
-      return run(input, gosub, output, argv, iters);
+    if (stack_depth(itr) > 0) {
+      ix = stack_head(itr);
+      stack_pop(itr);
+      if (*ix < 0) *ix = 0;
     } else {
-      die("illegal operation: %s", arg);
+      if (! (ix = malloc(sizeof(json_int_t*)))) die_mem();
+      *ix = 0;
     }
-  } else if (jtype == JSON_OBJECT && output->head < 0) {
-    print_keys_and_exit(x);
+    stack_push(idx, (void*) ix);
+    stack_push(in, json_array_get(t, *ix));
+    run(in, out, go, idx, itr, arg);
+    stack_pop(idx);
+    if (! stack_depth(itr) || *((json_int_t*) stack_head(itr)) < 0)
+      *ix = *ix + 1;
+    if (*ix == json_array_size(t))
+      *ix = -1;
+    stack_push(itr, ix);
+    return;
+  } else if (! a) {
+    return;
+  } else if (! strcmp(a, "[")) {
+    iter_next(arg);
+    do_gosub(in, go);
+  } else if (! strcmp(a, "]")) {
+    iter_next(arg);
+    do_return(in, go);
+  } else if (! strcmp(a, "%")) {
+    iter_next(arg);
+    stack_push(out, t);
+  } else if (! strcmp(a, "^")) {
+    v = stack_head(idx);
+    if (! v)
+      die("no array index to print");
+    iter_next(arg);
+    stack_push(out, json_integer(* (json_int_t*) v));
+  } else if (! strcmp(a, "@")) {
+  } else if (! strcmp(a, "?")) {
+    if (jtype == JSON_OBJECT)
+      json_object_foreach(t, k, v)
+        fprintf(stderr, "%s\n", k);
+    else if (jtype == JSON_ARRAY)
+      fprintf(stderr, "<<array: %d>>\n", (int) json_array_size(t));
+    else if (jtype == JSON_STRING)
+      fprintf(stderr, "<<string: %s>>\n", json_string_value(t));
+    else
+      fprintf(stderr, "<<primitive>>\n");
+    exit(0);
   } else {
-    return 1;
+    iter_next(arg);
+    stack_push(in, json_get(t, a));
   }
+
+  run(in, out, go, idx, itr, arg);
 }
 
 /*
  * main
  *****************************************************************************/
 
-#define OPTSPEC "+F:R:"
+#define OPTSPEC "+F:i:R:"
 
 int main(int argc, char *argv[]) {
   int opt;
+  FILE *infile = NULL;
 
   while ((opt = getopt(argc, argv, OPTSPEC)) != -1) {
     switch (opt) {
+      case 'i':
+        if (! (infile = fopen((char*) strdup(optarg), "r")))
+          die("can't open file for reading: %s", optarg);
       case 'F':
         colsep = (char*) strdup(optarg);
         break;
@@ -265,24 +277,25 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  json_t *root;
-  json_error_t error;
-  char*  text   = read_stdin();
-  Stack* input  = stack_new();
-  Stack* gosub  = stack_new();
-  Stack* output = stack_new();
+  char  *json   = read_stream(infile ? infile : stdin);
+  Stack *input  = stack_new();
+  Stack *output = stack_new();
+  Stack *gosub  = stack_new();
+  Stack *index  = stack_new();
+  Stack *depth  = stack_new();
   Iter   argv_i = { argv + optind, argc - 1, 0 };
-  int    iters  = -1;
-  int    ret    = -1;
 
-  if (! (root = json_loads(text, 0, &error)))
+  json_t *root, *itrp;
+  json_int_t *ret;
+  json_error_t error;
+  if (! (root = json_loads(json, 0, &error)))
     die("json line %d: %s", error.line, error.text);
-  free(text);
+  free(json);
 
   stack_push(input, root);
 
   do {
-    ret = run(input, gosub, output, &argv_i, iters);
+    run(input, output, gosub, index, depth, &argv_i);
     input->head = 0; // implicit gosub - return
     iter_reset(&argv_i);
 
@@ -294,8 +307,8 @@ int main(int argc, char *argv[]) {
     while (stack_depth(output) > 0)
       stack_pop(output);
 
-    if (iters < 0) iters = ret;
-  } while (iters-- > 0);
+    ret = stack_head(depth);
+  } while (ret && *ret >= 0);
 
   return 0;
 }
