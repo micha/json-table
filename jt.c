@@ -326,13 +326,13 @@ int main(int argc, char *argv[]) {
 
   js  = read_stream(infile);
   tok = parse_string(js);
+  o   = (char **)(OUT.items);
 
   stack_push(&IN, tok);
 
   do {
     run(js, argc - optind, argv + optind);
 
-    o = (char **)(OUT.items);
     for (i = 0; i <= OUT.head; i++) {
       fprintf(outfile, "%s%s", o[i], i < OUT.head ? colsep : rowsep);
       free(o[i]);
