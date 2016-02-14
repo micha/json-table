@@ -19,7 +19,7 @@ a table of ELB names to EC2 instance IDs:
 
 ```
 $ aws elb describe-load-balancers \
--   | jt LoadBalancerDescriptions [ LoadBalancerName % ] Instances [ InstanceId % ]
+-   | jt LoadBalancerDescriptions [ LoadBalancerName % ] Instances InstanceId %
 ```
 ```
 elb-1	i-94a6f73a
