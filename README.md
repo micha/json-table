@@ -1,12 +1,13 @@
 # json-table &mdash; (╯°□°)╯︵ ┻━┻
 
 **Jt** transforms JSON data structures into tables of columns and rows for
-processing in the shell. Extracting information from deeply nested JSON data
-is difficult and unreliable with tools like **sed** and **awk**, and tools
-that are specially designed for manipulating JSON are cumbersome to use in
-the shell because they either return their results as JSON or introduce a
-new turing complete scripting language that needs to be quoted and constructed
-via string interpolation.
+processing in the shell.
+
+Extracting information from deeply nested JSON data is difficult and unreliable
+with tools like **sed** and **awk**, and tools that are specially designed for
+manipulating JSON are cumbersome to use in the shell because they either return
+their results as JSON or introduce a new turing complete scripting language
+that needs to be quoted and constructed via string interpolation.
 
 **Jt** provides only what is needed to extract data from nested JSON data
 structures and organize the data into a table. Tools like **cut**, **paste**,
