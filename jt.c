@@ -299,7 +299,7 @@ void run(char *js, int argc, char *argv[]) {
 int main(int argc, char *argv[]) {
   jsmntok_t *tok, *v;
   char      *js, **o;
-  int       opt, *ret, i, j;
+  int       opt, have_output, i, j;
   FILE      *infile = NULL, *outfile = NULL;
 
   while ((opt = getopt(argc, argv, "+i:o:F:R:")) != -1) {
@@ -333,10 +333,20 @@ int main(int argc, char *argv[]) {
   do {
     run(js, argc - optind, argv + optind);
 
+    have_output = 0;
     for (i = 0; i <= OUT.head; i++) {
-      fprintf(outfile, "%s%s", o[i], i < OUT.head ? colsep : rowsep);
-      free(o[i]);
+      if (o[i][0] != '\0') {
+        have_output = 1;
+        break;
+      }
     }
+
+    if (have_output)
+      for (i = 0; i <= OUT.head; i++)
+        fprintf(outfile, "%s%s", o[i], i < OUT.head ? colsep : rowsep);
+
+    for (i = 0; i <= OUT.head; i++)
+      free(o[i]);
 
     stack_pop_to(&IN, 0);
     stack_pop_to(&OUT, -1);
