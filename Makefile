@@ -12,13 +12,10 @@ all: jt
 clean:
 	rm -f jt jt.1 jt.1.html *.o *.a *.tar *.gz
 
-libjsmn.a: jsmn.o
-	$(AR) rc $@ $^
-
-%.o: %.c jsmn.h
+%.o: %.c
 	$(CC) -c $(CFLAGS) $< -o $@
 
-jt: jt.o libjsmn.a
+jt: jt.o
 	$(CC) $(LDFLAGS) $^ -o $@
 
 %.1: %.1.ronn

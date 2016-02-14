@@ -9,7 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include "jsmn.h"
+#include "jsmn.c"
 
 char *colsep     = "\t";
 char *rowsep     = "\n";
@@ -267,6 +267,7 @@ int run(char *js, int argc, char *argv[]) {
     if (data->size == 0) {
       stack_push(&IN, NULL);
       run(js, argc, argv);
+      if (! left_join) cols = -STACKSIZE;
     } else {
       i = (int*) stack_head(ITR);
 
@@ -320,7 +321,7 @@ int run(char *js, int argc, char *argv[]) {
 
   else if (data) {
     data = obj_get(js, data, argv[0]);
-    if (! (data || left_join)) return -1 * STACKSIZE;
+    if (! (data || left_join)) return -STACKSIZE;
     stack_push(&IN, data);
   }
 
