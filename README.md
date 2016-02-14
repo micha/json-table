@@ -24,7 +24,14 @@ elb-1	i-94a6f73a
 elb-2	i-b910a256
 ```
 
-## Installation
+## Features
+
+* Self contained &mdash; no external dependencies when statically linked.
+* Small &mdash; 20K dynamically linked to glibc, 800K with static linking.
+* Fast, small memory footprint &mdash; efficiently process large JSON input.
+* Streaming mode reads JSON objects one-per-line e.g., from log files.
+
+## Install
 
 `Jt` doesn't have any dependencies.
 
