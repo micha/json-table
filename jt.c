@@ -9,7 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include "jsmn.c"
+#include "jsmn.h"
 
 char *colsep     = "\t";
 char *rowsep     = "\n";
