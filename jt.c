@@ -307,10 +307,9 @@ void run(char *js, int argc, char *argv[]) {
  *****************************************************************************/
 
 void usage(int status) {
-  fprintf(stderr, "Usage: jt [-h] [-F <char>] [-R <char>] COMMAND ...\n");
+  fprintf(stderr, "Usage: jt [-h] [-F <char>] [-R <char>] [COMMAND ...]\n");
   fprintf(stderr, "Transform JSON data into tab delimited lines of text.\n");
-  fprintf(stderr, "\n");
-  fprintf(stderr, "COMMAND is one of `[', `]', `%%', or a property name.");
+  fprintf(stderr, "COMMAND is one of `[', `]', `%%', `?', `^', or a property name.");
   exit(status);
 }
 
