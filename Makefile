@@ -21,11 +21,11 @@ libjsmn.a: jsmn.o
 jt: jt.o libjsmn.a
 	$(CC) $(LDFLAGS) $^ -o $@
 
-jt.1: jt.1.ronn
-	cat jt.1.ronn |ronn -r --pipe > jt.1
+%.1: %.1.ronn
+	cat $^ |ronn -r --pipe > $@
 
-jt.1.html: jt.1.ronn
-	cat jt.1.ronn |ronn -5 --pipe > jt.1.html
+%.1.html: %.1.ronn
+	cat $^ |ronn -5 --pipe > $@
 
 docs: jt.1 jt.1.html
 
