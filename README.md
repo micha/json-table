@@ -92,7 +92,7 @@ Include the array index as a column in the result:
     a       b       0       c
     a       b       1       d
 
-Notice the empty column &mdash; some objects don't have the <z> key:
+Notice the empty column &mdash; some objects don't have the `z` key:
 
     $ echo "$JSON" | jt [ foo % ] baz [ y % ] z %
     a       c
