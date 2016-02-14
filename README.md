@@ -13,7 +13,7 @@ structures and organize the data into a table. Tools like **cut**, **paste**,
 **join**, **sort**, **uniq**, etc. can be used to efficiently reduce the
 tabular data to produce the final result.
 
-### Features
+**Jt** is:
 
 * Self contained &mdash; no external dependencies when statically linked.
 * Small &mdash; 20K dynamically linked to glibc, 800K with static linking.
