@@ -1,4 +1,4 @@
-# json-table &mdash; (╯°□°）╯︵ ┻━┻
+# json-table &mdash; (╯°□°)╯︵ ┻━┻
 
 **Jt** transforms JSON data structures into tables of columns and rows for
 processing in the shell. Extracting information from deeply nested JSON data
