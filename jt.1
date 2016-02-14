@@ -1,0 +1,258 @@
+.\" generated with Ronn/v0.7.3
+.\" http://github.com/rtomayko/ronn/tree/0.7.3
+.
+.TH "JT" "1" "February 2016" "" ""
+.
+.SH "NAME"
+\fBjt\fR \- transform JSON data to tabular format
+.
+.SH "SYNOPSIS"
+\fBjt\fR [\fB\-h\fR]
+.
+.br
+\fBjt\fR [\fB\-js\fR] [\fB\-F\fR \fIchar\fR] [\fB\-R\fR \fIchar\fR] [\fB\-i\fR \fIfile\fR] [\fB\-o\fR \fIfile\fR] \fBCOMMAND\fR \.\.\.
+.
+.SH "DESCRIPTION"
+\fBJt\fR transforms JSON data structures into tables of columns and rows for processing in the shell\. Extracting information from deeply nested JSON data is difficult and unreliable with tools like \fBsed\fR and \fBawk\fR, and tools that are specially designed for manipulating JSON are cumbersome to use in the shell because they either return their results as JSON or introduce a new turing complete scripting language that needs to be quoted and constructed via string interpolation\.
+.
+.P
+\fBJt\fR provides only what is needed to extract data from nested JSON data structures and organize the data into a table\. Tools like \fBcut\fR, \fBpaste\fR, \fBjoin\fR, \fBsort\fR, \fBuniq\fR, etc\. can be used to efficiently reduce the tabular data to produce the final result\.
+.
+.SH "OPTIONS"
+.
+.TP
+\fB\-h\fR
+Print usage info and exit\.
+.
+.TP
+\fB\-j\fR
+Inner join mode: discard rows with missing columns\.
+.
+.TP
+\fB\-s\fR
+Stream mode: expect one JSON object per line of input\.
+.
+.TP
+\fB\-F\fR \fIchar\fR
+Set the output field separator to \fIchar\fR (tab)\.
+.
+.TP
+\fB\-R\fR \fIchar\fR
+Set the output record separator to \fIchar\fR (newline)\.
+.
+.TP
+\fB\-i\fR \fIfile\fR
+Read JSON input from \fIfile\fR instead of from stdin\.
+.
+.TP
+\fB\-o\fR \fIfile\fR
+Write output to \fIfile\fR instead of to stdout\.
+.
+.SH "COMMANDS"
+Non\-option arguments are \fBcommands\fR in a limited stack language\. These commands operate on one of the following internal \fBjt\fR stack data structures:
+.
+.IP "\(bu" 4
+The \fBdata stack\fR contains JSON objects from the input stream\. Commands operate on the top of this stack to traverse the JSON tree and print values\.
+.
+.IP "\(bu" 4
+The \fBgosub stack\fR contains pointers into the data stack\. Commands push data stack pointers onto this stack to save the state of the data stack and pop them off to restore the data stack to a saved state\.
+.
+.IP "\(bu" 4
+The \fBindex stack\fR contains the indexes of nested arrays as \fBjt\fR iterates over them\. Commands can print the value at the top of this stack\.
+.
+.IP "" 0
+.
+.P
+The following commands are available:
+.
+.TP
+\fB[\fR
+Save the state of the data stack: the current data stack pointer is pushed onto the gosub stack\.
+.
+.TP
+\fB]\fR
+Restore the data stack to a saved state: pop the gosub stack and restore the data stack pointer to that state\.
+.
+.TP
+\fB%\fR
+Print the value at the top of the data stack\. If the item at the top of the data stack is not a string or primitive type a blank field is printed\.
+.
+.TP
+\fB^\fR
+Print the array index at the top of the index stack\. It is an error if the index stack is empty\.
+.
+.TP
+\fB?\fR
+Print the keys of the object at the top of the data stack\. It is an error if the item at the top of the data stack is not an object\.
+.
+.TP
+\fIKEY\fR
+Drill down: get the value of the \fIKEY\fR property of the object at the top of the data stack and push that value onto the data stack\.
+.
+.SH "EXAMPLES"
+Explore JSON data, print an object\'s keys:
+.
+.IP "" 4
+.
+.nf
+
+$ JSON=\'{"foo":"a","bar":{"x":"b"},"baz":[{"y":"c"},{"y":"d","z":"e"}]}\'
+
+$ echo "$JSON" | jt ?
+foo
+bar
+baz
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Print a nested object\'s keys:
+.
+.IP "" 4
+.
+.nf
+
+$ echo "$JSON" | jt bar ?
+x
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Print the keys of the first object in a nested array:
+.
+.IP "" 4
+.
+.nf
+
+$ echo "$JSON" | jt baz ?
+y
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Print the indexes in a nested array:
+.
+.IP "" 4
+.
+.nf
+
+$ echo "$JSON" | jt baz ^
+0
+1
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Extract values from JSON data:
+.
+.IP "" 4
+.
+.nf
+
+$ echo "$JSON" | jt foo %
+a
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Extract nested JSON data:
+.
+.IP "" 4
+.
+.nf
+
+$ echo "$JSON" | jt bar x %
+b
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Extract multiple values by saving and restoring the data stack:
+.
+.IP "" 4
+.
+.nf
+
+$ echo "$JSON" | jt [ foo % ] bar x %
+a       b
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Iterate over nested arrays, producing one row per iteration:
+.
+.IP "" 4
+.
+.nf
+
+$ echo "$JSON" | jt [ foo % ] [ bar x % ] baz y %
+a       b       c
+a       b       d
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Include the array index as a column in the result:
+.
+.IP "" 4
+.
+.nf
+
+$ echo "$JSON" | jt [ foo % ] [ bar x % ] baz y ^ %
+a       b       0       c
+a       b       1       d
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Notice the empty column \(em some objects don\'t have the \fIz\fR key:
+.
+.IP "" 4
+.
+.nf
+
+$ echo "$JSON" | jt [ foo % ] baz [ y % ] z %
+a       c
+a       d       e
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Inner join mode will remove rows from the output when any key in the traversal path doesn\'t exist:
+.
+.IP "" 4
+.
+.nf
+
+$ echo "$JSON" | jt \-j [ foo % ] baz [ y % ] z %
+a       d       e
+.
+.fi
+.
+.IP "" 0
+.
+.SH "COPYRIGHT"
+Copyright © 2016 Micha Niskin\. Distributed under the Eclipse Public License, version 1\.0: https://www\.eclipse\.org/legal/epl\-v10\.html\.
+.
+.SH "SEE ALSO"
+jshon(1), jq(1), comm(1), diff(1), sort(1), join(1), uniq(1), bash(1)
