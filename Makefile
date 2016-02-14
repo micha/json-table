@@ -38,7 +38,7 @@ jt-$(VERSION).tar: jt jt.1
 	tar cf $@ --transform 's@^@bin/@' jt
 	tar uf $@ --transform 's@^@man/man1/@' jt.1
 
-jt-$(VERSION).tar.gz: jt-$(VERSION).tar
+%.tar.gz: %.tar
 	gzip $^
 
 dist: jt-$(VERSION).tar.gz
