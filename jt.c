@@ -8,7 +8,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <search.h>
 #include "jsmn.c"
 
 char *colsep     = "\t";
