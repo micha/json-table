@@ -13,6 +13,12 @@ structures and organize the data into a table. Tools like **cut**, **paste**,
 **join**, **sort**, **uniq**, etc. can be used to efficiently reduce the
 tabular data to produce the final result.
 
+### Features
+
+* Self contained &mdash; no external dependencies when statically linked.
+* Small &mdash; 20K dynamically linked to glibc, 800K with static linking.
+* Fast, small memory footprint &mdash; efficiently process large JSON input.
+* Streaming mode reads JSON objects one-per-line e.g., from log files.
 
 You can get an idea of what **jt** can do from this one-liner that produces
 a table of ELB names to EC2 instance IDs:
@@ -23,13 +29,6 @@ $ aws elb describe-load-balancers \
 elb-1	i-94a6f73a
 elb-2	i-b910a256
 ```
-
-## Features
-
-* Self contained &mdash; no external dependencies when statically linked.
-* Small &mdash; 20K dynamically linked to glibc, 800K with static linking.
-* Fast, small memory footprint &mdash; efficiently process large JSON input.
-* Streaming mode reads JSON objects one-per-line e.g., from log files.
 
 ## Install
 
