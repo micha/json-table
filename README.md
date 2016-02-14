@@ -31,7 +31,13 @@ elb-2	i-b910a256
 
 ## Install
 
-`Jt` doesn't have any dependencies.
+Linux users can install prebuilt binaries from the release tarball:
+
+```
+sudo bash -c "cd /usr/local && wget -O - https://github.com/micha/json-table/releases/download/1.0.0/jt-1.0.0.tar.gz | tar xzvf -"
+```
+
+Otherwise, to build from source:
 
 ```
 git checkout 1.0.0 && make && sudo make install
