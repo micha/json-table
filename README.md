@@ -40,9 +40,11 @@ See the [man page][man] or `man jt` in your terminal.
 
 ## Examples
 
-Explore JSON data, print an object's keys:
+We'll use the following JSON data for the examples:
 
     $ JSON='{"foo":"a","bar":{"x":"b"},"baz":[{"y":"c"},{"y":"d","z":"e"}]}'
+
+Explore JSON data, print an object's keys:
 
     $ echo "$JSON" | jt ?
     foo
