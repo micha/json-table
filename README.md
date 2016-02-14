@@ -1,7 +1,4 @@
 # json-table
-Transform nested JSON data into tabular data in the shell.
-
-## Overview
 
 **Jt** transforms JSON data structures into tables of columns and rows for
 processing in the shell. Extracting information from deeply nested JSON data
@@ -40,6 +37,72 @@ make &&  sudo make install
 ## Documentation
 
 See the [man page][man] or `man jt` in your terminal.
+
+## Examples
+
+Explore JSON data, print an object's keys:
+
+    $ JSON='{"foo":"a","bar":{"x":"b"},"baz":[{"y":"c"},{"y":"d","z":"e"}]}'
+
+    $ echo "$JSON" | jt ?
+    foo
+    bar
+    baz
+
+Print a nested object's keys:
+
+    $ echo "$JSON" | jt bar ?
+    x
+
+Print the keys of the first object in a nested array:
+
+    $ echo "$JSON" | jt baz ?
+    y
+
+Print the indexes in a nested array:
+
+    $ echo "$JSON" | jt baz ^
+    0
+    1
+
+Extract values from JSON data:
+
+    $ echo "$JSON" | jt foo %
+    a
+
+Extract nested JSON data:
+
+    $ echo "$JSON" | jt bar x %
+    b
+
+Extract multiple values by saving and restoring the data stack:
+
+    $ echo "$JSON" | jt [ foo % ] bar x %
+    a       b
+
+Iterate over nested arrays, producing one row per iteration:
+
+    $ echo "$JSON" | jt [ foo % ] [ bar x % ] baz y %
+    a       b       c
+    a       b       d
+
+Include the array index as a column in the result:
+
+    $ echo "$JSON" | jt [ foo % ] [ bar x % ] baz y ^ %
+    a       b       0       c
+    a       b       1       d
+
+Notice the empty column &mdash; some objects don't have the <z> key:
+
+    $ echo "$JSON" | jt [ foo % ] baz [ y % ] z %
+    a       c
+    a       d       e
+
+Inner join mode will remove rows from the output when any key in the traversal
+path doesn't exist:
+
+    $ echo "$JSON" | jt -j [ foo % ] baz [ y % ] z %
+    a       d       e
 
 ## Copyright
 
