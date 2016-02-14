@@ -1,7 +1,7 @@
 #define _GNU_SOURCE
 #define JSMN_STRICT
 #define JSMN_PARENT_LINKS
-#define JT_VERSION "1.0.0"
+#define JT_VERSION "1.0.1"
 
 #include <stdarg.h>
 #include <stdio.h>
