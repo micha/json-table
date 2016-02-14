@@ -24,6 +24,16 @@ void die(const char *fmt, ...) {
   va_start(ap, fmt);
   vfprintf(stderr, fmt, ap);
   va_end(ap);
+  fprintf(stderr, "\n");
+  exit(1);
+}
+
+void die_err(const char *fmt, ...) {
+  va_list ap;
+  fprintf(stderr, "jt: ");
+  va_start(ap, fmt);
+  vfprintf(stderr, fmt, ap);
+  va_end(ap);
   if (errno != 0)
     fprintf(stderr, ": %s", strerror(errno));
   fprintf(stderr, "\n");
@@ -58,7 +68,7 @@ char *str(const char *fmt, ...) {
 FILE *open(const char *path, const char *mode) {
   FILE *ret;
   if (! (ret = fopen(path, mode)))
-    die("can't open %s", path);
+    die_err("can't open %s", path);
   return ret;
 }
 
@@ -77,7 +87,7 @@ char *read_stream(FILE *in) {
     bytes_r = read(fd, buf, sizeof(buf));
 
     if (bytes_r < 0)
-      die("can't read input");
+      die_err("can't read input");
     else if (bytes_r == 0)
       return ret;
 
@@ -296,14 +306,25 @@ void run(char *js, int argc, char *argv[]) {
  * main
  *****************************************************************************/
 
+void usage(int status) {
+  fprintf(stderr, "Usage: jt [-h] [-F <char>] [-R <char>] COMMAND ...\n");
+  fprintf(stderr, "Transform JSON data into tab delimited lines of text.\n");
+  fprintf(stderr, "\n");
+  fprintf(stderr, "COMMAND is one of `[', `]', `%%', or a property name.");
+  exit(status);
+}
+
 int main(int argc, char *argv[]) {
   jsmntok_t *tok, *v;
   char      *js, **o;
   int       opt, have_output, i, j;
   FILE      *infile = NULL, *outfile = NULL;
 
-  while ((opt = getopt(argc, argv, "+i:o:F:R:")) != -1) {
+  while ((opt = getopt(argc, argv, "+hi:o:F:R:")) != -1) {
     switch (opt) {
+      case 'h':
+        usage(0);
+        break;
       case 'i':
         infile = open((char*) strdup(optarg), "r");
         break;
@@ -317,9 +338,12 @@ int main(int argc, char *argv[]) {
         rowsep = (char*) strdup(optarg);
         break;
       default:
-        exit(1);
+        fprintf(stderr, "\n");
+        usage(1);
     }
   }
+
+  if (argc - optind == 0) usage(0);
 
   infile  = infile  ? infile  : stdin;
   outfile = outfile ? outfile : stdout;
