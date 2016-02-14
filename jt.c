@@ -1,6 +1,7 @@
 #define _GNU_SOURCE
 #define JSMN_STRICT
 #define JSMN_PARENT_LINKS
+#define JT_VERSION "1.0.0"
 
 #include <stdarg.h>
 #include <stdio.h>
@@ -331,8 +332,8 @@ int run(char *js, int argc, char *argv[]) {
  *****************************************************************************/
 
 void usage(int status) {
-  fprintf(stderr, "Usage: jt [-h] [-F <char>] [-R <char>] [COMMAND ...]\n");
-  fprintf(stderr, "Transform JSON data into tab delimited lines of text.\n");
+  fprintf(stderr, "jt %s - transform JSON data into tab delimited lines of text.\n", JT_VERSION);
+  fprintf(stderr, "Usage: jt [-hjs] [-i <file>] [-o <file>] [-F <ch>] [-R <ch>] [COMMAND ...]\n");
   fprintf(stderr, "COMMAND is one of `[', `]', `%%', `?', `^', or a property name.");
   exit(status);
 }

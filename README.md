@@ -26,7 +26,7 @@ elb-2	i-b910a256
 
 ## Installation
 
-`Jt` doesn't have any dependencies.
+The current version is **1.0.0**. `Jt` doesn't have any dependencies.
 
 ```
 make &&  sudo make install
