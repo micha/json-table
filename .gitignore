@@ -16,3 +16,4 @@ target/
 /jt
 *.o
 *.a
+*.tar.gz
