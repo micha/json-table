@@ -13,10 +13,20 @@
 
 char *colsep     = "\t";
 char *rowsep     = "\n";
+int  left_join   = 1;
 
 /*
  * helpers
  *****************************************************************************/
+
+void warn(const char *fmt, ...) {
+  va_list ap;
+  fprintf(stderr, "jt: ");
+  va_start(ap, fmt);
+  vfprintf(stderr, fmt, ap);
+  va_end(ap);
+  fprintf(stderr, "\n");
+}
 
 void die(const char *fmt, ...) {
   va_list ap;
@@ -44,7 +54,7 @@ void die_mem() {
   die("can't allocate memory");
 }
 
-void *jalloc(size_t size) {
+void *jmalloc(size_t size) {
   void *ret;
   if (! (ret = malloc(size))) die_mem();
   return ret;
@@ -81,7 +91,7 @@ char *read_stream(FILE *in) {
   ssize_t bytes_r      = NULL;
   int     fd           = fileno(in);
 
-  ret = jalloc(ret_capacity);
+  ret = jmalloc(ret_capacity);
 
   for (;;) {
     bytes_r = read(fd, buf, sizeof(buf));
@@ -100,6 +110,13 @@ char *read_stream(FILE *in) {
   }
 
   return ret;
+}
+
+void read_line(char **s, size_t *n, FILE *in) {
+  if (getline(s, n, in) < 0) {
+    if (feof(in)) exit(0);
+    else die_err("can't read input");
+  }
 }
 
 /*
@@ -155,25 +172,24 @@ Stack ITR = { itr_i, "iterator", -1 };
  * json
  *****************************************************************************/
 
-jsmntok_t *parse_string(char *js) {
+#define TOKSIZE 2
+
+int parse_string(char *js, jsmntok_t **tok, size_t *toks) {
   int r;
   jsmn_parser p;
-  jsmntok_t *tok;
-  size_t tokcount = 256, jslen = strlen(js);
+  size_t jslen = strlen(js);
 
   jsmn_init(&p);
 
-  tok = jalloc(sizeof(*tok) * tokcount);
+  if (*toks == 0)
+    *tok = jmalloc(sizeof(**tok) * (*toks = TOKSIZE));
 
-  while ((r = jsmn_parse(&p, js, jslen, tok, tokcount)) < 0) {
-    if (r == JSMN_ERROR_NOMEM)
-      tok = jrealloc(tok, sizeof(*tok) * (tokcount *= 2));
-    else
-      die("can't parse json: %s", (r == JSMN_ERROR_PART)
-          ? "unexpected eof" : "invalid token");
+  while ((r = jsmn_parse(&p, js, jslen, *tok, *toks)) < 0) {
+    if (r != JSMN_ERROR_NOMEM) return r;
+    else *tok = jrealloc(*tok, sizeof(**tok) * ((*toks) *= 2));
   }
 
-  return tok;
+  return 0;
 }
 
 int jnext(jsmntok_t *tok) {
@@ -190,8 +206,14 @@ jsmntok_t *toknext(jsmntok_t *tok) {
   return tok + 1 + j;
 }
 
+int isnull(const char *js, jsmntok_t *tok) {
+  return tok->type == JSMN_PRIMITIVE && *(js + tok->start) == 'n';
+}
+
 char *jstr(const char *js, jsmntok_t *tok) {
-  return str("%.*s", tok->end - tok->start, js + tok->start);
+  return (! tok || isnull(js, tok))
+    ? str("")
+    : str("%.*s", tok->end - tok->start, js + tok->start);
 }
 
 void jprint(const char *fmt, const char *js, jsmntok_t *tok) {
@@ -212,11 +234,10 @@ jsmntok_t *obj_get(const char *js, jsmntok_t *tok, const char *k) {
   int i;
   jsmntok_t *v;
 
-  if (tok->type != JSMN_OBJECT) die("not an object");
-
-  for (i = 0, v = tok + 1; i < tok->size; i++, v = toknext(v))
-    if (! strncmp(k, js + v->start, v->end - v->start))
-      return v + 1;
+  if (tok->type == JSMN_OBJECT)
+    for (i = 0, v = tok + 1; i < tok->size; i++, v = toknext(v))
+      if (! strncmp(k, js + v->start, v->end - v->start))
+        return v + 1;
 
   return NULL;
 }
@@ -238,9 +259,9 @@ jsmntok_t *ary_get(const char *js, jsmntok_t *tok, int n) {
  * runner
  *****************************************************************************/
 
-void run(char *js, int argc, char *argv[]) {
+int run(char *js, int argc, char *argv[]) {
   jsmntok_t *data = stack_head(IN);
-  int *i, *j;
+  int *i, *j, cols = 0;
 
   if (data && data->type == JSMN_ARRAY) {
     if (data->size == 0) {
@@ -252,22 +273,22 @@ void run(char *js, int argc, char *argv[]) {
       if (i) {
         stack_pop(&ITR);
       } else {
-        i = jalloc(sizeof(int*));
+        i = jmalloc(sizeof(int*));
         *i = 0;
       }
 
       stack_push(&IN, ary_get(js, data, *i));
       stack_push(&IDX, i);
-      run(js, argc, argv);
+      cols = run(js, argc, argv);
       stack_pop(&IDX);
 
       if (! stack_head(ITR)) (*i)++;
       if (*i < data->size) stack_push(&ITR, i);
     }
-    return;
+    return cols;
   }
 
-  if (argc <= 0) return;
+  if (argc <= 0) return 0;
 
   if (! strcmp(argv[0], "?")) {
     if (data && data->type == JSMN_OBJECT)
@@ -276,12 +297,14 @@ void run(char *js, int argc, char *argv[]) {
   }
 
   if (! strcmp(argv[0], "%")) {
-    stack_push(&OUT, data ? jstr(js, data) : str(""));
+    if (data && ! isnull(js, data)) cols = 1;
+    stack_push(&OUT, jstr(js, data));
   }
 
   else if (! strcmp(argv[0], "^")) {
     if (! (i = stack_head(IDX)))
       die("no index to print");
+    cols = 1;
     stack_push(&OUT, str("%d", * (int*) i));
   }
 
@@ -296,10 +319,12 @@ void run(char *js, int argc, char *argv[]) {
   }
 
   else if (data) {
-    stack_push(&IN, obj_get(js, data, argv[0]));
+    data = obj_get(js, data, argv[0]);
+    if (! (data || left_join)) return -1 * STACKSIZE;
+    stack_push(&IN, data);
   }
 
-  run(js, argc - 1, argv + 1);
+  return cols + run(js, argc - 1, argv + 1);
 }
 
 /*
@@ -314,15 +339,26 @@ void usage(int status) {
 }
 
 int main(int argc, char *argv[]) {
-  jsmntok_t *tok, *v;
+  jsmntok_t *tok;
+  size_t    jslen, toks;
   char      *js, **o;
-  int       opt, have_output, i, j;
-  FILE      *infile = NULL, *outfile = NULL;
+  int       opt, cols, streaming, line, i;
+  FILE      *infile, *outfile;
 
-  while ((opt = getopt(argc, argv, "+hi:o:F:R:")) != -1) {
+  streaming = 0;
+  infile    = stdin;
+  outfile   = stdout;
+
+  while ((opt = getopt(argc, argv, "+hjsi:o:F:R:")) != -1) {
     switch (opt) {
       case 'h':
         usage(0);
+        break;
+      case 'j':
+        left_join = 0;
+        break;
+      case 's':
+        streaming = 1;
         break;
       case 'i':
         infile = open((char*) strdup(optarg), "r");
@@ -344,36 +380,40 @@ int main(int argc, char *argv[]) {
 
   if (argc - optind == 0) usage(0);
 
-  infile  = infile  ? infile  : stdin;
-  outfile = outfile ? outfile : stdout;
-
-  js  = read_stream(infile);
-  tok = parse_string(js);
-  o   = (char **)(OUT.items);
-
-  stack_push(&IN, tok);
+  jslen = 0;
+  js    = NULL;
+  toks  = 0;
+  tok   = NULL;
+  line  = 1;
+  o     = (char **)(OUT.items);
 
   do {
-    run(js, argc - optind, argv + optind);
+    if (streaming) read_line(&js, &jslen, infile);
+    else js = read_stream(infile);
 
-    have_output = 0;
-    for (i = 0; i <= OUT.head; i++) {
-      if (o[i][0] != '\0') {
-        have_output = 1;
-        break;
-      }
+    if (parse_string(js, &tok, &toks)) {
+      if (! streaming) die("can't parse json");
+      else warn("can't parse json: line %d -- continuing\n", line);
+    } else {
+      stack_push(&IN, tok);
+
+      do {
+        cols = run(js, argc - optind, argv + optind);
+
+        if (cols > 0)
+          for (i = 0; i <= OUT.head; i++)
+            fprintf(outfile, "%s%s", o[i], i < OUT.head ? colsep : rowsep);
+
+        for (i = 0; i <= OUT.head; i++)
+          free(o[i]);
+
+        stack_pop_to(&IN, 0);
+        stack_pop_to(&OUT, -1);
+      } while (stack_depth(ITR) > 0);
+
+      stack_pop_to(&IN, -1);
     }
-
-    if (have_output)
-      for (i = 0; i <= OUT.head; i++)
-        fprintf(outfile, "%s%s", o[i], i < OUT.head ? colsep : rowsep);
-
-    for (i = 0; i <= OUT.head; i++)
-      free(o[i]);
-
-    stack_pop_to(&IN, 0);
-    stack_pop_to(&OUT, -1);
-  } while (stack_depth(ITR) > 0);
+  } while (streaming && ++line);
 
   return 0;
 }

@@ -29,6 +29,6 @@ jt.1.html: jt.1.ronn
 docs: jt.1 jt.1.html
 
 install: jt jt.1
-	sudo mkdir -p $(BINDIR) $(MANDIR)
-	sudo cp jt $(BINDIR)
-	sudo cp jt.1 $(MANDIR)
+	mkdir -p $(BINDIR) $(MANDIR)
+	cp jt $(BINDIR)
+	cp jt.1 $(MANDIR)

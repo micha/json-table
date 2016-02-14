@@ -4,7 +4,7 @@ jt(1) -- transform JSON data to tabular format
 ## SYNOPSIS
 
 `jt` [`-h`]<br>
-`jt` [`-F` <char>] [`-R` <char>] [`-i` <file>] [`-o` <file>] `COMMAND` ...
+`jt` [`-js`] [`-F` <char>] [`-R` <char>] [`-i` <file>] [`-o` <file>] `COMMAND` ...
 
 ## DESCRIPTION
 
@@ -26,31 +26,52 @@ tabular data to produce the final result.
   * `-h`:
     Print usage info and exit.
 
+  * `-j`:
+    Inner join mode: discard rows with missing columns.
+
+  * `-s`:
+    Stream mode: expect one JSON object per line of input.
+
   * `-F` <char>:
-    Set the output field separator to <char> (default is tab).
+    Set the output field separator to <char> (tab).
 
   * `-R` <char>:
-    Set the output record separator to <char> (default is newline).
+    Set the output record separator to <char> (newline).
 
   * `-i` <file>:
     Read JSON input from <file> instead of from stdin.
 
   * `-o` <file>:
-    Write output to <file> instead of to stout.
+    Write output to <file> instead of to stdout.
 
 ## COMMANDS
+
+Non-option arguments are `commands` in a limited stack language. These commands
+operate on one of the following internal `jt` stack data structures:
+
+* The `data stack` contains JSON objects from the input stream. Commands
+  operate on the top of this stack to traverse the JSON tree and print values.
+
+* The `gosub stack` contains pointers into the data stack. Commands push data
+  stack pointers onto this stack to save the state of the data stack and pop
+  them off to restore the data stack to a saved state.
+
+* The `index stack` contains the indexes of nested arrays as `jt` iterates over
+  them. Commands can print the value at the top of this stack.
+
+The following commands are available:
 
   * `[`:
     Save the state of the data stack: the current data stack pointer is pushed
     onto the gosub stack.
 
   * `]`:
-    Restore the data stack to the last saved state: the gosub stack is popped
-    and the data stack pointer is updated to that state.
+    Restore the data stack to a saved state: pop the gosub stack and restore
+    the data stack pointer to that state.
 
   * `%`:
-    Print the value at the top of the data stack. If item at the top of the
-    data stack is not a string primitive type a blank field is printed.
+    Print the value at the top of the data stack. If the item at the top of the
+    data stack is not a string or primitive type a blank field is printed.
 
   * `^`:
     Print the array index at the top of the index stack. It is an error if the
@@ -66,226 +87,69 @@ tabular data to produce the final result.
 
 ## EXAMPLES
 
-Consider the following JSON data:
+Explore JSON data, print an object's keys:
 
-    {
-      "Region": "US",
-      "Units": [
-        {
-          "Type": 1,
-          "Parts": [
-            { "Id": 100, "Price": 200.00 },
-            { "Id": 101, "Price": 400.00 }
-          ]
-        },
-        {
-          "Type": 2,
-          "Parts": [
-            { "Id": 200, "Price":  17.95 },
-            { "Id": 201, "Price":  92.50 },
-            { "Id": 202, "Price": 760.49 }
-          ]
-        }
-      ]
-    }
+    $ JSON='{"foo":"a","bar":{"x":"b"},"baz":[{"y":"c"},{"y":"d","z":"e"}]}'
 
-One of the things we may need to do is get a list of all the part IDs for a
-type 1 unit. If the JSON data were in tabular format it would be trivial:
+    $ echo "$JSON" | jt ?
+    foo
+    bar
+    baz
 
-    $ cat data.txt
-    Type Id    Price
-    1    100   200.00
-    1    101   400.00
-    2    200   17.95
-    2    201   92.50
-    2    202   760.49
+Print a nested object's keys:
 
-    $ join -j 1 <(sort -k 1 data.txt) <(echo 1) | cut -f2
-    100
-    101
+    $ echo "$JSON" | jt bar ?
+    x
 
-and the work is done. `Jt` performs the initial extraction of the JSON data
-and produces the table for piping to other Unix programs.
+Print the keys of the first object in a nested array:
 
-## TRAVERSAL
+    $ echo "$JSON" | jt baz ?
+    y
 
-The first step to extract data from a large JSON blob is to drill down
-incrementally, exploring as you go. **Jt** supports this with the `?` command.
-Using the JSON above as an example:
+Print the indexes in a nested array:
 
-    $ cat data.json | jt ?
-    Region
-    Units
+    $ echo "$JSON" | jt baz ^
+    0
+    1
 
-The top-level object was inspected, and its keys were printed, one per line.
-We can explore by drilling down into the object and following the keys deeper
-into the data structure:
+Extract values from JSON data:
 
-    $ cat data.json | jt Units ?
-    Type
-    Parts
+    $ echo "$JSON" | jt foo %
+    a
 
-and so on:
+Extract nested JSON data:
 
-    $ cat data.json | jt Units Parts ?
-    Id
-    Price
+    $ echo "$JSON" | jt bar x %
+    b
 
-Now that we know where the information we are interested in is located and we
-know how to move around we can direct **jt** to extract it.
+Extract multiple values by saving and restoring the data stack:
 
-## STACKS
+    $ echo "$JSON" | jt [ foo % ] bar x %
+    a       b
 
-The traversal operations make use of a stack to store the piece of the JSON
-blob that is currently being worked on: the **data stack**. Commands operate
-on the object at the top of this stack. The `-d` or `--down` command, for
-example, extracts the value associated with some key from the object at the
-top of the stack and pushes that value onto the stack, making it the new top.
-The `-u` or `--up` command pops the JSON stack, "rewinding" the current focus
-to the previous location in the JSON data.
+Iterate over nested arrays, producing one row per iteration:
 
-There is also another stack where data is stored for extraction: **the OUTPUT
-stack**. This stack holds the data for the row of the table that is currently
-being processed. The `-p` or `--print` command, for example, copies the object
-at the top of the JSON stack and pushes it onto the output stack, adding it to
-the current row.
+    $ echo "$JSON" | jt [ foo % ] [ bar x % ] baz y %
+    a       b       c
+    a       b       d
 
-Finally, there is a third stack where "subroutines" may store a pointer into
-the JSON stack: **the GOSUB stack**. This makes it possible to drill down into
-one part of the JSON data, extract a value to the output stack, and then rewind
-back to some earlier location so that another branch may be followed to find
-the next value. The `-g` or `--gosub` command pushes the current JSON stack
-pointer onto the gosub stack. The `-r` or `--return` command expands into a
-`--print` command and a number of `--up` commands (enough to restore the JSON
-stack to where the gosub pointer indicates), and it pops the gosub stack.
+Include the array index as a column in the result:
 
-## EXTRACTION
+    $ echo "$JSON" | jt [ foo % ] [ bar x % ] baz y ^ %
+    a       b       0       c
+    a       b       1       d
 
-The `-p` or `--print` command pushes whatever is at the top of the JSON stack
-onto the output stack, without modifying the JSON stack. So we can extract the
-<Region> value from the example JSON like this:
+Notice the empty column &mdash; some objects don't have the <z> key:
 
-    $ cat units.json | jt -d Region -p
-    US
+    $ echo "$JSON" | jt [ foo % ] baz [ y % ] z %
+    a       c
+    a       d       e
 
-**Jt** iterates over arrays automatically, so to extract the <Region> ID plus
-all of the unit <Type> IDs for that region we can use a combination of drilling
-down and rewinding, and **jt** will perform an implicit join:
+Inner join mode will remove rows from the output when any key in the traversal
+path doesn't exist:
 
-    $ cat units.json | jt -d Region -p -u -d Units -d Type -p
-    US	1
-    US	2
-
-And finally, suppose we want to extract the <Region>, <Type>, <Id>, and <Price>
-for all of the <Parts> in the JSON data:
-
-    $ cat units.json | jt \
-    -   -d Region -p -u \
-    -   -d Units -d Type -p -u \
-    -   -d Parts -d Id -p -u -d Price -p
-    US	1	 100	00.0
-    US	1	 101	00.0
-    US	2	 200	7.95
-    US	2	 201	2.5
-    US	2	 202	60.49
-
-Notice that each time we use the `-p` or `--print` command we create a new
-column in the resulting table.
-
-## SHORTCUTS
-
-It can get tedious typing all those `-d`, `-u`, and `-p` commands, and it can
-get confusing to see where you're at in the traversal sometimes. Since most
-JSON APIs in the wild do not choose weird names for keys **jt** can internally
-add those commands when necessary. The previous example can be simplified by
-leaving out the `-d` commands:
-
-    $ cat test.json | jt Region -p -u Units Type -p -u Parts Id -p -u Price -p
-    US	1	 100	00.0
-    US	1	 101	00.0
-    US	2	 200	7.95
-    US	2	 201	2.5
-    US	2	 202	60.49
-
-The `-g` or `--gosub` and `-r` or `--return` commands can shave some more
-keystrokes sometimes:
-
-    $ cat test.json | jt -g Region -r Units -g Type -r Parts -g Id -r Price -p
-    US	1	 100	00.0
-    US	1	 101	00.0
-    US	2	 200	7.95
-    US	2	 201	2.5
-    US	2	 202	60.49
-
-And finally, there are the `[` and `]` aliases for the `--gosub` and `--return`
-commands. Note that there must be space between the `[` or `]` and the next
-command:
-
-    $ cat test.json | jt [ Region ] Units [ Type ] Parts [ Id ] [ Price ]
-    US	1	 100	00.0
-    US	1	 101	00.0
-    US	2	 200	7.95
-    US	2	 201	2.5
-    US	2	 202	60.49
-
-This notation nicely highlights the columns that will be included in the table
-of results, in this case <Region>, <Type>, <Id>, and <Price>.
-
-## OUTPUT OPTIONS
-
-These options regulate how the results table is presented:
-
-  * `-F` <CHAR>, `--col-delim=`<CHAR>:
-    Sets the field delimiter character to <CHAR>. Each row in the results table
-    consists of a number of fields separated by this character. The default is
-    "\t".
-
-  * `-R` <CHAR>, `--record-delim=`<CHAR>:
-    Sets the record delimiter character to <CHAR>. The results table consists
-    of a number of records separated by this character. The default is "\n".
-
-  For example:
-
-    $ cat test.json | jt -F \| [ Region ] Units [ Type ] Parts [ Id ] [ Price ]
-    US|1|100|00.0
-    US|1|101|00.0
-    US|2|200|7.95
-    US|2|201|2.5
-    US|2|202|60.49
-
-
-## COMMANDS
-
-  * `-k`, `--keys`:
-    Prints the names of any keys the object at the top of the JSON stack may
-    contain, one per line, and then exits.
-
-  * `-d` <PROP>, `--down=`<PROP>:
-    Pushes the value of `x.PROP` onto the JSON stack, where `x` is the object
-    at the top of the JSON stack.
-
-  * `-u`, `--up`:
-    Pops the top value off of the JSON stack.
-
-  * `-p`, `--print`:
-    Pushes the object at the top of the JSON stack onto the output stack. (No
-    effect on the JSON stack.)
-
-  * `-q`, `--quote`:
-    Pushes a JSON encoded string representation of the object at the top of the
-    JSON stack onto the JSON stack.
-
-  * `-g`, `--gosub`, `[`:
-    Pushes the current JSON stack pointer onto the gosub stack. Note that when
-    using the `[` alias there must be at least one space before and after the
-    `[` token. Otherwise it will be interpreted as being part of a JSON property
-    name.
-
-  * `-r`, `--return`, `]`:
-    Expands to a `--print` command and a number of `--up` commands, enough to
-    restore the JSON stack to the place where the corresponding `--gosub` was
-    called. Also pops the gosub stack, removing the corresponding `--gosub`
-    from it.
+    $ echo "$JSON" | jt -j [ foo % ] baz [ y % ] z %
+    a       d       e
 
 ## COPYRIGHT
 
