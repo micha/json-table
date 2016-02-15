@@ -335,7 +335,7 @@ int run(char *js, int argc, char *argv[]) {
 void usage(int status) {
   fprintf(stderr, "jt %s - transform JSON data into tab delimited lines of text.\n", JT_VERSION);
   fprintf(stderr, "Usage: jt [-hjs] [-i <file>] [-o <file>] [-F <ch>] [-R <ch>] [COMMAND ...]\n");
-  fprintf(stderr, "COMMAND is one of `[', `]', `%%', `?', `^', or a property name.");
+  fprintf(stderr, "COMMAND is one of `[', `]', `%%', `?', `^', or a property name.\n");
   exit(status);
 }
 
