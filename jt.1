@@ -16,7 +16,7 @@
 \fBJt\fR transforms JSON data structures into tables of columns and rows for processing in the shell\. Extracting information from deeply nested JSON data is difficult and unreliable with tools like \fBsed\fR and \fBawk\fR, and tools that are specially designed for manipulating JSON are cumbersome to use in the shell because they either return their results as JSON or introduce a new turing complete scripting language that needs to be quoted and constructed via string interpolation\.
 .
 .P
-\fBJt\fR provides only what is needed to extract data from nested JSON data structures and organize the data into a table\. Tools like \fBcut\fR, \fBpaste\fR, \fBjoin\fR, \fBsort\fR, \fBuniq\fR, etc\. can be used to efficiently reduce the tabular data to produce the final result\.
+\fBJt\fR provides only what is needed to extract data from nested JSON data structures and organize the data into a table\. Tools like \fBcut\fR, \fBpaste\fR, \fBawk\fR, \fBjoin\fR, \fBsort\fR, \fBuniq\fR, etc\. can be used to efficiently reduce the tabular data to the final result\.
 .
 .SH "OPTIONS"
 .
@@ -49,7 +49,7 @@ Read JSON input from \fIfile\fR instead of from stdin\.
 Write output to \fIfile\fR instead of to stdout\.
 .
 .SH "COMMANDS"
-Non\-option arguments are \fBcommands\fR in a limited stack language\. These commands operate on one of the following internal \fBjt\fR stack data structures:
+Non\-option arguments are \fBcommands\fR in a limited stack language\. This language is not turing complete as it provides no branching or jump facilities\. It is similar to a calculator in that commands operate on data in, and push their results onto stack data structures provided by the \fBjt\fR runtime\. There are three stacks on which commands operate:
 .
 .IP "\(bu" 4
 The \fBdata stack\fR contains JSON objects from the input stream\. Commands operate on the top of this stack to traverse the JSON tree and print values\.
@@ -61,6 +61,12 @@ The \fBgosub stack\fR contains pointers into the data stack\. Commands push data
 The \fBindex stack\fR contains the indexes of nested arrays as \fBjt\fR iterates over them\. Commands can print the value at the top of this stack\.
 .
 .IP "" 0
+.
+.P
+Commands are evaluated from left to right\. When all commands have been applied the data stack is restored to its initial state, containing only the root JSON object, and a row of output is printed\. This process is repeated until all rows have been printed\.
+.
+.P
+Nested arrays in the JSON input are treated as implicit joins: a row of output is produced for each item in the array\. The array indexes are stored internally between iterations and are read\-only \(em no control over this is exposed via the command language\.
 .
 .P
 The following commands are available:
@@ -89,14 +95,31 @@ Print the keys of the object at the top of the data stack\. It is an error if th
 \fIKEY\fR
 Drill down: get the value of the \fIKEY\fR property of the object at the top of the data stack and push that value onto the data stack\.
 .
+.IP
+If the item at the top of the data stack is not an object or if the object has no \fIKEY\fR property a blank field is printed, unless the \fB\-j\fR option was specified in which case the entire row is removed from the output\.
+.
+.IP
+If the \fIKEY\fR property of the object is an array subsequent commands will operate on one of the items in the array, chosen automatically by \fBjt\fR\. The array index will be available to subsequent commands via the index stack\.
+.
 .SH "EXAMPLES"
-Explore JSON data, print an object\'s keys:
+We will use the following JSON input for the examples:
 .
 .IP "" 4
 .
 .nf
 
 $ JSON=\'{"foo":"a","bar":{"x":"b"},"baz":[{"y":"c"},{"y":"d","z":"e"}]}\'
+.
+.fi
+.
+.IP "" 0
+.
+.SS "Explore"
+Explore JSON data, print an object\'s keys:
+.
+.IP "" 4
+.
+.nf
 
 $ echo "$JSON" | jt ?
 foo
@@ -150,7 +173,7 @@ $ echo "$JSON" | jt baz ^
 .
 .IP "" 0
 .
-.P
+.SS "Extract"
 Extract values from JSON data:
 .
 .IP "" 4
@@ -178,7 +201,7 @@ b
 .
 .IP "" 0
 .
-.P
+.SS "Save / Restore"
 Extract multiple values by saving and restoring the data stack:
 .
 .IP "" 4
@@ -192,7 +215,7 @@ a       b
 .
 .IP "" 0
 .
-.P
+.SS "Arrays"
 Iterate over nested arrays, producing one row per iteration:
 .
 .IP "" 4
@@ -222,7 +245,7 @@ a       b       1       d
 .
 .IP "" 0
 .
-.P
+.SS "Joins"
 Notice the empty column \(em some objects don\'t have the \fIz\fR key:
 .
 .IP "" 4

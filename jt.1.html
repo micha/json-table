@@ -91,8 +91,8 @@ via string interpolation.</p>
 
 <p><strong>Jt</strong> provides only what is needed to extract data from nested JSON data
 structures and organize the data into a table. Tools like <strong>cut</strong>, <strong>paste</strong>,
-<strong>join</strong>, <strong>sort</strong>, <strong>uniq</strong>, etc. can be used to efficiently reduce the
-tabular data to produce the final result.</p>
+<strong>awk</strong>, <strong>join</strong>, <strong>sort</strong>, <strong>uniq</strong>, etc. can be used to efficiently reduce
+the tabular data to the final result.</p>
 
 <h2 id="OPTIONS">OPTIONS</h2>
 
@@ -109,8 +109,11 @@ tabular data to produce the final result.</p>
 
 <h2 id="COMMANDS">COMMANDS</h2>
 
-<p>Non-option arguments are <code>commands</code> in a limited stack language. These commands
-operate on one of the following internal <code>jt</code> stack data structures:</p>
+<p>Non-option arguments are <code>commands</code> in a limited stack language. This language
+is not turing complete as it provides no branching or jump facilities. It is
+similar to a calculator in that commands operate on data in, and push their
+results onto stack data structures provided by the <code>jt</code> runtime. There are
+three stacks on which commands operate:</p>
 
 <ul>
 <li><p>The <code>data stack</code> contains JSON objects from the input stream. Commands
@@ -122,6 +125,16 @@ them off to restore the data stack to a saved state.</p></li>
 them. Commands can print the value at the top of this stack.</p></li>
 </ul>
 
+
+<p>Commands are evaluated from left to right. When all commands have been applied
+the data stack is restored to its initial state, containing only the root JSON
+object, and a row of output is printed. This process is repeated until all rows
+have been printed.</p>
+
+<p>Nested arrays in the JSON input are treated as implicit joins: a row of output
+is produced for each item in the array. The array indexes are stored internally
+between iterations and are read-only &mdash; no control over this is exposed
+via the command language.</p>
 
 <p>The following commands are available:</p>
 
@@ -137,17 +150,31 @@ index stack is empty.</p></dd>
 <dt class="flush"><code>?</code></dt><dd><p>Print the keys of the object at the top of the data stack. It is an error
 if the item at the top of the data stack is not an object.</p></dd>
 <dt class="flush"><var>KEY</var></dt><dd><p>Drill down: get the value of the <var>KEY</var> property of the object at the top
-of the data stack and push that value onto the data stack.</p></dd>
+of the data stack and push that value onto the data stack.</p>
+
+<p>If the item at the top of the data stack is not an object or if the object
+has no <var>KEY</var> property a blank field is printed, unless the <code>-j</code> option was
+specified in which case the entire row is removed from the output.</p>
+
+<p>If the <var>KEY</var> property of the object is an array subsequent commands will
+operate on one of the items in the array, chosen automatically by <code>jt</code>.
+The array index will be available to subsequent commands via the index
+stack.</p></dd>
 </dl>
 
 
 <h2 id="EXAMPLES">EXAMPLES</h2>
 
-<p>Explore JSON data, print an object's keys:</p>
+<p>We will use the following JSON input for the examples:</p>
 
 <pre><code>$ JSON='{"foo":"a","bar":{"x":"b"},"baz":[{"y":"c"},{"y":"d","z":"e"}]}'
+</code></pre>
 
-$ echo "$JSON" | jt ?
+<h3 id="Explore">Explore</h3>
+
+<p>Explore JSON data, print an object's keys:</p>
+
+<pre><code>$ echo "$JSON" | jt ?
 foo
 bar
 baz
@@ -172,6 +199,8 @@ y
 1
 </code></pre>
 
+<h3 id="Extract">Extract</h3>
+
 <p>Extract values from JSON data:</p>
 
 <pre><code>$ echo "$JSON" | jt foo %
@@ -184,11 +213,15 @@ a
 b
 </code></pre>
 
+<h3 id="Save-Restore">Save / Restore</h3>
+
 <p>Extract multiple values by saving and restoring the data stack:</p>
 
 <pre><code>$ echo "$JSON" | jt [ foo % ] bar x %
 a       b
 </code></pre>
+
+<h3 id="Arrays">Arrays</h3>
 
 <p>Iterate over nested arrays, producing one row per iteration:</p>
 
@@ -203,6 +236,8 @@ a       b       d
 a       b       0       c
 a       b       1       d
 </code></pre>
+
+<h3 id="Joins">Joins</h3>
 
 <p>Notice the empty column &mdash; some objects don't have the <var>z</var> key:</p>
 

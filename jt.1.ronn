@@ -18,8 +18,8 @@ via string interpolation.
 
 **Jt** provides only what is needed to extract data from nested JSON data
 structures and organize the data into a table. Tools like **cut**, **paste**,
-**join**, **sort**, **uniq**, etc. can be used to efficiently reduce the
-tabular data to produce the final result.
+**awk**, **join**, **sort**, **uniq**, etc. can be used to efficiently reduce
+the tabular data to the final result.
 
 ## OPTIONS
 
@@ -46,8 +46,11 @@ tabular data to produce the final result.
 
 ## COMMANDS
 
-Non-option arguments are `commands` in a limited stack language. These commands
-operate on one of the following internal `jt` stack data structures:
+Non-option arguments are `commands` in a limited stack language. This language
+is not turing complete as it provides no branching or jump facilities. It is
+similar to a calculator in that commands operate on data in, and push their
+results onto stack data structures provided by the `jt` runtime. There are
+three stacks on which commands operate:
 
 * The `data stack` contains JSON objects from the input stream. Commands
   operate on the top of this stack to traverse the JSON tree and print values.
@@ -58,6 +61,16 @@ operate on one of the following internal `jt` stack data structures:
 
 * The `index stack` contains the indexes of nested arrays as `jt` iterates over
   them. Commands can print the value at the top of this stack.
+
+Commands are evaluated from left to right. When all commands have been applied
+the data stack is restored to its initial state, containing only the root JSON
+object, and a row of output is printed. This process is repeated until all rows
+have been printed.
+
+Nested arrays in the JSON input are treated as implicit joins: a row of output
+is produced for each item in the array. The array indexes are stored internally
+between iterations and are read-only &mdash; no control over this is exposed
+via the command language.
 
 The following commands are available:
 
@@ -85,11 +98,24 @@ The following commands are available:
     Drill down: get the value of the <KEY> property of the object at the top
     of the data stack and push that value onto the data stack.
 
+    If the item at the top of the data stack is not an object or if the object
+    has no <KEY> property a blank field is printed, unless the `-j` option was
+    specified in which case the entire row is removed from the output.
+
+    If the <KEY> property of the object is an array subsequent commands will
+    operate on one of the items in the array, chosen automatically by `jt`.
+    The array index will be available to subsequent commands via the index
+    stack.
+
 ## EXAMPLES
 
-Explore JSON data, print an object's keys:
+We will use the following JSON input for the examples:
 
     $ JSON='{"foo":"a","bar":{"x":"b"},"baz":[{"y":"c"},{"y":"d","z":"e"}]}'
+
+### Explore
+
+Explore JSON data, print an object's keys:
 
     $ echo "$JSON" | jt ?
     foo
@@ -112,6 +138,8 @@ Print the indexes in a nested array:
     0
     1
 
+### Extract
+
 Extract values from JSON data:
 
     $ echo "$JSON" | jt foo %
@@ -122,10 +150,14 @@ Extract nested JSON data:
     $ echo "$JSON" | jt bar x %
     b
 
+### Save / Restore
+
 Extract multiple values by saving and restoring the data stack:
 
     $ echo "$JSON" | jt [ foo % ] bar x %
     a       b
+
+### Arrays
 
 Iterate over nested arrays, producing one row per iteration:
 
@@ -138,6 +170,8 @@ Include the array index as a column in the result:
     $ echo "$JSON" | jt [ foo % ] [ bar x % ] baz y ^ %
     a       b       0       c
     a       b       1       d
+
+### Joins
 
 Notice the empty column &mdash; some objects don't have the <z> key:
 
