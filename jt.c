@@ -218,7 +218,7 @@ char *jstr(const char *js, jsmntok_t *tok) {
 
 void jprint(const char *fmt, const char *js, jsmntok_t *tok) {
   char *s = jstr(js, tok);
-  fprintf(stderr, fmt, s);
+  fprintf(stdout, fmt, s);
   free(s);
 }
 
