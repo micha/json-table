@@ -261,7 +261,8 @@ jsmntok_t *ary_get(const char *js, jsmntok_t *tok, int n) {
 
 int run(char *js, int argc, char *argv[]) {
   jsmntok_t *data = stack_head(IN);
-  int *i, *j, cols = 0;
+  size_t *i;
+  int cols = 0;
 
   if (data && data->type == JSMN_ARRAY) {
     if (data->size == 0) {
@@ -269,12 +270,12 @@ int run(char *js, int argc, char *argv[]) {
       run(js, argc, argv);
       if (! left_join) cols = -STACKSIZE;
     } else {
-      i = (int*) stack_head(ITR);
+      i = (size_t*) stack_head(ITR);
 
       if (i) {
         stack_pop(&ITR);
       } else {
-        i = jmalloc(sizeof(int*));
+        i = jmalloc(sizeof(size_t*));
         *i = 0;
       }
 
@@ -284,7 +285,9 @@ int run(char *js, int argc, char *argv[]) {
       stack_pop(&IDX);
 
       if (! stack_head(ITR)) (*i)++;
+
       if (*i < data->size) stack_push(&ITR, i);
+      else free(i);
     }
     return cols;
   }
@@ -306,7 +309,7 @@ int run(char *js, int argc, char *argv[]) {
     if (! (i = stack_head(IDX)))
       die("no index to print");
     cols = 1;
-    stack_push(&OUT, str("%d", * (int*) i));
+    stack_push(&OUT, str("%zu", * (size_t*) i));
   }
 
   else if (! strcmp(argv[0], "[")) {
