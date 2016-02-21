@@ -293,8 +293,12 @@ int isnull(const char *js, jsmntok_t *tok) {
   return tok->type == JSMN_PRIMITIVE && *(js + tok->start) == 'n';
 }
 
+int isatom(jsmntok_t *tok) {
+  return tok->type == JSMN_PRIMITIVE || tok->type == JSMN_STRING;
+}
+
 char *jstr(const char *js, jsmntok_t *tok) {
-  return (! tok || isnull(js, tok))
+  return (! tok || isnull(js, tok) || ! isatom(tok))
     ? str("")
     : str("%.*s", tok->end - tok->start, js + tok->start);
 }

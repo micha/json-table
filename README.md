@@ -12,7 +12,9 @@ that needs to be quoted and constructed via string interpolation.
 **Jt** provides only what is needed to extract data from nested JSON data
 structures and organize the data into a table. Tools like **cut**, **paste**,
 **join**, **sort**, **uniq**, etc. can be used to efficiently reduce the
-tabular data to produce the final result. **Jt** is:
+tabular data to produce the final result.
+
+##### Features
 
 * Self contained &mdash; no external dependencies when statically linked.
 * Small &mdash; 20K dynamically linked to glibc, 800K with static linking.
