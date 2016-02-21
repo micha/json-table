@@ -16,8 +16,9 @@ tabular data to produce the final result. **Jt** is:
 
 * Self contained &mdash; no external dependencies when statically linked.
 * Small &mdash; 20K dynamically linked to glibc, 800K with static linking.
-* Fast, small memory footprint &mdash; efficiently process large JSON input.
-* Streaming mode reads JSON objects one-per-line e.g., from log files.
+* Fast, small memory footprint &mdash; efficiently process **large** JSON input.
+* Streaming mode &mdash; reads JSON objects one-per-line e.g., from log files.
+* CSV output mode &mdash; transform JSON input to CSV for spreadsheet analysis.
 
 You can get an idea of what **jt** can do from this one-liner that produces
 a table of ELB names to EC2 instance IDs:
@@ -27,6 +28,7 @@ $ aws elb describe-load-balancers \
 -   | jt LoadBalancerDescriptions [ LoadBalancerName % ] Instances InstanceId %
 elb-1	i-94a6f73a
 elb-2	i-b910a256
+...
 ```
 
 ## Install
@@ -53,6 +55,8 @@ We'll use the following JSON data for the examples:
 
     $ JSON='{"foo":"a","bar":{"x":"b"},"baz":[{"y":"c"},{"y":"d","z":"e"}]}'
 
+### Explore JSON Structure
+
 Explore JSON data, print an object's keys:
 
     $ echo "$JSON" | jt ?
@@ -76,6 +80,8 @@ Print the indexes in a nested array:
     0
     1
 
+### Extract Fields From JSON Data
+
 Extract values from JSON data:
 
     $ echo "$JSON" | jt foo %
@@ -86,10 +92,14 @@ Extract nested JSON data:
     $ echo "$JSON" | jt bar x %
     b
 
+### Save / Restore Stack To Backtrack
+
 Extract multiple values by saving and restoring the data stack:
 
     $ echo "$JSON" | jt [ foo % ] bar x %
     a       b
+
+### Iterate Over Arrays
 
 Iterate over nested arrays, producing one row per iteration:
 
@@ -102,6 +112,8 @@ Include the array index as a column in the result:
     $ echo "$JSON" | jt [ foo % ] [ bar x % ] baz y ^ %
     a       b       0       c
     a       b       1       d
+
+### Left Join Vs. Inner Join
 
 Notice the empty column &mdash; some objects don't have the `z` key:
 
