@@ -57,7 +57,7 @@ We'll use the following JSON data for the examples:
 
 ### Explore JSON Structure
 
-Explore JSON data, print an object's keys:
+Print an object's keys:
 
     $ echo "$JSON" | jt ?
     foo
@@ -80,34 +80,37 @@ Print the indexes in a nested array:
     0
     1
 
-### Extract Fields From JSON Data
+### Extract Values From JSON Data
 
-Extract values from JSON data:
+Get the value associated with the `foo` property of the JSON object:
 
     $ echo "$JSON" | jt foo %
     a
 
-Extract nested JSON data:
+Get the value from a nested JSON object:
 
     $ echo "$JSON" | jt bar x %
     b
 
 ### Save / Restore Stack To Backtrack
 
-Extract multiple values by saving and restoring the data stack:
+Drill down to get the `foo` value, then backtrack to get the `bar` value of the
+same JSON object:
 
     $ echo "$JSON" | jt [ foo % ] bar x %
     a       b
 
 ### Iterate Over Arrays
 
-Iterate over nested arrays, producing one row per iteration:
+**Jt** will automatically iterate over nested arrays. It will run commands from
+left to right, once for each nested object in the array. Stacks are reset
+between runs, and each run produces one row of output:
 
     $ echo "$JSON" | jt [ foo % ] [ bar x % ] baz y %
     a       b       c
     a       b       d
 
-Include the array index as a column in the result:
+Use the `^` command to include the array index as a column in the result:
 
     $ echo "$JSON" | jt [ foo % ] [ bar x % ] baz y ^ %
     a       b       0       c
@@ -115,14 +118,14 @@ Include the array index as a column in the result:
 
 ### Left Join Vs. Inner Join
 
-Notice the empty column &mdash; some objects don't have the `z` key:
+Notice the empty column &mdash; some objects don't have a `z` property:
 
     $ echo "$JSON" | jt [ foo % ] baz [ y % ] z %
     a       c
     a       d       e
 
-Inner join mode will remove rows from the output when any key in the traversal
-path doesn't exist:
+Inner join mode (the `-j` option) will remove rows from the output when any
+key in the traversal path doesn't exist:
 
     $ echo "$JSON" | jt -j [ foo % ] baz [ y % ] z %
     a       d       e
