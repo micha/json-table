@@ -33,7 +33,7 @@ elb-2	i-b910a256
 
 ## Install
 
-Linux users can install prebuilt binaries from the release tarball:
+Linux users can install prebuilt binaries from the [release tarball][tgz]:
 
 ```
 sudo bash -c "cd /usr/local && wget -O - https://github.com/micha/json-table/releases/download/1.1.0/jt-1.1.0.tar.gz | tar xzvf -"
@@ -55,7 +55,7 @@ We'll use the following JSON data for the examples:
 
     $ JSON='{"foo":"a","bar":{"x":"b"},"baz":[{"y":"c"},{"y":"d","z":"e"}]}'
 
-### Explore JSON Structure
+#### Explore JSON Structure
 
 Print an object's keys:
 
@@ -80,7 +80,7 @@ Print the indexes in a nested array:
     0
     1
 
-### Extract Values From JSON Data
+#### Extract Values From JSON Data
 
 Get the value associated with the `foo` property of the JSON object:
 
@@ -92,7 +92,7 @@ Get the value from a nested JSON object:
     $ echo "$JSON" | jt bar x %
     b
 
-### Save / Restore Stack To Backtrack
+#### Save / Restore Stack To Backtrack
 
 Drill down to get the `foo` value, then backtrack to get the `bar` value of the
 same JSON object:
@@ -100,7 +100,7 @@ same JSON object:
     $ echo "$JSON" | jt [ foo % ] bar x %
     a       b
 
-### Iterate Over Arrays
+#### Iterate Over Arrays
 
 **Jt** will automatically iterate over nested arrays. It will run commands from
 left to right, once for each nested object in the array. Stacks are reset
@@ -116,7 +116,7 @@ Use the `^` command to include the array index as a column in the result:
     a       b       0       c
     a       b       1       d
 
-### Left Join Vs. Inner Join
+#### Left Join Vs. Inner Join
 
 Notice the empty column &mdash; some objects don't have a `z` property:
 
@@ -135,3 +135,4 @@ key in the traversal path doesn't exist:
 Copyright © 2016 Micha Niskin. Distributed under the Eclipse Public License.
 
 [man]: http://htmlpreview.github.io/?https://raw.githubusercontent.com/micha/json-table/master/jt.1.html
+[tgz]: https://github.com/micha/json-table/releases/download/1.1.0/jt-1.1.0.tar.gz
