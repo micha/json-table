@@ -22,7 +22,7 @@ jt: jt.o
 	cat $^ |ronn -r --manual="JT MANUAL" --pipe > $@
 
 %.1.html: %.1.ronn
-	cat $^ |ronn -5 --style=toc,80c,$(PWD)/jt.css --manual="JT MANUAL" --pipe > $@
+	cat $^ |ronn -5 --style=$(PWD)/jt.css --manual="JT MANUAL" --pipe > $@
 
 docs: jt.1 jt.1.html
 
