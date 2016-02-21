@@ -22,7 +22,7 @@ jt: jt.o
 	cat $^ |ronn -r --pipe > $@
 
 %.1.html: %.1.ronn
-	cat $^ |ronn -5 --pipe > $@
+	cat $^ |ronn -5 --style=toc,80c --pipe > $@
 
 docs: jt.1 jt.1.html
 
