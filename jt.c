@@ -219,7 +219,7 @@ unsigned long utf_tag[4] = { 0x00, 0xc0, 0xe0, 0xf0 };
 
 void encode_u_escaped(char **in, char **out) {
   unsigned long p = read_code_point(in);
-  int len = (p < 0x80) ? 1 : ((p < 0x800) ? 2 : ((p < 0x1000) ? 3 : 4));
+  int len = (p < 0x80) ? 1 : ((p < 0x800) ? 2 : ((p < 0x10000) ? 3 : 4));
   *out += len;
   switch (len) {
     case 4: *--(*out) = ((p | 0x80) & 0xbf); p >>= 6;
