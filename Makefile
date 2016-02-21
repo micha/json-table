@@ -1,6 +1,6 @@
 .PHONY: all clean docs install dist
 
-VERSION = 1.0.1
+VERSION = 1.1.0
 CFLAGS  = -O3
 LDFLAGS = -static
 PREFIX  = /usr/local

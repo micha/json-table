@@ -115,6 +115,43 @@ If the item at the top of the data stack is not an object or if the object has n
 .IP
 If the \fIKEY\fR property of the object is an array subsequent commands will operate on one of the items in the array, chosen automatically by \fBjt\fR\. The array index will be available to subsequent commands via the index stack\.
 .
+.SH "JSON UNESCAPING AND CSV OUTPUT"
+Strings in JSON data must not contain control characters (e\.g\., \fBtab\fR, \fBnewline\fR, etc\.) These characters \fImust\fR be escaped with a backslash\. Additionally, any character \fImay\fR be escaped with a backslash\. The JSON specification also allows escaping of unicode characters with \fB\eu\fR escape, for example the copyright symbol © can be encoded as \fB\eu00A9\fR, and the G\-clef character 𝄞 as \fB\euD834\euDD1E\fR\.
+.
+.P
+Numbers may be expressed in a number of ways in JSON data, and there is a single \fBNumber\fR type that encompasses both integer and floating point\. Both decimal and exponential notation are valid in JSON\.
+.
+.SS "Strings"
+\fBJt\fR does not unescape string values by default, in case they contain tab or newline characters that would break the tabular output format\. If unescaped values are needed this can be achieved by invoking \fBjt\fR with the \fB\-u\fR option in post processing\. For example:
+.
+.IP "" 4
+.
+.nf
+
+$ jt \-u \'i love music \eu266A\'
+i love music ♪
+.
+.fi
+.
+.IP "" 0
+.
+.SS "Numbers"
+\fBJt\fR does not process numbers in any way \(em they are printed in the output verbatim, as they appear in the JSON input\. If special processing is required the \fBprintf\fR program in coreutils is your friend:
+.
+.IP "" 4
+.
+.nf
+
+$ printf %\.0f 2\.99792458e9
+2997924580
+.
+.fi
+.
+.IP "" 0
+.
+.SS "CSV Output"
+The CSV format uses quoted values, which avoids the problems associated with values that contain tab and newline characters\. The \fB\-c\fR option puts \fBjt\fR into CSV output mode\. In this mode JSON strings are unescaped by default\. The \fBcsvtool\fR program and \fBcsvkit\fR suite of tools facilitate processing of CSV data in the shell\.
+.
 .SH "EXAMPLES"
 We will use the following JSON input for the examples:
 .
