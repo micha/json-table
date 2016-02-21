@@ -237,8 +237,8 @@ path doesn't exist:
 
 ## COPYRIGHT
 
-Copyright © 2016 Micha Niskin. Distributed under the Eclipse Public License,
-version 1.0: https://www.eclipse.org/legal/epl-v10.html.
+Copyright © 2016 Micha Niskin `<micha.niskin@gmail.com>`.
+Distributed under the Eclipse Public License, version 1.0.
 
 ## SEE ALSO
 

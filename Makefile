@@ -19,10 +19,10 @@ jt: jt.o
 	$(CC) $(LDFLAGS) $^ -o $@
 
 %.1: %.1.ronn
-	cat $^ |ronn -r --pipe > $@
+	cat $^ |ronn -r --manual="JT MANUAL" --pipe > $@
 
 %.1.html: %.1.ronn
-	cat $^ |ronn -5 --style=toc,80c --pipe > $@
+	cat $^ |ronn -5 --style=toc,80c,$(PWD)/jt.css --manual="JT MANUAL" --pipe > $@
 
 docs: jt.1 jt.1.html
 
