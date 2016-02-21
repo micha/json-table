@@ -37,7 +37,7 @@ elb-2	i-b910a256
 
 There are more examples in the [EXAMPLES](#examples) section below.
 
-## Install
+## INSTALL
 
 Linux users can install prebuilt binaries from the [release tarball][tgz]:
 
@@ -51,11 +51,11 @@ Otherwise, to build from source:
 git checkout 1.1.0 && make && sudo make install
 ```
 
-## Documentation
+## DOCUMENTATION
 
 See the [man page][man] or `man jt` in your terminal.
 
-## Examples
+## EXAMPLES
 
 We'll use the following JSON data for the examples:
 
@@ -136,7 +136,7 @@ key in the traversal path doesn't exist:
     $ echo "$JSON" | jt -j [ foo % ] baz [ y % ] z %
     a       d       e
 
-## Copyright
+## COPYRIGHT
 
 Copyright © 2016 Micha Niskin. Distributed under the Eclipse Public License.
 
