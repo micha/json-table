@@ -7,10 +7,13 @@
 \fBjt\fR \- transform JSON data to tabular format
 .
 .SH "SYNOPSIS"
-\fBjt\fR [\fB\-h\fR]
+\fBjt\fR \fB\-h\fR
 .
 .br
-\fBjt\fR [\fB\-u\fR \fIstring\fR]
+\fBjt\fR \fB\-u\fR \fIstring\fR
+.
+.br
+\fBjt\fR \fB\-c\fR [\fB\-js\fR] [\fB\-i\fR \fIfile\fR] [\fB\-o\fR \fIfile\fR] \fBCOMMAND\fR \.\.\.
 .
 .br
 \fBjt\fR [\fB\-js\fR] [\fB\-F\fR \fIchar\fR] [\fB\-R\fR \fIchar\fR] [\fB\-i\fR \fIfile\fR] [\fB\-o\fR \fIfile\fR] \fBCOMMAND\fR \.\.\.
@@ -26,6 +29,10 @@
 .TP
 \fB\-h\fR
 Print usage info and exit\.
+.
+.TP
+\fB\-c\fR
+Print output as CSV with JSON strings unescaped\.
 .
 .TP
 \fB\-j\fR

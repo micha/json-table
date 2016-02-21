@@ -76,8 +76,9 @@
 
 <h2 id="SYNOPSIS">SYNOPSIS</h2>
 
-<p><code>jt</code> [<code>-h</code>]<br />
-<code>jt</code> [<code>-u</code> <var>string</var>]<br />
+<p><code>jt</code> <code>-h</code><br />
+<code>jt</code> <code>-u</code> <var>string</var><br />
+<code>jt</code> <code>-c</code> [<code>-js</code>] [<code>-i</code> <var>file</var>] [<code>-o</code> <var>file</var>] <code>COMMAND</code> ...<br />
 <code>jt</code> [<code>-js</code>] [<code>-F</code> <var>char</var>] [<code>-R</code> <var>char</var>] [<code>-i</code> <var>file</var>] [<code>-o</code> <var>file</var>] <code>COMMAND</code> ...</p>
 
 <h2 id="DESCRIPTION">DESCRIPTION</h2>
@@ -99,6 +100,7 @@ the tabular data to the final result.</p>
 
 <dl>
 <dt class="flush"><code>-h</code></dt><dd><p>Print usage info and exit.</p></dd>
+<dt class="flush"><code>-c</code></dt><dd><p>Print output as CSV with JSON strings unescaped.</p></dd>
 <dt class="flush"><code>-j</code></dt><dd><p>Inner join mode: discard rows with missing columns.</p></dd>
 <dt class="flush"><code>-s</code></dt><dd><p>Stream mode: expect one JSON object per line of input.</p></dd>
 <dt><code>-u</code> <var>string</var></dt><dd><p>Print unescaped UTF-8 JSON <var>string</var> and exit.</p></dd>

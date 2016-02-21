@@ -3,8 +3,9 @@ jt(1) -- transform JSON data to tabular format
 
 ## SYNOPSIS
 
-`jt` [`-h`]<br>
-`jt` [`-u` <string>]<br>
+`jt` `-h`<br>
+`jt` `-u` <string><br>
+`jt` `-c` [`-js`] [`-i` <file>] [`-o` <file>] `COMMAND` ...<br>
 `jt` [`-js`] [`-F` <char>] [`-R` <char>] [`-i` <file>] [`-o` <file>] `COMMAND` ...
 
 ## DESCRIPTION
@@ -26,6 +27,9 @@ the tabular data to the final result.
 
   * `-h`:
     Print usage info and exit.
+
+  * `-c`:
+    Print output as CSV with JSON strings unescaped.
 
   * `-j`:
     Inner join mode: discard rows with missing columns.

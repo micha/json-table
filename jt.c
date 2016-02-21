@@ -14,6 +14,9 @@
 char *colsep     = "\t";
 char *rowsep     = "\n";
 int  left_join   = 1;
+int  csv_output  = 0;
+
+char *unescape_string(char*);
 
 /*
  * helpers
@@ -66,13 +69,34 @@ void *jrealloc(void *ptr, size_t size) {
   return ret;
 }
 
+char *csv_str(char *raw) {
+  char *in, *inp, *out, *outp;
+
+  inp = in = unescape_string(raw);
+  free(raw);
+
+  outp = out = jmalloc(strlen(in) * 2 + 3);
+  *(outp++) = '"';
+
+  while (*inp != '\0') {
+    *(outp++) = *inp;
+    if (*(inp++) == '"') *(outp++) = '"';
+  }
+
+  *(outp++) = '"';
+  *outp = '\0';
+  free(in);
+
+  return out;
+}
+
 char *str(const char *fmt, ...) {
-  char *s;
+  char *s = NULL;
   va_list ap;
   va_start(ap, fmt);
   if (vasprintf(&s, fmt, ap) < 0) die_mem();
   va_end(ap);
-  return s;
+  return csv_output ? csv_str(s) : s;
 }
 
 FILE *open(const char *path, const char *mode) {
@@ -191,25 +215,24 @@ unsigned long read_code_point(char **s) {
   return high;
 }
 
-unsigned long utf_tag[7] = { 0x00, 0x00, 0xc0, 0xe0, 0xf0, 0xf8, 0xfc };
+unsigned long utf_tag[4] = { 0x00, 0xc0, 0xe0, 0xf0 };
 
 void encode_u_escaped(char **in, char **out) {
   unsigned long p = read_code_point(in);
-  int len = (p < 0x80) ? 1 : (p < 0x800) ? 2 : (p < 0x1000) ? 3 : 4;
-
+  int len = (p < 0x80) ? 1 : ((p < 0x800) ? 2 : ((p < 0x1000) ? 3 : 4));
   *out += len;
   switch (len) {
     case 4: *--(*out) = ((p | 0x80) & 0xbf); p >>= 6;
     case 3: *--(*out) = ((p | 0x80) & 0xbf); p >>= 6;
     case 2: *--(*out) = ((p | 0x80) & 0xbf); p >>= 6;
-    case 1: *--(*out) =  (p | utf_tag[len]);
+    case 1: *--(*out) =  (p | utf_tag[len - 1]);
   }
   *out += len;
 }
 
 char *unescape_string(char *in) {
   char *inp = in, *outp, *out;
-  outp = out = malloc(strlen(in) + 1);
+  outp = out = jmalloc(strlen(in) + 1);
 
   while (*inp != '\0') {
     if (*inp != '\\') {
@@ -401,9 +424,10 @@ int run(char *js, int argc, char *argv[]) {
 
 void usage(int status) {
   fprintf(stderr, "jt %s - transform JSON data into tab delimited lines of text.\n\n", JT_VERSION);
-  fprintf(stderr, "Usage: jt [-h]\n");
-  fprintf(stderr, "       jt [-u <string>]\n");
-  fprintf(stderr, "       jt [-hjs] [-i <file>] [-o <file>] [-F <char>] [-R <char>] [COMMAND ...]\n\n");
+  fprintf(stderr, "Usage: jt -h\n");
+  fprintf(stderr, "       jt -u <string>\n");
+  fprintf(stderr, "       jt -c [-js] [-i <file>] [-o <file>] COMMAND ...\n");
+  fprintf(stderr, "       jt [-js] [-i <file>] [-o <file>] [-F <char>] [-R <char>] COMMAND ...\n\n");
   fprintf(stderr, "Where COMMAND is one of `[', `]', `%%', `?', `^', or a property name.\n");
   exit(status);
 }
@@ -419,10 +443,14 @@ int main(int argc, char *argv[]) {
   infile    = stdin;
   outfile   = stdout;
 
-  while ((opt = getopt(argc, argv, "+hjsi:o:u:F:R:")) != -1) {
+  while ((opt = getopt(argc, argv, "+hjsci:o:u:F:R:")) != -1) {
     switch (opt) {
       case 'h':
         usage(0);
+        break;
+      case 'c':
+        csv_output = 1;
+        colsep = ",";
         break;
       case 'j':
         left_join = 0;
