@@ -14,13 +14,13 @@ structures and organize the data into a table. Tools like **cut**, **paste**,
 **join**, **sort**, **uniq**, etc. can be used to efficiently reduce the
 tabular data to produce the final result.
 
-##### Features
+#### Features
 
-* Self contained &mdash; no external dependencies when statically linked.
-* Small &mdash; 20K dynamically linked to glibc, 800K with static linking.
-* Fast, small memory footprint &mdash; efficiently process **large** JSON input.
-* Streaming mode &mdash; reads JSON objects one-per-line e.g., from log files.
-* CSV output mode &mdash; transform JSON input to CSV for spreadsheet analysis.
+* **Self contained** &mdash; no external dependencies when statically linked.
+* **Small** &mdash; 20K dynamically linked to glibc, 800K with static linking.
+* **Fast, small memory footprint** &mdash; efficiently process **large** JSON input.
+* **Streaming mode** &mdash; reads JSON objects one-per-line e.g., from log files.
+* **CSV output mode** &mdash; transform JSON input to CSV for spreadsheet analysis.
 
 You can get an idea of what **jt** can do from this one-liner that produces
 a table of ELB names to EC2 instance IDs:
