@@ -198,7 +198,7 @@ Stack ITR = { itr_i, "iterator", -1 };
 
 unsigned long read_u_escaped(char **s) {
   unsigned long p;
-  if (**s == '\\') *s += 2; // strip the \u if necessary
+  if (**s == '\\') *s += 2; // skip the \u if necessary
   sscanf(*s, "%4lx", &p);
   *s += 4;
   return p;
@@ -206,9 +206,9 @@ unsigned long read_u_escaped(char **s) {
 
 unsigned long read_code_point(char **s) {
   unsigned long cp = read_u_escaped(s);
-  if (cp >= 0xd800 && cp <= 0xdfff) // utf-16 surrogate pair
-    cp = ((cp - 0xd800 & 0x3ff) << 10 | (read_u_escaped(s) - 0xdc00 & 0x3ff)) + 0x10000;
-  return cp;
+  return (cp >= 0xd800 && cp <= 0xdfff) // utf-16 surrogate pair
+    ? ((cp - 0xd800 & 0x3ff) << 10 | (read_u_escaped(s) - 0xdc00 & 0x3ff)) + 0x10000
+    : cp;
 }
 
 unsigned long utf_tag[4] = { 0x00, 0xc0, 0xe0, 0xf0 };
