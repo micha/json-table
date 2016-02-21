@@ -169,6 +169,70 @@ Stack IDX = { idx_i, "index",    -1 };
 Stack ITR = { itr_i, "iterator", -1 };
 
 /*
+ * json string -> utf-8
+ *****************************************************************************/
+
+unsigned long read_u_escaped(char **s) {
+  unsigned long p;
+  if (**s == '\\') *s += 2; // strip the \u if necessary
+  sscanf(*s, "%4lx", &p);
+  *s += 4;
+  return p;
+}
+
+unsigned long read_code_point(char **s) {
+  unsigned long low, high = read_u_escaped(s);
+  if (high >= 0xd800 && high <= 0xdfff) { // utf-16 surrogate pair
+    low = read_u_escaped(s);
+    high = (high - 0xd800) & 0x3ff;
+    low  = (low  - 0xdc00) & 0x3ff;
+    high = ((high<<10) | low) + 0x10000;
+  }
+  return high;
+}
+
+unsigned long utf_tag[7] = { 0x00, 0x00, 0xc0, 0xe0, 0xf0, 0xf8, 0xfc };
+
+void encode_u_escaped(char **in, char **out) {
+  unsigned long p = read_code_point(in);
+  int len = (p < 0x80) ? 1 : (p < 0x800) ? 2 : (p < 0x1000) ? 3 : 4;
+
+  *out += len;
+  switch (len) {
+    case 4: *--(*out) = ((p | 0x80) & 0xbf); p >>= 6;
+    case 3: *--(*out) = ((p | 0x80) & 0xbf); p >>= 6;
+    case 2: *--(*out) = ((p | 0x80) & 0xbf); p >>= 6;
+    case 1: *--(*out) =  (p | utf_tag[len]);
+  }
+  *out += len;
+}
+
+char *unescape_string(char *in) {
+  char *inp = in, *outp, *out;
+  outp = out = malloc(strlen(in) + 1);
+
+  while (*inp != '\0') {
+    if (*inp != '\\') {
+      *(outp++) = *(inp++);
+    } else {
+      switch(*(++inp)) {
+        case 'b': *(outp++) = '\b'; inp++; break;
+        case 'f': *(outp++) = '\f'; inp++; break;
+        case 'n': *(outp++) = '\n'; inp++; break;
+        case 'r': *(outp++) = '\r'; inp++; break;
+        case 't': *(outp++) = '\t'; inp++; break;
+        case 'u': inp++; encode_u_escaped(&inp, &outp); break;
+        default:  *(outp++) = *(inp++);
+      }
+    }
+  }
+
+  *outp = '\0';
+
+  return out;
+}
+
+/*
  * json
  *****************************************************************************/
 
@@ -336,9 +400,11 @@ int run(char *js, int argc, char *argv[]) {
  *****************************************************************************/
 
 void usage(int status) {
-  fprintf(stderr, "jt %s - transform JSON data into tab delimited lines of text.\n", JT_VERSION);
-  fprintf(stderr, "Usage: jt [-hjs] [-i <file>] [-o <file>] [-F <ch>] [-R <ch>] [COMMAND ...]\n");
-  fprintf(stderr, "COMMAND is one of `[', `]', `%%', `?', `^', or a property name.\n");
+  fprintf(stderr, "jt %s - transform JSON data into tab delimited lines of text.\n\n", JT_VERSION);
+  fprintf(stderr, "Usage: jt [-h]\n");
+  fprintf(stderr, "       jt [-u <string>]\n");
+  fprintf(stderr, "       jt [-hjs] [-i <file>] [-o <file>] [-F <char>] [-R <char>] [COMMAND ...]\n\n");
+  fprintf(stderr, "Where COMMAND is one of `[', `]', `%%', `?', `^', or a property name.\n");
   exit(status);
 }
 
@@ -353,7 +419,7 @@ int main(int argc, char *argv[]) {
   infile    = stdin;
   outfile   = stdout;
 
-  while ((opt = getopt(argc, argv, "+hjsi:o:F:R:")) != -1) {
+  while ((opt = getopt(argc, argv, "+hjsi:o:u:F:R:")) != -1) {
     switch (opt) {
       case 'h':
         usage(0);
@@ -370,6 +436,9 @@ int main(int argc, char *argv[]) {
       case 'o':
         outfile = open((char*) strdup(optarg), "w");
         break;
+      case 'u':
+        printf("%s", unescape_string((char*) strdup(optarg)));
+        exit(0);
       case 'F':
         colsep = (char*) strdup(optarg);
         break;

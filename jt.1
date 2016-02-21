@@ -10,6 +10,9 @@
 \fBjt\fR [\fB\-h\fR]
 .
 .br
+\fBjt\fR [\fB\-u\fR \fIstring\fR]
+.
+.br
 \fBjt\fR [\fB\-js\fR] [\fB\-F\fR \fIchar\fR] [\fB\-R\fR \fIchar\fR] [\fB\-i\fR \fIfile\fR] [\fB\-o\fR \fIfile\fR] \fBCOMMAND\fR \.\.\.
 .
 .SH "DESCRIPTION"
@@ -31,6 +34,10 @@ Inner join mode: discard rows with missing columns\.
 .TP
 \fB\-s\fR
 Stream mode: expect one JSON object per line of input\.
+.
+.TP
+\fB\-u\fR \fIstring\fR
+Print unescaped UTF\-8 JSON \fIstring\fR and exit\.
 .
 .TP
 \fB\-F\fR \fIchar\fR
