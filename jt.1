@@ -22,7 +22,7 @@
 \fBJt\fR transforms JSON data structures into tables of columns and rows for processing in the shell\. Extracting information from deeply nested JSON data is difficult and unreliable with tools like \fBsed\fR and \fBawk\fR, and tools that are specially designed for manipulating JSON are cumbersome to use in the shell because they either return their results as JSON or introduce a new turing complete scripting language that needs to be quoted and constructed via string interpolation\.
 .
 .P
-\fBJt\fR provides only what is needed to extract data from nested JSON data structures and organize the data into a table\. Tools like \fBcut\fR, \fBpaste\fR, \fBawk\fR, \fBjoin\fR, \fBsort\fR, \fBuniq\fR, etc\. can be used to efficiently reduce the tabular data to the final result\.
+\fBJt\fR provides only what is needed to extract data from nested JSON data structures and organize the data into a table\. Tools like \fBcut\fR, \fBpaste\fR, \fBawk\fR, \fBjoin\fR, \fBsort\fR, \fBuniq\fR, etc\. can be used to efficiently reduce the tabular data to the final result\. Alternatively, \fBjt\fR can print output in CSV format for processing in a spreadsheet or with command line tools like \fBcsvtool\fR\.
 .
 .SH "OPTIONS"
 .

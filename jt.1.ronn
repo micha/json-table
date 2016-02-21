@@ -21,7 +21,9 @@ via string interpolation.
 **Jt** provides only what is needed to extract data from nested JSON data
 structures and organize the data into a table. Tools like **cut**, **paste**,
 **awk**, **join**, **sort**, **uniq**, etc. can be used to efficiently reduce
-the tabular data to the final result.
+the tabular data to the final result. Alternatively, **jt** can print output
+in CSV format for processing in a spreadsheet or with command line tools like
+`csvtool`.
 
 ## OPTIONS
 
