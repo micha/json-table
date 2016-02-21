@@ -255,7 +255,7 @@ char *unescape_string(char *in) {
  * json
  *****************************************************************************/
 
-#define TOKSIZE 2
+#define TOKSIZE 256
 
 int parse_string(char *js, jsmntok_t **tok, size_t *toks) {
   int r;
