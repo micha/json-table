@@ -205,29 +205,25 @@ unsigned long read_u_escaped(char **s) {
 }
 
 unsigned long read_code_point(char **s) {
-  unsigned long low, high = read_u_escaped(s);
-  if (high >= 0xd800 && high <= 0xdfff) { // utf-16 surrogate pair
-    low = read_u_escaped(s);
-    high = (high - 0xd800) & 0x3ff;
-    low  = (low  - 0xdc00) & 0x3ff;
-    high = ((high<<10) | low) + 0x10000;
-  }
-  return high;
+  unsigned long cp = read_u_escaped(s);
+  if (cp >= 0xd800 && cp <= 0xdfff) // utf-16 surrogate pair
+    cp = ((cp - 0xd800 & 0x3ff) << 10 | (read_u_escaped(s) - 0xdc00 & 0x3ff)) + 0x10000;
+  return cp;
 }
 
 unsigned long utf_tag[4] = { 0x00, 0xc0, 0xe0, 0xf0 };
 
 void encode_u_escaped(char **in, char **out) {
   unsigned long p = read_code_point(in);
-  int len = (p < 0x80) ? 1 : (p < 0x800) ? 2 : (p < 0x10000) ? 3 : 4;
-  *out += len;
-  switch (len) {
+  int width = (p < 0x80) ? 1 : (p < 0x800) ? 2 : (p < 0x10000) ? 3 : 4;
+  *out += width;
+  switch (width) {
     case 4: *--(*out) = ((p | 0x80) & 0xbf); p >>= 6;
     case 3: *--(*out) = ((p | 0x80) & 0xbf); p >>= 6;
     case 2: *--(*out) = ((p | 0x80) & 0xbf); p >>= 6;
-    case 1: *--(*out) =  (p | utf_tag[len - 1]);
+    case 1: *--(*out) =  (p | utf_tag[width - 1]);
   }
-  *out += len;
+  *out += width;
 }
 
 char *unescape_string(char *in) {
