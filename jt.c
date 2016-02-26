@@ -381,7 +381,7 @@ int run(char *js, int argc, char *argv[]) {
 
   if (argc <= 0) return 0;
 
-  if (! strcmp(argv[0], "?")) {
+  if (! strcmp(argv[0], "@")) {
     if (data && data->type == JSMN_OBJECT)
       obj_print_keys(js, data);
     exit(0);
@@ -428,7 +428,7 @@ void usage(int status) {
   fprintf(stderr, "       jt -u <string>\n");
   fprintf(stderr, "       jt -c [-js] [-i <file>] [-o <file>] COMMAND ...\n");
   fprintf(stderr, "       jt [-js] [-i <file>] [-o <file>] [-F <char>] [-R <char>] COMMAND ...\n\n");
-  fprintf(stderr, "Where COMMAND is one of `[', `]', `%%', `?', `^', or a property name.\n");
+  fprintf(stderr, "Where COMMAND is one of `[', `]', `%%', `@', `^', or a property name.\n");
   exit(status);
 }
 
