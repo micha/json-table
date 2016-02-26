@@ -65,19 +65,19 @@ We'll use the following JSON data for the examples:
 
 Print an object's keys:
 
-    $ echo "$JSON" | jt ?
+    $ echo "$JSON" | jt @
     foo
     bar
     baz
 
 Print a nested object's keys:
 
-    $ echo "$JSON" | jt bar ?
+    $ echo "$JSON" | jt bar @
     x
 
 Print the keys of the first object in a nested array:
 
-    $ echo "$JSON" | jt baz ?
+    $ echo "$JSON" | jt baz @
     y
 
 Print the indexes in a nested array:

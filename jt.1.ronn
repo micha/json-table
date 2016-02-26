@@ -100,7 +100,7 @@ The following commands are available:
     Print the array index at the top of the index stack. It is an error if the
     index stack is empty.
 
-  * `?`:
+  * `@`:
     Print the keys of the object at the top of the data stack. It is an error
     if the item at the top of the data stack is not an object.
 
@@ -167,19 +167,19 @@ We will use the following JSON input for the examples:
 
 Explore JSON data, print an object's keys:
 
-    $ echo "$JSON" | jt ?
+    $ echo "$JSON" | jt @
     foo
     bar
     baz
 
 Print a nested object's keys:
 
-    $ echo "$JSON" | jt bar ?
+    $ echo "$JSON" | jt bar @
     x
 
 Print the keys of the first object in a nested array:
 
-    $ echo "$JSON" | jt baz ?
+    $ echo "$JSON" | jt baz @
     y
 
 Print the indexes in a nested array:
