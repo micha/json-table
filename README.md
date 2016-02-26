@@ -42,13 +42,13 @@ There are more examples in the [EXAMPLES](#examples) section below.
 Linux users can install prebuilt binaries from the [release tarball][tgz]:
 
 ```
-sudo bash -c "cd /usr/local && wget -O - https://github.com/micha/json-table/releases/download/1.1.0/jt-1.1.0.tar.gz | tar xzvf -"
+sudo bash -c "cd /usr/local && wget -O - https://github.com/micha/json-table/releases/download/2.0.0/jt-2.0.0.tar.gz | tar xzvf -"
 ```
 
 Otherwise, to build from source:
 
 ```
-git checkout 1.1.0 && make && sudo make install
+git checkout 2.0.0 && make && sudo make install
 ```
 
 ## DOCUMENTATION
@@ -141,4 +141,4 @@ key in the traversal path doesn't exist:
 Copyright © 2016 Micha Niskin. Distributed under the Eclipse Public License.
 
 [man]: http://htmlpreview.github.io/?https://raw.githubusercontent.com/micha/json-table/master/jt.1.html
-[tgz]: https://github.com/micha/json-table/releases/download/1.1.0/jt-1.1.0.tar.gz
+[tgz]: https://github.com/micha/json-table/releases/download/2.0.0/jt-2.0.0.tar.gz
