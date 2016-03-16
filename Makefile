@@ -1,8 +1,11 @@
 .PHONY: all clean docs install dist
 
 VERSION = 2.0.0
-CFLAGS  = -O3
+OS=$(shell uname -s)
+CFLAGS  = -O3 -Wall -Werror -pedantic-errors -std=c99
+ifneq (${OS}, Darwin)
 LDFLAGS = -static
+endif
 PREFIX  = /usr/local
 BINDIR  = $(PREFIX)/bin
 MANDIR  = $(PREFIX)/man/man1
