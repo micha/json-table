@@ -48,7 +48,7 @@ sudo bash -c "cd /usr/local && wget -O - https://github.com/micha/json-table/rel
 Otherwise, to build from source:
 
 ```
-git checkout 2.0.0 && make && sudo make install
+make && sudo make install
 ```
 
 ## DOCUMENTATION
