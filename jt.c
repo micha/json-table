@@ -112,7 +112,7 @@ char *read_stream(FILE *in) {
   size_t  ret_size     = 0;
   size_t  ret_newsize  = 0;
   size_t  ret_capacity = BUFSIZ * 2.5;
-  ssize_t bytes_r      = NULL;
+  ssize_t bytes_r      = 0;
   int     fd           = fileno(in);
 
   ret = jmalloc(ret_capacity);
@@ -207,7 +207,7 @@ unsigned long read_u_escaped(char **s) {
 unsigned long read_code_point(char **s) {
   unsigned long cp = read_u_escaped(s);
   return (cp >= 0xd800 && cp <= 0xdfff) // utf-16 surrogate pair
-    ? ((cp - 0xd800 & 0x3ff) << 10 | (read_u_escaped(s) - 0xdc00 & 0x3ff)) + 0x10000
+    ? (((cp - 0xd800) & 0x3ff) << 10 | ((read_u_escaped(s) - 0xdc00) & 0x3ff)) + 0x10000
     : cp;
 }
 
