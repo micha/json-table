@@ -158,7 +158,7 @@ the data stack pointer to that state.</p></dd>
 data stack is not a string or primitive type a blank field is printed.</p></dd>
 <dt class="flush"><code>^</code></dt><dd><p>Print the array index at the top of the index stack. It is an error if the
 index stack is empty.</p></dd>
-<dt class="flush"><code>?</code></dt><dd><p>Print the keys of the object at the top of the data stack. It is an error
+<dt class="flush"><code>@</code></dt><dd><p>Print the keys of the object at the top of the data stack. It is an error
 if the item at the top of the data stack is not an object.</p></dd>
 <dt class="flush"><var>KEY</var></dt><dd><p>Drill down: get the value of the <var>KEY</var> property of the object at the top
 of the data stack and push that value onto the data stack.</p>
@@ -227,7 +227,7 @@ data in the shell.</p>
 
 <p>Explore JSON data, print an object's keys:</p>
 
-<pre><code>$ echo "$JSON" | jt ?
+<pre><code>$ echo "$JSON" | jt @
 foo
 bar
 baz
@@ -235,13 +235,13 @@ baz
 
 <p>Print a nested object's keys:</p>
 
-<pre><code>$ echo "$JSON" | jt bar ?
+<pre><code>$ echo "$JSON" | jt bar @
 x
 </code></pre>
 
 <p>Print the keys of the first object in a nested array:</p>
 
-<pre><code>$ echo "$JSON" | jt baz ?
+<pre><code>$ echo "$JSON" | jt baz @
 y
 </code></pre>
 
@@ -318,7 +318,7 @@ Distributed under the Eclipse Public License, version 1.0.</p>
 
   <ol class='man-decor man-foot man foot'>
     <li class='tl'></li>
-    <li class='tc'>February 2016</li>
+    <li class='tc'>May 2016</li>
     <li class='tr'>jt(1)</li>
   </ol>
 

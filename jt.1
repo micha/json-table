@@ -1,7 +1,7 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "JT" "1" "February 2016" "" "JT MANUAL"
+.TH "JT" "1" "May 2016" "" "JT MANUAL"
 .
 .SH "NAME"
 \fBjt\fR \- transform JSON data to tabular format
@@ -102,7 +102,7 @@ Print the value at the top of the data stack\. If the item at the top of the dat
 Print the array index at the top of the index stack\. It is an error if the index stack is empty\.
 .
 .TP
-\fB?\fR
+\fB@\fR
 Print the keys of the object at the top of the data stack\. It is an error if the item at the top of the data stack is not an object\.
 .
 .TP
@@ -172,7 +172,7 @@ Explore JSON data, print an object\'s keys:
 .
 .nf
 
-$ echo "$JSON" | jt ?
+$ echo "$JSON" | jt @
 foo
 bar
 baz
@@ -188,7 +188,7 @@ Print a nested object\'s keys:
 .
 .nf
 
-$ echo "$JSON" | jt bar ?
+$ echo "$JSON" | jt bar @
 x
 .
 .fi
@@ -202,7 +202,7 @@ Print the keys of the first object in a nested array:
 .
 .nf
 
-$ echo "$JSON" | jt baz ?
+$ echo "$JSON" | jt baz @
 y
 .
 .fi
