@@ -97,6 +97,9 @@ Restore the data stack to a saved state: pop the gosub stack and restore the dat
 \fB%\fR
 Print the value at the top of the data stack\. If the item at the top of the data stack is not a string or primitive type a blank field is printed\.
 .
+.IP
+\fBDEPRECATED:\fR This command has been made redundant, as printing of JSON primitives and strings is now automatic\.
+.
 .TP
 \fB^\fR
 Print the array index at the top of the index stack\. It is an error if the index stack is empty\.
@@ -231,7 +234,7 @@ Extract values from JSON data:
 .
 .nf
 
-$ echo "$JSON" | jt foo %
+$ echo "$JSON" | jt foo
 a
 .
 .fi
@@ -245,7 +248,7 @@ Extract nested JSON data:
 .
 .nf
 
-$ echo "$JSON" | jt bar x %
+$ echo "$JSON" | jt bar x
 b
 .
 .fi
@@ -259,7 +262,7 @@ Extract multiple values by saving and restoring the data stack:
 .
 .nf
 
-$ echo "$JSON" | jt [ foo % ] bar x %
+$ echo "$JSON" | jt [ foo ] bar x
 a       b
 .
 .fi
@@ -273,7 +276,7 @@ Iterate over nested arrays, producing one row per iteration:
 .
 .nf
 
-$ echo "$JSON" | jt [ foo % ] [ bar x % ] baz y %
+$ echo "$JSON" | jt [ foo ] [ bar x ] baz y
 a       b       c
 a       b       d
 .
@@ -288,7 +291,7 @@ Include the array index as a column in the result:
 .
 .nf
 
-$ echo "$JSON" | jt [ foo % ] [ bar x % ] baz y ^ %
+$ echo "$JSON" | jt [ foo ] [ bar x ] baz y ^
 a       b       0       c
 a       b       1       d
 .
@@ -303,7 +306,7 @@ Notice the empty column \(em some objects don\'t have the \fIz\fR key:
 .
 .nf
 
-$ echo "$JSON" | jt [ foo % ] baz [ y % ] z %
+$ echo "$JSON" | jt [ foo ] baz [ y ] z
 a       c
 a       d       e
 .
@@ -318,7 +321,7 @@ Inner join mode will remove rows from the output when any key in the traversal p
 .
 .nf
 
-$ echo "$JSON" | jt \-j [ foo % ] baz [ y % ] z %
+$ echo "$JSON" | jt \-j [ foo ] baz [ y ] z
 a       d       e
 .
 .fi

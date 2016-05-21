@@ -29,7 +29,7 @@ a table of ELB names to EC2 instance IDs from the complex JSON returned by the
 
 ```
 $ aws elb describe-load-balancers \
--   | jt LoadBalancerDescriptions [ LoadBalancerName % ] Instances InstanceId %
+-   | jt LoadBalancerDescriptions [ LoadBalancerName ] Instances InstanceId
 elb-1	i-94a6f73a
 elb-2	i-b910a256
 ...
@@ -90,12 +90,12 @@ Print the indexes in a nested array:
 
 Get the value associated with the `foo` property of the JSON object:
 
-    $ echo "$JSON" | jt foo %
+    $ echo "$JSON" | jt foo
     a
 
 Get the value from a nested JSON object:
 
-    $ echo "$JSON" | jt bar x %
+    $ echo "$JSON" | jt bar x
     b
 
 #### Save / Restore Stack To Backtrack
@@ -103,7 +103,7 @@ Get the value from a nested JSON object:
 Drill down to get the `foo` value, then backtrack to get the `bar` value of the
 same JSON object:
 
-    $ echo "$JSON" | jt [ foo % ] bar x %
+    $ echo "$JSON" | jt [ foo ] bar x
     a       b
 
 #### Iterate Over Arrays
@@ -112,28 +112,28 @@ same JSON object:
 left to right, once for each nested object in the array. Stacks are reset
 between runs, and each run produces one row of output:
 
-    $ echo "$JSON" | jt [ foo % ] [ bar x % ] baz y %
+    $ echo "$JSON" | jt [ foo ] [ bar x ] baz y
     a       b       c
     a       b       d
 
 Use the `^` command to include the array index as a column in the result:
 
-    $ echo "$JSON" | jt [ foo % ] [ bar x % ] baz y ^ %
-    a       b       0       c
-    a       b       1       d
+    $ echo "$JSON" | jt [ foo ] [ bar x ] baz y ^
+    a       b       c       0
+    a       b       d       1
 
 #### Left Join Vs. Inner Join
 
 Notice the empty column &mdash; some objects don't have a `z` property:
 
-    $ echo "$JSON" | jt [ foo % ] baz [ y % ] z %
+    $ echo "$JSON" | jt [ foo ] baz [ y ] z
     a       c
     a       d       e
 
 Inner join mode (the `-j` option) will remove rows from the output when any
 key in the traversal path doesn't exist:
 
-    $ echo "$JSON" | jt -j [ foo % ] baz [ y % ] z %
+    $ echo "$JSON" | jt -j [ foo ] baz [ y ] z
     a       d       e
 
 ## COPYRIGHT

@@ -96,6 +96,9 @@ The following commands are available:
     Print the value at the top of the data stack. If the item at the top of the
     data stack is not a string or primitive type a blank field is printed.
 
+    **DEPRECATED:** This command has been made redundant, as printing of JSON
+    primitives and strings is now automatic.
+
   * `^`:
     Print the array index at the top of the index stack. It is an error if the
     index stack is empty.
@@ -192,32 +195,32 @@ Print the indexes in a nested array:
 
 Extract values from JSON data:
 
-    $ echo "$JSON" | jt foo %
+    $ echo "$JSON" | jt foo
     a
 
 Extract nested JSON data:
 
-    $ echo "$JSON" | jt bar x %
+    $ echo "$JSON" | jt bar x
     b
 
 ### Save / Restore
 
 Extract multiple values by saving and restoring the data stack:
 
-    $ echo "$JSON" | jt [ foo % ] bar x %
+    $ echo "$JSON" | jt [ foo ] bar x
     a       b
 
 ### Arrays
 
 Iterate over nested arrays, producing one row per iteration:
 
-    $ echo "$JSON" | jt [ foo % ] [ bar x % ] baz y %
+    $ echo "$JSON" | jt [ foo ] [ bar x ] baz y
     a       b       c
     a       b       d
 
 Include the array index as a column in the result:
 
-    $ echo "$JSON" | jt [ foo % ] [ bar x % ] baz y ^ %
+    $ echo "$JSON" | jt [ foo ] [ bar x ] baz y ^
     a       b       0       c
     a       b       1       d
 
@@ -225,14 +228,14 @@ Include the array index as a column in the result:
 
 Notice the empty column &mdash; some objects don't have the <z> key:
 
-    $ echo "$JSON" | jt [ foo % ] baz [ y % ] z %
+    $ echo "$JSON" | jt [ foo ] baz [ y ] z
     a       c
     a       d       e
 
 Inner join mode will remove rows from the output when any key in the traversal
 path doesn't exist:
 
-    $ echo "$JSON" | jt -j [ foo % ] baz [ y % ] z %
+    $ echo "$JSON" | jt -j [ foo ] baz [ y ] z
     a       d       e
 
 ## COPYRIGHT
