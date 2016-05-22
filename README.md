@@ -28,8 +28,7 @@ a table of ELB names to EC2 instance IDs from the complex JSON returned by the
 `aws elb` tool:
 
 ```
-$ aws elb describe-load-balancers \
--   | jt LoadBalancerDescriptions [ LoadBalancerName ] Instances InstanceId
+$ aws elb describe-load-balancers |jt LoadBalancerDescriptions [ LoadBalancerName ] Instances InstanceId
 elb-1	i-94a6f73a
 elb-2	i-b910a256
 ...
