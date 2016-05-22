@@ -221,8 +221,8 @@ Iterate over nested arrays, producing one row per iteration:
 Include the array index as a column in the result:
 
     $ echo "$JSON" | jt [ foo ] [ bar x ] baz y ^
-    a       b       0       c
-    a       b       1       d
+    a       b       c       0
+    a       b       d       1
 
 ### Joins
 
