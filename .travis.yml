@@ -1,0 +1,4 @@
+language: c
+script:
+  - make && make install
+  - mkdir -p zzz && wget -O - https://github.com/micha/json-table/raw/master/jt.tar.gz | (cd zzz && tar xzvf -) && cp zzz/bin/jt . && make test
