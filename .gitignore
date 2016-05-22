@@ -16,6 +16,5 @@ target/
 /jt
 *.o
 *.a
-*.tar.gz
 /a.out
 /test.c

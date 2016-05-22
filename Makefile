@@ -1,6 +1,5 @@
 .PHONY: all clean docs install dist
 
-VERSION = 2.0.0
 OS      = $(shell uname -s)
 CFLAGS += -O3 -Wall -Werror -pedantic-errors -std=c99
 ifneq (${OS}, Darwin)
@@ -34,11 +33,11 @@ install: jt jt.1
 	cp jt $(BINDIR)
 	cp jt.1 $(MANDIR)
 
-jt-$(VERSION).tar: jt jt.1
+jt.tar: jt jt.1
 	tar cf $@ --transform 's@^@bin/@' jt
 	tar uf $@ --transform 's@^@man/man1/@' jt.1
 
 %.tar.gz: %.tar
 	gzip -f $^
 
-dist: jt-$(VERSION).tar.gz
+dist: jt.tar.gz
