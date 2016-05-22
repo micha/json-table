@@ -155,7 +155,10 @@ onto the gosub stack.</p></dd>
 <dt class="flush"><code>]</code></dt><dd><p>Restore the data stack to a saved state: pop the gosub stack and restore
 the data stack pointer to that state.</p></dd>
 <dt class="flush"><code>%</code></dt><dd><p>Print the value at the top of the data stack. If the item at the top of the
-data stack is not a string or primitive type a blank field is printed.</p></dd>
+data stack is not a string or primitive type a blank field is printed.</p>
+
+<p><strong>DEPRECATED:</strong> This command has been made redundant, as printing of JSON
+primitives and strings is now automatic.</p></dd>
 <dt class="flush"><code>^</code></dt><dd><p>Print the array index at the top of the index stack. It is an error if the
 index stack is empty.</p></dd>
 <dt class="flush"><code>@</code></dt><dd><p>Print the keys of the object at the top of the data stack. It is an error
@@ -256,13 +259,13 @@ y
 
 <p>Extract values from JSON data:</p>
 
-<pre><code>$ echo "$JSON" | jt foo %
+<pre><code>$ echo "$JSON" | jt foo
 a
 </code></pre>
 
 <p>Extract nested JSON data:</p>
 
-<pre><code>$ echo "$JSON" | jt bar x %
+<pre><code>$ echo "$JSON" | jt bar x
 b
 </code></pre>
 
@@ -270,7 +273,7 @@ b
 
 <p>Extract multiple values by saving and restoring the data stack:</p>
 
-<pre><code>$ echo "$JSON" | jt [ foo % ] bar x %
+<pre><code>$ echo "$JSON" | jt [ foo ] bar x
 a       b
 </code></pre>
 
@@ -278,14 +281,14 @@ a       b
 
 <p>Iterate over nested arrays, producing one row per iteration:</p>
 
-<pre><code>$ echo "$JSON" | jt [ foo % ] [ bar x % ] baz y %
+<pre><code>$ echo "$JSON" | jt [ foo ] [ bar x ] baz y
 a       b       c
 a       b       d
 </code></pre>
 
 <p>Include the array index as a column in the result:</p>
 
-<pre><code>$ echo "$JSON" | jt [ foo % ] [ bar x % ] baz y ^ %
+<pre><code>$ echo "$JSON" | jt [ foo ] [ bar x ] baz y ^
 a       b       0       c
 a       b       1       d
 </code></pre>
@@ -294,7 +297,7 @@ a       b       1       d
 
 <p>Notice the empty column &mdash; some objects don't have the <var>z</var> key:</p>
 
-<pre><code>$ echo "$JSON" | jt [ foo % ] baz [ y % ] z %
+<pre><code>$ echo "$JSON" | jt [ foo ] baz [ y ] z
 a       c
 a       d       e
 </code></pre>
@@ -302,7 +305,7 @@ a       d       e
 <p>Inner join mode will remove rows from the output when any key in the traversal
 path doesn't exist:</p>
 
-<pre><code>$ echo "$JSON" | jt -j [ foo % ] baz [ y % ] z %
+<pre><code>$ echo "$JSON" | jt -j [ foo ] baz [ y ] z
 a       d       e
 </code></pre>
 

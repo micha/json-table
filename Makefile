@@ -1,8 +1,8 @@
 .PHONY: all clean docs install dist
 
 VERSION = 2.0.0
-OS=$(shell uname -s)
-CFLAGS  = -O3 -Wall -Werror -pedantic-errors -std=c99
+OS      = $(shell uname -s)
+CFLAGS += -O3 -Wall -Werror -pedantic-errors -std=c99
 ifneq (${OS}, Darwin)
 LDFLAGS = -static
 endif

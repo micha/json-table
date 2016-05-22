@@ -412,11 +412,11 @@ int run(char *js, int argc, char *argv[]) {
   else if (data) {
     data = obj_get(js, data, argv[0]);
     if (! (data || left_join)) return -STACKSIZE;
-    if (isatom(data) && (argc == 1 || strcmp(argv[1], "%"))) {
+    stack_push(&IN, data);
+
+    if ((!data || isatom(data)) && (argc == 1 || strcmp(argv[1], "%"))) {
       if (data && ! isnull(js, data)) cols = 1;
       stack_push(&OUT, jstr(js, data));
-    } else {
-      stack_push(&IN, data);
     }
   }
 
