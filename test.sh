@@ -12,6 +12,7 @@ assert() {
   if [[ -z "$x" ]]; then
     echo "$PASS"
   else
+    fails=$((fails + 1))
     echo "$FAIL"
     echo "$x"
   fi
@@ -102,4 +103,4 @@ a	d	e
 EOT
 )"
 
-[[ $fails -gt 0 ]] && exit 1
+[[ $fails == 0 ]] || exit 1

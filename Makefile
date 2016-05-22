@@ -1,4 +1,4 @@
-.PHONY: all clean docs install dist
+.PHONY: all clean docs install dist test
 
 OS      = $(shell uname -s)
 CFLAGS += -O3 -Wall -Werror -pedantic-errors -std=c99
@@ -41,3 +41,6 @@ jt.tar: jt jt.1
 	gzip -f $^
 
 dist: jt.tar.gz
+
+test:
+	@./test.sh

@@ -47,7 +47,7 @@ sudo bash -c "cd /usr/local && wget -O - https://github.com/micha/json-table/raw
 Otherwise, build from source:
 
 ```
-make && sudo make install
+make && make test && sudo make install
 ```
 
 ## DOCUMENTATION
