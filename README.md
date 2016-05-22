@@ -1,4 +1,4 @@
-# json-table &mdash; (╯°□°)╯︵ ┻━┻
+# json-table &mdash; (╯°□°)╯︵ ┻━┻ [![Build Status](https://travis-ci.org/micha/json-table.svg?branch=master)](https://travis-ci.org/micha/json-table)
 
 **Jt** transforms JSON data structures into tables of columns and rows for
 processing in the shell.
