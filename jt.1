@@ -31,6 +31,10 @@
 Print usage info and exit\.
 .
 .TP
+\fB\-V\fR
+Print version and license info and exit\.
+.
+.TP
 \fB\-c\fR
 Print output as CSV with JSON strings unescaped\.
 .
@@ -77,13 +81,7 @@ The \fBindex stack\fR contains the indexes of nested arrays as \fBjt\fR iterates
 .IP "" 0
 .
 .P
-Commands are evaluated from left to right\. When all commands have been applied the data stack is restored to its initial state, containing only the root JSON object, and a row of output is printed\. This process is repeated until all rows have been printed\.
-.
-.P
-Nested arrays in the JSON input are treated as implicit joins: a row of output is produced for each item in the array\. The array indexes are stored internally between iterations and are read\-only \(em no control over this is exposed via the command language\.
-.
-.P
-The following commands are available:
+\fBJt\fR provides the following commands:
 .
 .TP
 \fB[\fR
@@ -114,6 +112,15 @@ If the item at the top of the data stack is not an object or if the object has n
 .
 .IP
 If the \fIKEY\fR property of the object is an array subsequent commands will operate on one of the items in the array, chosen automatically by \fBjt\fR\. The array index will be available to subsequent commands via the index stack\.
+.
+.P
+When \fBjt\fR starts, the root JSON object is pushed onto the data stack\. Then commands are evaluated, from left to right\. When a JSON array is pushed onto the data stack a corresponding index (starting at zero) is pushed onto the index stack, and the associated object in the array at that index is automatically pushed onto the data stack\.
+.
+.P
+When all commands have been evaluated, each item in the output stack is printed, separated by the field separator (default TAB), the data stack is restored to its initial state (containing only the root JSON object), and evaluation begins again, evaluating the commands from left to right\.
+.
+.P
+Each iteration will increment indices stored in the index stack such that all iterations follow a different path through the nested JSON tree, each traversing a different permuation of array indices\. You can think of this process as an implicit join, if that helps\.
 .
 .SH "JSON UNESCAPING AND CSV OUTPUT"
 Strings in JSON data must not contain control characters (e\.g\., \fBtab\fR, \fBnewline\fR, etc\.) These characters \fImust\fR be escaped with a backslash\. Additionally, any character \fImay\fR be escaped with a backslash\. The JSON specification also allows escaping of unicode characters with \fB\eu\fR escape, for example the copyright symbol © can be encoded as \fB\eu00A9\fR, and the G\-clef character 𝄞 as \fB\euD834\euDD1E\fR\.

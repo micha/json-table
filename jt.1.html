@@ -107,6 +107,7 @@ in CSV format for processing in a spreadsheet or with command line tools like
 
 <dl>
 <dt class="flush"><code>-h</code></dt><dd><p>Print usage info and exit.</p></dd>
+<dt class="flush"><code>-V</code></dt><dd><p>Print version and license info and exit.</p></dd>
 <dt class="flush"><code>-c</code></dt><dd><p>Print output as CSV with JSON strings unescaped.</p></dd>
 <dt class="flush"><code>-j</code></dt><dd><p>Inner join mode: discard rows with missing columns.</p></dd>
 <dt class="flush"><code>-s</code></dt><dd><p>Stream mode: expect one JSON object per line of input.</p></dd>
@@ -137,17 +138,7 @@ them. Commands can print the value at the top of this stack.</p></li>
 </ul>
 
 
-<p>Commands are evaluated from left to right. When all commands have been applied
-the data stack is restored to its initial state, containing only the root JSON
-object, and a row of output is printed. This process is repeated until all rows
-have been printed.</p>
-
-<p>Nested arrays in the JSON input are treated as implicit joins: a row of output
-is produced for each item in the array. The array indexes are stored internally
-between iterations and are read-only &mdash; no control over this is exposed
-via the command language.</p>
-
-<p>The following commands are available:</p>
+<p><strong>Jt</strong> provides the following commands:</p>
 
 <dl>
 <dt class="flush"><code>[</code></dt><dd><p>Save the state of the data stack: the current data stack pointer is pushed
@@ -173,6 +164,22 @@ The array index will be available to subsequent commands via the index
 stack.</p></dd>
 </dl>
 
+
+<p>When <strong>jt</strong> starts, the root JSON object is pushed onto the data stack. Then
+commands are evaluated, from left to right. When a JSON array is pushed onto
+the data stack a corresponding index (starting at zero) is pushed onto the
+index stack, and the associated object in the array at that index is
+automatically pushed onto the data stack.</p>
+
+<p>When all commands have been evaluated, each item in the output stack is printed,
+separated by the field separator (default TAB), the data stack is restored to
+its initial state (containing only the root JSON object), and evaluation begins
+again, evaluating the commands from left to right.</p>
+
+<p>Each iteration will increment indices stored in the index stack such that all
+iterations follow a different path through the nested JSON tree, each traversing
+a different permuation of array indices. You can think of this process as an
+implicit join, if that helps.</p>
 
 <h2 id="JSON-UNESCAPING-AND-CSV-OUTPUT">JSON UNESCAPING AND CSV OUTPUT</h2>
 

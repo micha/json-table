@@ -30,6 +30,9 @@ in CSV format for processing in a spreadsheet or with command line tools like
   * `-h`:
     Print usage info and exit.
 
+  * `-V`:
+    Print version and license info and exit.
+
   * `-c`:
     Print output as CSV with JSON strings unescaped.
 
@@ -72,17 +75,7 @@ three stacks on which commands operate:
 * The `index stack` contains the indexes of nested arrays as `jt` iterates over
   them. Commands can print the value at the top of this stack.
 
-Commands are evaluated from left to right. When all commands have been applied
-the data stack is restored to its initial state, containing only the root JSON
-object, and a row of output is printed. This process is repeated until all rows
-have been printed.
-
-Nested arrays in the JSON input are treated as implicit joins: a row of output
-is produced for each item in the array. The array indexes are stored internally
-between iterations and are read-only &mdash; no control over this is exposed
-via the command language.
-
-The following commands are available:
+**Jt** provides the following commands:
 
   * `[`:
     Save the state of the data stack: the current data stack pointer is pushed
@@ -116,6 +109,22 @@ The following commands are available:
     operate on one of the items in the array, chosen automatically by `jt`.
     The array index will be available to subsequent commands via the index
     stack.
+
+When **jt** starts, the root JSON object is pushed onto the data stack. Then
+commands are evaluated, from left to right. When a JSON array is pushed onto
+the data stack a corresponding index (starting at zero) is pushed onto the
+index stack, and the associated object in the array at that index is
+automatically pushed onto the data stack.
+
+When all commands have been evaluated, each item in the output stack is printed,
+separated by the field separator (default TAB), the data stack is restored to
+its initial state (containing only the root JSON object), and evaluation begins
+again, evaluating the commands from left to right.
+
+Each iteration will increment indices stored in the index stack such that all
+iterations follow a different path through the nested JSON tree, each traversing
+a different permuation of array indices. You can think of this process as an
+implicit join, if that helps.
 
 ## JSON UNESCAPING AND CSV OUTPUT
 

@@ -1,7 +1,7 @@
 #define _GNU_SOURCE
 #define JSMN_STRICT
 #define JSMN_PARENT_LINKS
-#define JT_VERSION "2.0.0"
+#define JT_VERSION "2.1.0"
 
 #include <stdarg.h>
 #include <stdio.h>
@@ -424,11 +424,22 @@ int run(char *js, int argc, char *argv[], size_t *stream_idx) {
 void usage(int status) {
   fprintf(stderr, "jt %s - transform JSON data into tab delimited lines of text.\n\n", JT_VERSION);
   fprintf(stderr, "Usage: jt -h\n");
+  fprintf(stderr, "       jt -V\n");
   fprintf(stderr, "       jt -u <string>\n");
   fprintf(stderr, "       jt -c [-js] [-i <file>] [-o <file>] COMMAND ...\n");
   fprintf(stderr, "       jt [-js] [-i <file>] [-o <file>] [-F <char>] [-R <char>] COMMAND ...\n\n");
   fprintf(stderr, "Where COMMAND is one of `[', `]', `%%', `@', `^', or a property name.\n");
   exit(status);
+}
+
+void version() {
+  fprintf(stdout, "jt %s\n", JT_VERSION);
+  fprintf(stdout, "Copyright 2016 Micha Niskin\n");
+  fprintf(stdout, "License EPL v1.0 <https://www.eclipse.org/legal/epl-v10.html>.\n");
+  fprintf(stdout, "Source code available <https://github.com/micha/json-table>.\n");
+  fprintf(stdout, "This is free software: you are free to change and redistribute it.\n");
+  fprintf(stdout, "There is NO WARRANTY, to the extent permitted by law.\n");
+  exit(0);
 }
 
 int main(int argc, char *argv[]) {
@@ -442,10 +453,13 @@ int main(int argc, char *argv[]) {
   infile    = stdin;
   outfile   = stdout;
 
-  while ((opt = getopt(argc, argv, "+hjsci:o:u:F:R:")) != -1) {
+  while ((opt = getopt(argc, argv, "+hVjsci:o:u:F:R:")) != -1) {
     switch (opt) {
       case 'h':
         usage(0);
+        break;
+      case 'V':
+        version();
         break;
       case 'c':
         csv_output = 1;
