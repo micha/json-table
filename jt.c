@@ -346,7 +346,7 @@ jsmntok_t *ary_get(const char *js, jsmntok_t *tok, int n) {
  * runner
  *****************************************************************************/
 
-int run(char *js, int argc, char *argv[]) {
+int run(char *js, int argc, char *argv[], size_t *stream_idx) {
   jsmntok_t *data = stack_head(IN);
   size_t *i;
   int cols = 0;
@@ -354,7 +354,7 @@ int run(char *js, int argc, char *argv[]) {
   if (data && data->type == JSMN_ARRAY) {
     if (data->size == 0) {
       stack_push(&IN, NULL);
-      run(js, argc, argv);
+      run(js, argc, argv, stream_idx);
       if (! left_join) cols = -STACKSIZE;
     } else {
       i = (size_t*) stack_head(ITR);
@@ -368,7 +368,7 @@ int run(char *js, int argc, char *argv[]) {
 
       stack_push(&IN, ary_get(js, data, *i));
       stack_push(&IDX, i);
-      cols = run(js, argc, argv);
+      cols = run(js, argc, argv, stream_idx);
       stack_pop(&IDX);
 
       if (! stack_head(ITR)) (*i)++;
@@ -393,8 +393,7 @@ int run(char *js, int argc, char *argv[]) {
   }
 
   else if (! strcmp(argv[0], "^")) {
-    if (! (i = stack_head(IDX)))
-      die("no index to print");
+    i = stack_head(IDX) ? stack_head(IDX) : stream_idx;
     cols = 1;
     stack_push(&OUT, str("%zu", * (size_t*) i));
   }
@@ -415,7 +414,7 @@ int run(char *js, int argc, char *argv[]) {
     stack_push(&IN, data);
   }
 
-  return cols + run(js, argc - 1, argv + 1);
+  return cols + run(js, argc - 1, argv + 1, stream_idx);
 }
 
 /*
@@ -434,9 +433,9 @@ void usage(int status) {
 
 int main(int argc, char *argv[]) {
   jsmntok_t *tok;
-  size_t    jslen, toks;
+  size_t    jslen, toks, line;
   char      *js, **o;
-  int       opt, cols, streaming, line, i;
+  int       opt, cols, streaming, i;
   FILE      *infile, *outfile;
 
   streaming = 0;
@@ -485,7 +484,7 @@ int main(int argc, char *argv[]) {
   js    = NULL;
   toks  = 0;
   tok   = NULL;
-  line  = 1;
+  line  = 0;
   o     = (char **)(OUT.items);
 
   do {
@@ -494,12 +493,12 @@ int main(int argc, char *argv[]) {
 
     if (parse_string(js, &tok, &toks)) {
       if (! streaming) die("can't parse json");
-      else warn("can't parse json: line %d -- continuing\n", line);
+      else warn("can't parse json: line %zu -- continuing\n", line+1);
     } else {
       stack_push(&IN, tok);
 
       do {
-        cols = run(js, argc - optind, argv + optind);
+        cols = run(js, argc - optind, argv + optind, &line);
 
         if (cols > 0)
           for (i = 0; i <= OUT.head; i++)
