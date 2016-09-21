@@ -185,12 +185,14 @@ void *out_i[STACKSIZE];
 void  *go_i[STACKSIZE];
 void *idx_i[STACKSIZE];
 void *itr_i[STACKSIZE];
+void *key_i[STACKSIZE];
 
-Stack IN  = { in_i,  "data",     -1 };
-Stack OUT = { out_i, "output",   -1 };
-Stack GO  = { go_i,  "gosub",    -1 };
-Stack IDX = { idx_i, "index",    -1 };
-Stack ITR = { itr_i, "iterator", -1 };
+Stack IN      = { in_i,      "data",         -1 };
+Stack OUT     = { out_i,     "output",       -1 };
+Stack GO      = { go_i,      "gosub",        -1 };
+Stack IDX     = { idx_i,     "index",        -1 };
+Stack ITR     = { itr_i,     "iterator",     -1 };
+Stack KEY     = { key_i,     "key",          -1 };
 
 /*
  * json string -> utf-8
@@ -329,6 +331,18 @@ jsmntok_t *obj_get(const char *js, jsmntok_t *tok, const char *k) {
   return NULL;
 }
 
+/* offset = 0 for key, 1 for val */
+jsmntok_t *obj_at(const char *js, jsmntok_t *tok, size_t k, int offset) {
+  int i;
+  jsmntok_t *v;
+
+  if (tok->type == JSMN_OBJECT)
+    for (i = 0, v = tok + 1; i < tok->size; i++, v = toknext(v))
+      if (i == k) return v + offset;
+
+  return NULL;
+}
+
 jsmntok_t *ary_get(const char *js, jsmntok_t *tok, int n) {
   int i;
   jsmntok_t *v;
@@ -349,6 +363,7 @@ jsmntok_t *ary_get(const char *js, jsmntok_t *tok, int n) {
 int run(char *js, int argc, char *argv[], size_t *stream_idx) {
   jsmntok_t *data = stack_head(IN);
   size_t *i;
+  jsmntok_t **j;
   int cols = 0;
 
   if (data && data->type == JSMN_ARRAY) {
@@ -381,6 +396,39 @@ int run(char *js, int argc, char *argv[], size_t *stream_idx) {
 
   if (argc <= 0) return 0;
 
+  if (! strcmp(argv[0], ".")) {
+    if (data && data->type == JSMN_OBJECT) {
+      if (data->size == 0) {
+        stack_push(&IN, NULL);
+        run(js, argc - 1, argv + 1, stream_idx);
+        if (! left_join) cols = -STACKSIZE;
+      } else {
+        i = (size_t*) stack_head(ITR);
+        j = jmalloc(sizeof(size_t*));
+
+        if (i) {
+          stack_pop(&ITR);
+        } else {
+          i = jmalloc(sizeof(size_t*));
+          *i = 0;
+        }
+
+        stack_push(&IN, obj_at(js, data, *i, 1));
+        *j = obj_at(js, data, *i, 0);
+        stack_push(&KEY, j);
+        cols = run(js, argc - 1, argv + 1, stream_idx);
+        stack_pop(&KEY);
+        free(j);
+
+        if (! stack_head(ITR)) (*i)++;
+
+        if (*i < data->size) stack_push(&ITR, i);
+        else free(i);
+      }
+      return cols;
+    }
+  }
+
   if (! strcmp(argv[0], "@")) {
     if (data && data->type == JSMN_OBJECT)
       obj_print_keys(js, data);
@@ -396,6 +444,11 @@ int run(char *js, int argc, char *argv[], size_t *stream_idx) {
     i = stack_head(IDX) ? stack_head(IDX) : stream_idx;
     cols = 1;
     stack_push(&OUT, str("%zu", * (size_t*) i));
+  }
+
+  else if (! strcmp(argv[0], "^k")) {
+    cols = 1;
+    stack_push(&OUT, jstr(js, *(jsmntok_t**)stack_head(KEY)));
   }
 
   else if (! strcmp(argv[0], "[")) {
