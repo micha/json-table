@@ -75,6 +75,10 @@ three stacks on which commands operate:
 * The `index stack` contains the indexes of nested arrays as `jt` iterates over
   them. Commands can print the value at the top of this stack.
 
+* The `key stack` contains the keys of objects `jt` iterates over when the `.`
+  command is used. If `.` is used, `^k` can be used later to print the value at
+  the top of this stack.
+
 **Jt** provides the following commands:
 
   * `[`:
@@ -96,6 +100,12 @@ three stacks on which commands operate:
   * `@`:
     Print the keys of the object at the top of the data stack. It is an error
     if the item at the top of the data stack is not an object.
+
+  * `.`:
+    Save the keys of the object at the top of the data stack and traverse its values.
+
+  * `^k`:
+    Print the key at the top of the key stack.  Only meaningful when used after a `.` command.
 
   * <KEY>:
     Drill down: get the value of the <KEY> property of the object at the top
@@ -172,6 +182,24 @@ We will use the following JSON input for the examples:
 
     $ JSON='{"foo":"a","bar":{"x":"b"},"baz":[{"y":"c"},{"y":"d","z":"e"}]}'
 
+We pretty-print it here for reference:
+
+    {
+        "bar": {
+            "x": "b"
+        },
+        "baz": [
+            {
+                "y": "c"
+            },
+            {
+                "y": "d",
+                "z": "e"
+            }
+        ],
+        "foo": "a"
+    }
+
 ### Explore
 
 Explore JSON data, print an object's keys:
@@ -229,6 +257,22 @@ Include the array index as a column in the result:
     $ echo "$JSON" | jt [ foo % ] [ bar x % ] baz y % ^
     a       b       c       0
     a       b       d       1
+
+### Objects
+
+Iterate over the values of an object without specifying intermediate keys:
+
+    $ echo $JSON | jt baz . %
+    c
+    d
+    e
+
+Iterate over the keys and values of an object without specifying intermediate keys:
+
+    $ echo $JSON | jt baz . ^k %
+    y	c
+    y	d
+    z	e
 
 ### Joins
 
