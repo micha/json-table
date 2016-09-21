@@ -154,8 +154,11 @@ data stack is not a string or primitive type a blank field is printed.</p></dd>
 index stack is empty.</p></dd>
 <dt class="flush"><code>@</code></dt><dd><p>Print the keys of the object at the top of the data stack. It is an error
 if the item at the top of the data stack is not an object.</p></dd>
-<dt class="flush"><code>.</code></dt><dd><p>Save the keys of the object at the top of the data stack and traverse its values.</p></dd>
-<dt class="flush"><code>^k</code></dt><dd><p>Print the key at the top of the key stack.  Only meaningful when used after a <code>.</code> command.</p></dd>
+<dt class="flush"><code>.</code></dt><dd><p>Iterate over the values of the object at the top of the data stack. The
+current value will be pushed onto the data stack and the current key will
+be pushed onto the key stack.</p></dd>
+<dt class="flush"><code>^k</code></dt><dd><p>Print the key at the top of the key stack. Only meaningful when used after
+a <code>.</code> command.</p></dd>
 <dt class="flush"><var>KEY</var></dt><dd><p>Drill down: get the value of the <var>KEY</var> property of the object at the top
 of the data stack and push that value onto the data stack.</p>
 
