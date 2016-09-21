@@ -1,7 +1,7 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "JT" "1" "May 2016" "" "JT MANUAL"
+.TH "JT" "1" "September 2016" "" "JT MANUAL"
 .
 .SH "NAME"
 \fBjt\fR \- transform JSON data to tabular format
@@ -78,6 +78,9 @@ The \fBgosub stack\fR contains pointers into the data stack\. Commands push data
 .IP "\(bu" 4
 The \fBindex stack\fR contains the indexes of nested arrays as \fBjt\fR iterates over them\. Commands can print the value at the top of this stack\.
 .
+.IP "\(bu" 4
+The \fBkey stack\fR contains the keys of objects \fBjt\fR iterates over when the \fB\.\fR command is used\. If \fB\.\fR is used, \fB^k\fR can be used later to print the value at the top of this stack\.
+.
 .IP "" 0
 .
 .P
@@ -102,6 +105,14 @@ Print the array index at the top of the index stack\. It is an error if the inde
 .TP
 \fB@\fR
 Print the keys of the object at the top of the data stack\. It is an error if the item at the top of the data stack is not an object\.
+.
+.TP
+\fB\.\fR
+Save the keys of the object at the top of the data stack and traverse its values\.
+.
+.TP
+\fB^k\fR
+Print the key at the top of the key stack\. Only meaningful when used after a \fB\.\fR command\.
 .
 .TP
 \fIKEY\fR
@@ -167,6 +178,33 @@ We will use the following JSON input for the examples:
 .nf
 
 $ JSON=\'{"foo":"a","bar":{"x":"b"},"baz":[{"y":"c"},{"y":"d","z":"e"}]}\'
+.
+.fi
+.
+.IP "" 0
+.
+.P
+We pretty\-print it here for reference:
+.
+.IP "" 4
+.
+.nf
+
+{
+    "bar": {
+        "x": "b"
+    },
+    "baz": [
+        {
+            "y": "c"
+        },
+        {
+            "y": "d",
+            "z": "e"
+        }
+    ],
+    "foo": "a"
+}
 .
 .fi
 .
@@ -298,6 +336,38 @@ Include the array index as a column in the result:
 $ echo "$JSON" | jt [ foo % ] [ bar x % ] baz y % ^
 a       b       c       0
 a       b       d       1
+.
+.fi
+.
+.IP "" 0
+.
+.SS "Objects"
+Iterate over the values of an object without specifying intermediate keys:
+.
+.IP "" 4
+.
+.nf
+
+$ echo $JSON | jt baz \. %
+c
+d
+e
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Iterate over the keys and values of an object without specifying intermediate keys:
+.
+.IP "" 4
+.
+.nf
+
+$ echo $JSON | jt baz \. ^k %
+y   c
+y   d
+z   e
 .
 .fi
 .

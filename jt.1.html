@@ -135,6 +135,9 @@ stack pointers onto this stack to save the state of the data stack and pop
 them off to restore the data stack to a saved state.</p></li>
 <li><p>The <code>index stack</code> contains the indexes of nested arrays as <code>jt</code> iterates over
 them. Commands can print the value at the top of this stack.</p></li>
+<li><p>The <code>key stack</code> contains the keys of objects <code>jt</code> iterates over when the <code>.</code>
+command is used. If <code>.</code> is used, <code>^k</code> can be used later to print the value at
+the top of this stack.</p></li>
 </ul>
 
 
@@ -151,6 +154,8 @@ data stack is not a string or primitive type a blank field is printed.</p></dd>
 index stack is empty.</p></dd>
 <dt class="flush"><code>@</code></dt><dd><p>Print the keys of the object at the top of the data stack. It is an error
 if the item at the top of the data stack is not an object.</p></dd>
+<dt class="flush"><code>.</code></dt><dd><p>Save the keys of the object at the top of the data stack and traverse its values.</p></dd>
+<dt class="flush"><code>^k</code></dt><dd><p>Print the key at the top of the key stack.  Only meaningful when used after a <code>.</code> command.</p></dd>
 <dt class="flush"><var>KEY</var></dt><dd><p>Drill down: get the value of the <var>KEY</var> property of the object at the top
 of the data stack and push that value onto the data stack.</p>
 
@@ -230,6 +235,25 @@ data in the shell.</p>
 <pre><code>$ JSON='{"foo":"a","bar":{"x":"b"},"baz":[{"y":"c"},{"y":"d","z":"e"}]}'
 </code></pre>
 
+<p>We pretty-print it here for reference:</p>
+
+<pre><code>{
+    "bar": {
+        "x": "b"
+    },
+    "baz": [
+        {
+            "y": "c"
+        },
+        {
+            "y": "d",
+            "z": "e"
+        }
+    ],
+    "foo": "a"
+}
+</code></pre>
+
 <h3 id="Explore">Explore</h3>
 
 <p>Explore JSON data, print an object's keys:</p>
@@ -297,6 +321,24 @@ a       b       c       0
 a       b       d       1
 </code></pre>
 
+<h3 id="Objects">Objects</h3>
+
+<p>Iterate over the values of an object without specifying intermediate keys:</p>
+
+<pre><code>$ echo $JSON | jt baz . %
+c
+d
+e
+</code></pre>
+
+<p>Iterate over the keys and values of an object without specifying intermediate keys:</p>
+
+<pre><code>$ echo $JSON | jt baz . ^k %
+y   c
+y   d
+z   e
+</code></pre>
+
 <h3 id="Joins">Joins</h3>
 
 <p>Notice the empty column &mdash; some objects don't have the <var>z</var> key:</p>
@@ -325,7 +367,7 @@ Distributed under the Eclipse Public License, version 1.0.</p>
 
   <ol class='man-decor man-foot man foot'>
     <li class='tl'></li>
-    <li class='tc'>May 2016</li>
+    <li class='tc'>September 2016</li>
     <li class='tr'>jt(1)</li>
   </ol>
 
