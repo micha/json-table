@@ -363,7 +363,7 @@ jsmntok_t *ary_get(const char *js, jsmntok_t *tok, int n) {
 int run(char *js, int argc, char *argv[], size_t *stream_idx) {
   jsmntok_t *data = stack_head(IN);
   size_t *i;
-  jsmntok_t **j;
+  jsmntok_t **keytokp;
   int cols = 0;
 
   if (data && data->type == JSMN_ARRAY) {
@@ -397,36 +397,34 @@ int run(char *js, int argc, char *argv[], size_t *stream_idx) {
   if (argc <= 0) return 0;
 
   if (! strcmp(argv[0], ".")) {
-    if (data && data->type == JSMN_OBJECT) {
-      if (data->size == 0) {
-        stack_push(&IN, NULL);
-        run(js, argc - 1, argv + 1, stream_idx);
-        if (! left_join) cols = -STACKSIZE;
+    if (!data || data->type != JSMN_OBJECT || data->size == 0) {
+      stack_push(&IN, NULL);
+      run(js, argc - 1, argv + 1, stream_idx);
+      if (! left_join) cols = -STACKSIZE;
+    } else {
+      i = (size_t*) stack_head(ITR);
+      keytokp = jmalloc(sizeof(jsmntok_t*));
+
+      if (i) {
+        stack_pop(&ITR);
       } else {
-        i = (size_t*) stack_head(ITR);
-        j = jmalloc(sizeof(size_t*));
-
-        if (i) {
-          stack_pop(&ITR);
-        } else {
-          i = jmalloc(sizeof(size_t*));
-          *i = 0;
-        }
-
-        stack_push(&IN, obj_at(js, data, *i, 1));
-        *j = obj_at(js, data, *i, 0);
-        stack_push(&KEY, j);
-        cols = run(js, argc - 1, argv + 1, stream_idx);
-        stack_pop(&KEY);
-        free(j);
-
-        if (! stack_head(ITR)) (*i)++;
-
-        if (*i < data->size) stack_push(&ITR, i);
-        else free(i);
+        i = jmalloc(sizeof(size_t*));
+        *i = 0;
       }
-      return cols;
+
+      stack_push(&IN, obj_at(js, data, *i, 1));
+      *keytokp = obj_at(js, data, *i, 0);
+      stack_push(&KEY, keytokp);
+      cols = run(js, argc - 1, argv + 1, stream_idx);
+      stack_pop(&KEY);
+      free(keytokp);
+
+      if (! stack_head(ITR)) (*i)++;
+
+      if (*i < data->size) stack_push(&ITR, i);
+      else free(i);
     }
+    return cols;
   }
 
   if (! strcmp(argv[0], "@")) {
@@ -447,8 +445,10 @@ int run(char *js, int argc, char *argv[], size_t *stream_idx) {
   }
 
   else if (! strcmp(argv[0], "^k")) {
+    keytokp = stack_head(KEY);
+    if (! (keytokp || left_join)) return -STACKSIZE;
     cols = 1;
-    stack_push(&OUT, jstr(js, *(jsmntok_t**)stack_head(KEY)));
+    stack_push(&OUT, keytokp ? jstr(js, *keytokp) : str(""));
   }
 
   else if (! strcmp(argv[0], "[")) {
