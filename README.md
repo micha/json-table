@@ -140,7 +140,7 @@ Use the `^` command to include the array index as a column in the result:
     a       b       c       0
     a       b       d       1
 
-### Iterate Over Objects
+#### Iterate Over Objects
 
 Iterate over the values of an object without specifying intermediate keys:
 
