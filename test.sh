@@ -159,4 +159,30 @@ assert $LINENO \
 EOT
 )"
 
+JSON='{"a":[1,2,3], "b":[4,5,6]}'
+
+assert $LINENO \
+  "$(echo "$JSON" | ./jt . ^k %)" \
+  "$(cat <<'EOT'
+a	1
+a	2
+a	3
+b	4
+b	5
+b	6
+EOT
+)"
+
+assert $LINENO \
+       "$(echo "$JSON" | ./jt . ^k ^ %)" \
+       "$(cat <<'EOT'
+a	0	1
+a	1	2
+a	2	3
+b	0	4
+b	1	5
+b	2	6
+EOT
+)"
+
 [[ $fails == 0 ]] || exit 1
