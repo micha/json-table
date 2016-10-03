@@ -144,14 +144,14 @@ Use the `^` command to include the array index as a column in the result:
 
 Iterate over the values of an object without specifying intermediate keys:
 
-    $ echo $JSON | jt baz . %
+    $ echo "$JSON" | jt baz . %
     c
     d
     e
 
 Iterate over the keys and values of an object without specifying intermediate keys:
 
-    $ echo $JSON | jt baz . ^k %
+    $ echo "$JSON" | jt baz . ^ %
     y	c
     y	d
     z	e
