@@ -109,7 +109,7 @@ int run(jsparser_t *p, int argc, char *argv[]) {
     stack_pop(SUB);
   }
 
-  else if (argv[0][0] == '~') {
+  else if (argv[0][0] == '^') {
     if (js_is_object(js_tok(p, d))) {
       tmp = js_obj_get_fuzzy(p, d, argv[0] + 1);
       if (! (tmp || left_join)) return -STACKSIZE;
@@ -168,7 +168,7 @@ int main(int argc, char *argv[]) {
   jserr_t err;
   int opt, cols, i;
 
-  while ((opt = getopt(argc, argv, "+hVju:")) != -1) {
+  while ((opt = getopt(argc, argv, "+hVjsu:")) != -1) {
     switch (opt) {
       case 'h':
         usage(0);
@@ -178,6 +178,9 @@ int main(int argc, char *argv[]) {
         break;
       case 'j':
         left_join = 0;
+        break;
+      case 's':
+        /* for compatibility -- this option is now redundant */
         break;
       case 'u':
         printf("%s", js_unescape_string((char*) strdup(optarg)));
@@ -229,6 +232,7 @@ int main(int argc, char *argv[]) {
 
     js_reset(p);
     stack_pop_to(DAT, -1);
+    stack_pop_to(IDX, -1);
   }
 
   return 0;

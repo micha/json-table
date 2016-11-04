@@ -109,6 +109,7 @@ The input stream may contain multiple JSON forms separated by whitespace (i.e.
 <dt class="flush"><code>-h</code></dt><dd><p>Print usage info and exit.</p></dd>
 <dt class="flush"><code>-V</code></dt><dd><p>Print version and license info and exit.</p></dd>
 <dt class="flush"><code>-j</code></dt><dd><p>Inner join mode: discard rows with missing columns.</p></dd>
+<dt class="flush"><code>-s</code></dt><dd><p>Included for compatibility with earlier versions.</p></dd>
 <dt><code>-u</code> <var>string</var></dt><dd><p>Unescape JSON <var>string</var>, print it, and exit (<var>string</var> should not be enclosed
 in double quotes).</p></dd>
 </dl>
@@ -166,7 +167,7 @@ The array index will be available to subsequent commands via the index
 stack.</p></dd>
 <dt class="flush"><var>KEY</var></dt><dd><p>See <code>[</code><var>KEY</var><code>]</code> above &mdash; the <code>[</code> and <code>]</code> may be omitted if the
 property name <var>KEY</var> does not conflict with any <code>jt</code> command.</p></dd>
-<dt class="flush"><code>~</code><var>KEY</var></dt><dd><p>See <var>KEY</var> above &mdash; this variant drills down to the first property of
+<dt class="flush"><code>^</code><var>KEY</var></dt><dd><p>See <var>KEY</var> above &mdash; this variant drills down to the first property of
 the object whose name starts with <var>KEY</var>. The match is not case sensitive.</p></dd>
 </dl>
 
@@ -265,7 +266,7 @@ x
 
 <p>Same as above, with fuzzy property name matching:</p>
 
-<pre><code>$ echo "$JSON" | jt ~b @
+<pre><code>$ echo "$JSON" | jt ^b @
 x
 </code></pre>
 

@@ -36,6 +36,9 @@ The input stream may contain multiple JSON forms separated by whitespace (i.e.
   * `-j`:
     Inner join mode: discard rows with missing columns.
 
+  * `-s`:
+    Included for compatibility with earlier versions.
+
   * `-u` <string>:
     Unescape JSON <string>, print it, and exit (<string> should not be enclosed
     in double quotes).
@@ -106,7 +109,7 @@ three stacks on which commands operate:
     See `[`<KEY>`]` above &mdash; the `[` and `]` may be omitted if the
     property name <KEY> does not conflict with any `jt` command.
 
-  * `~`<KEY>:
+  * `^`<KEY>:
     See <KEY> above &mdash; this variant drills down to the first property of
     the object whose name starts with <KEY>. The match is not case sensitive.
 
@@ -198,7 +201,7 @@ Print a nested object's keys:
 
 Same as above, with fuzzy property name matching:
 
-    $ echo "$JSON" | jt ~b @
+    $ echo "$JSON" | jt ^b @
     x
 
 Print the keys of the first object in a nested array:

@@ -36,6 +36,10 @@ Print version and license info and exit\.
 Inner join mode: discard rows with missing columns\.
 .
 .TP
+\fB\-s\fR
+Included for compatibility with earlier versions\.
+.
+.TP
 \fB\-u\fR \fIstring\fR
 Unescape JSON \fIstring\fR, print it, and exit (\fIstring\fR should not be enclosed in double quotes)\.
 .
@@ -95,7 +99,7 @@ If the \fIKEY\fR property of the object is an array subsequent commands will ope
 See \fB[\fR\fIKEY\fR\fB]\fR above \(em the \fB[\fR and \fB]\fR may be omitted if the property name \fIKEY\fR does not conflict with any \fBjt\fR command\.
 .
 .TP
-\fB~\fR\fIKEY\fR
+\fB^\fR\fIKEY\fR
 See \fIKEY\fR above \(em this variant drills down to the first property of the object whose name starts with \fIKEY\fR\. The match is not case sensitive\.
 .
 .P
@@ -218,7 +222,7 @@ Same as above, with fuzzy property name matching:
 .
 .nf
 
-$ echo "$JSON" | jt ~b @
+$ echo "$JSON" | jt ^b @
 x
 .
 .fi
