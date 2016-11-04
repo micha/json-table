@@ -41,10 +41,10 @@ Included for compatibility with earlier versions\.
 .
 .TP
 \fB\-u\fR \fIstring\fR
-Unescape JSON \fIstring\fR, print it, and exit (\fIstring\fR should not be enclosed in double quotes)\.
+Unescape JSON \fIstring\fR, print it, and exit\.
 .
 .SH "COMMANDS"
-Non\-option arguments are \fBcommands\fR in a limited stack language\. This language is not turing complete as it provides no branching or jump facilities\. It is similar to a calculator in that commands operate on data in, and push their results onto stack data structures provided by the \fBjt\fR runtime\. There are three stacks on which commands operate:
+Non\-option arguments are commands in a limited stack\-based programming language\. There are a number of stacks provided by the \fBjt\fR runtime:
 .
 .IP "\(bu" 4
 The \fBdata stack\fR contains JSON objects from the input stream\. Commands operate on the top of this stack to traverse the JSON tree and print values\.
@@ -112,24 +112,13 @@ When all commands have been evaluated, each item in the output stack is printed,
 Each iteration will increment indices stored in the index stack such that all iterations follow a different path through the nested JSON tree, each traversing a different permuation of array indices\. You can think of this process as an implicit join, if that helps\.
 .
 .SH "OUTPUT FORMAT"
-Strings in JSON data must not contain control characters (e\.g\., \fBtab\fR, \fBnewline\fR, etc\.) These characters \fImust\fR be escaped with a backslash\. Additionally, any character \fImay\fR be escaped with a backslash\. The JSON specification also allows escaping of unicode characters with \fB\eu\fR escape, for example the copyright symbol © can be encoded as \fB\eu00A9\fR, and the G\-clef character 𝄞 as \fB\euD834\euDD1E\fR\.
+The format of printed output from \fBJt\fR (see \fB%\fR in \fBCOMMANDS\fR, above) depends on the type of thing being printed:
 .
-.SS "Strings"
-\fBJt\fR does not unescape string values when it prints them in case they contain tab or newline characters that would break the tabular output format, but it does omit the enclosing double quotes\. If unescaped values are needed this can be achieved by invoking \fBjt\fR with the \fB\-u\fR option in post processing:
+.SS "Primitives"
+JSON primitives (i\.e\. \fBnull\fR, \fBtrue\fR, and \fBfalse\fR) and numbers are printed verbatim\. \fBJt\fR does not process them in any way\. Numbers can be of arbitrary precision, as long as they conform to the JSON parsing grammar\.
 .
-.IP "" 4
-.
-.nf
-
-$ jt \-u \'i love music \eu266A\'
-i love music ♪
-.
-.fi
-.
-.IP "" 0
-.
-.SS "Numbers"
-\fBJt\fR does not process numbers in any way \(em they are printed in the output verbatim, as they appear in the JSON input\. If special processing is required the \fBprintf\fR program in coreutils is your friend:
+.P
+If special formatting is required the \fBprintf\fR program is your friend:
 .
 .IP "" 4
 .
@@ -137,6 +126,23 @@ i love music ♪
 
 $ printf %\.0f 2\.99792458e9
 2997924580
+.
+.fi
+.
+.IP "" 0
+.
+.SS "Strings"
+Strings are printed verbatim, minus the enclosing double quotes\. No unescaping is performed because tabs or newlines in JSON strings would break the tabular output format\.
+.
+.P
+If unescaped values are desired the \fB\-u\fR option can be used:
+.
+.IP "" 4
+.
+.nf
+
+$ jt \-u \'i love music \eu266A\'
+i love music ♪
 .
 .fi
 .
@@ -354,9 +360,9 @@ Iterate over the keys and values of an object without specifying intermediate ke
 .nf
 
 $ echo $JSON | jt baz \. ^ %
-y   c
-y   d
-z   e
+y       c
+y       d
+z       e
 .
 .fi
 .

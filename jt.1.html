@@ -117,11 +117,8 @@ in double quotes).</p></dd>
 
 <h2 id="COMMANDS">COMMANDS</h2>
 
-<p>Non-option arguments are <code>commands</code> in a limited stack language. This language
-is not turing complete as it provides no branching or jump facilities. It is
-similar to a calculator in that commands operate on data in, and push their
-results onto stack data structures provided by the <code>jt</code> runtime. There are
-three stacks on which commands operate:</p>
+<p>Non-option arguments are commands in a limited stack-based programming language.
+There are a number of stacks provided by the <strong>jt</strong> runtime:</p>
 
 <ul>
 <li><p>The <code>data stack</code> contains JSON objects from the input stream. Commands
@@ -190,32 +187,31 @@ implicit join, if that helps.</p>
 
 <h2 id="OUTPUT-FORMAT">OUTPUT FORMAT</h2>
 
-<p>Strings in JSON data must not contain control characters (e.g., <code>tab</code>,
-<code>newline</code>, etc.) These characters <em>must</em> be escaped with a backslash.
-Additionally, any character <em>may</em> be escaped with a backslash. The JSON
-specification also allows escaping of unicode characters with <code>\u</code> escape,
-for example the copyright symbol © can be encoded as <code>\u00A9</code>, and the G-clef
-character 𝄞 as <code>\uD834\uDD1E</code>.</p>
+<p>The format of printed output from <strong>Jt</strong> (see <code>%</code> in <strong>COMMANDS</strong>, above)
+depends on the type of thing being printed:</p>
 
-<h3 id="Strings">Strings</h3>
+<h3 id="Primitives">Primitives</h3>
 
-<p><strong>Jt</strong> does not unescape string values when it prints them in case they contain
-tab or newline characters that would break the tabular output format, but it
-does omit the enclosing double quotes. If unescaped values are needed this can
-be achieved by invoking <strong>jt</strong> with the <code>-u</code> option in post processing:</p>
+<p>JSON primitives (i.e. <code>null</code>, <code>true</code>, and <code>false</code>) and numbers are printed
+verbatim. <strong>Jt</strong> does not process them in any way. Numbers can be of arbitrary
+precision, as long as they conform to the JSON parsing grammar.</p>
 
-<pre><code>$ jt -u 'i love music \u266A'
-i love music ♪
-</code></pre>
-
-<h3 id="Numbers">Numbers</h3>
-
-<p><strong>Jt</strong> does not process numbers in any way &mdash; they are printed in the
-output verbatim, as they appear in the JSON input. If special processing is
-required the <code>printf</code> program in coreutils is your friend:</p>
+<p>If special formatting is required the <code>printf</code> program is your friend:</p>
 
 <pre><code>$ printf %.0f 2.99792458e9
 2997924580
+</code></pre>
+
+<h3 id="Strings">Strings</h3>
+
+<p>Strings are printed verbatim, minus the enclosing double quotes. No unescaping
+is performed because tabs or newlines in JSON strings would break the tabular
+output format.</p>
+
+<p>If unescaped values are desired the <code>-u</code> option can be used:</p>
+
+<pre><code>$ jt -u 'i love music \u266A'
+i love music ♪
 </code></pre>
 
 <h3 id="Collections">Collections</h3>
@@ -334,9 +330,9 @@ e
 <p>Iterate over the keys and values of an object without specifying intermediate keys:</p>
 
 <pre><code>$ echo $JSON | jt baz . ^ %
-y   c
-y   d
-z   e
+y       c
+y       d
+z       e
 </code></pre>
 
 <h3 id="Joins">Joins</h3>
