@@ -62,7 +62,7 @@
     <a href="#DESCRIPTION">DESCRIPTION</a>
     <a href="#OPTIONS">OPTIONS</a>
     <a href="#COMMANDS">COMMANDS</a>
-    <a href="#JSON-UNESCAPING-AND-CSV-OUTPUT">JSON UNESCAPING AND CSV OUTPUT</a>
+    <a href="#OUTPUT-FORMAT">OUTPUT FORMAT</a>
     <a href="#EXAMPLES">EXAMPLES</a>
     <a href="#COPYRIGHT">COPYRIGHT</a>
     <a href="#SEE-ALSO">SEE ALSO</a>
@@ -81,10 +81,8 @@
 
 <h2 id="SYNOPSIS">SYNOPSIS</h2>
 
-<p><code>jt</code> <code>-h</code><br />
-<code>jt</code> <code>-u</code> <var>string</var><br />
-<code>jt</code> <code>-c</code> [<code>-js</code>] [<code>-i</code> <var>file</var>] [<code>-o</code> <var>file</var>] <code>COMMAND</code> ...<br />
-<code>jt</code> [<code>-js</code>] [<code>-F</code> <var>char</var>] [<code>-R</code> <var>char</var>] [<code>-i</code> <var>file</var>] [<code>-o</code> <var>file</var>] <code>COMMAND</code> ...</p>
+<p><code>jt</code> <code>[-hV]</code><br />
+<code>jt</code> [<code>-j</code>] [<code>COMMAND</code> ...]</p>
 
 <h2 id="DESCRIPTION">DESCRIPTION</h2>
 
@@ -99,23 +97,21 @@ via string interpolation.</p>
 <p><strong>Jt</strong> provides only what is needed to extract data from nested JSON data
 structures and organize the data into a table. Tools like <strong>cut</strong>, <strong>paste</strong>,
 <strong>awk</strong>, <strong>join</strong>, <strong>sort</strong>, <strong>uniq</strong>, etc. can be used to efficiently reduce
-the tabular data to the final result. Alternatively, <strong>jt</strong> can print output
-in CSV format for processing in a spreadsheet or with command line tools like
-<code>csvtool</code>.</p>
+the tabular data to the final result.</p>
+
+<p><strong>Jt</strong> accepts JSON input (UTF-8) on <code>stdin</code> and writes output to <code>stdout</code>.
+The input stream may contain multiple JSON forms separated by whitespace (i.e.
+<code>SPACE</code>, <code>HT</code>, <code>CR</code>, or <code>LF</code>).</p>
 
 <h2 id="OPTIONS">OPTIONS</h2>
 
 <dl>
 <dt class="flush"><code>-h</code></dt><dd><p>Print usage info and exit.</p></dd>
 <dt class="flush"><code>-V</code></dt><dd><p>Print version and license info and exit.</p></dd>
-<dt class="flush"><code>-c</code></dt><dd><p>Print output as CSV with JSON strings unescaped.</p></dd>
 <dt class="flush"><code>-j</code></dt><dd><p>Inner join mode: discard rows with missing columns.</p></dd>
-<dt class="flush"><code>-s</code></dt><dd><p>Stream mode: expect one JSON object per line of input.</p></dd>
-<dt><code>-u</code> <var>string</var></dt><dd><p>Print unescaped UTF-8 JSON <var>string</var> and exit.</p></dd>
-<dt class="flush"><code>-F</code> <var>char</var></dt><dd><p>Set the output field separator to <var>char</var> (tab).</p></dd>
-<dt class="flush"><code>-R</code> <var>char</var></dt><dd><p>Set the output record separator to <var>char</var> (newline).</p></dd>
-<dt class="flush"><code>-i</code> <var>file</var></dt><dd><p>Read JSON input from <var>file</var> instead of from stdin.</p></dd>
-<dt class="flush"><code>-o</code> <var>file</var></dt><dd><p>Write output to <var>file</var> instead of to stdout.</p></dd>
+<dt class="flush"><code>-s</code></dt><dd><p>Included for compatibility with earlier versions.</p></dd>
+<dt><code>-u</code> <var>string</var></dt><dd><p>Unescape JSON <var>string</var>, print it, and exit (<var>string</var> should not be enclosed
+in double quotes).</p></dd>
 </dl>
 
 
@@ -146,12 +142,19 @@ onto the gosub stack.</p></dd>
 <dt class="flush"><code>]</code></dt><dd><p>Restore the data stack to a saved state: pop the gosub stack and restore
 the data stack pointer to that state.</p></dd>
 <dt class="flush"><code>%</code></dt><dd><p>Print the value at the top of the data stack. If the item at the top of the
-data stack is not a string or primitive type a blank field is printed.</p></dd>
-<dt class="flush"><code>^</code></dt><dd><p>Print the array index at the top of the index stack. It is an error if the
-index stack is empty.</p></dd>
-<dt class="flush"><code>@</code></dt><dd><p>Print the keys of the object at the top of the data stack. It is an error
-if the item at the top of the data stack is not an object.</p></dd>
-<dt class="flush"><var>KEY</var></dt><dd><p>Drill down: get the value of the <var>KEY</var> property of the object at the top
+data stack is not a string or primitive type its JSON representation is
+printed. See the <code>OUTPUT FORMAT</code> section below for details.</p></dd>
+<dt class="flush"><code>^</code></dt><dd><p>Print the array index or object key at the top of the index stack. Note
+that the index stack will always have at least one item &mdash; the index
+of the current JSON object read from stdin.</p></dd>
+<dt class="flush"><code>@</code></dt><dd><p>Print the keys of the object at the top of the data stack. If the top of
+the data stack is not an object then its type is printed in brackets, eg.
+<code>[string]</code>, <code>[number]</code>, <code>[boolean]</code>, or <code>[null]</code>. If there is no value
+then <code>[none]</code> is printed.</p></dd>
+<dt class="flush"><code>.</code></dt><dd><p>Iterate over the values of the object at the top of the data stack. The
+current value will be pushed onto the data stack and the current key will
+be pushed onto the index stack.</p></dd>
+<dt class="flush"><code>[</code><var>KEY</var><code>]</code></dt><dd><p>Drill down: get the value of the <var>KEY</var> property of the object at the top
 of the data stack and push that value onto the data stack.</p>
 
 <p>If the item at the top of the data stack is not an object or if the object
@@ -162,6 +165,10 @@ specified in which case the entire row is removed from the output.</p>
 operate on one of the items in the array, chosen automatically by <code>jt</code>.
 The array index will be available to subsequent commands via the index
 stack.</p></dd>
+<dt class="flush"><var>KEY</var></dt><dd><p>See <code>[</code><var>KEY</var><code>]</code> above &mdash; the <code>[</code> and <code>]</code> may be omitted if the
+property name <var>KEY</var> does not conflict with any <code>jt</code> command.</p></dd>
+<dt class="flush"><code>^</code><var>KEY</var></dt><dd><p>See <var>KEY</var> above &mdash; this variant drills down to the first property of
+the object whose name starts with <var>KEY</var>. The match is not case sensitive.</p></dd>
 </dl>
 
 
@@ -171,17 +178,17 @@ the data stack a corresponding index (starting at zero) is pushed onto the
 index stack, and the associated object in the array at that index is
 automatically pushed onto the data stack.</p>
 
-<p>When all commands have been evaluated, each item in the output stack is printed,
-separated by the field separator (default TAB), the data stack is restored to
-its initial state (containing only the root JSON object), and evaluation begins
-again, evaluating the commands from left to right.</p>
+<p>When all commands have been evaluated, each item in the output stack is
+printed, separated by tabs, the data stack is restored to its initial state
+(containing only the root JSON object), and evaluation begins again, evaluating
+the commands from left to right.</p>
 
 <p>Each iteration will increment indices stored in the index stack such that all
 iterations follow a different path through the nested JSON tree, each traversing
 a different permuation of array indices. You can think of this process as an
 implicit join, if that helps.</p>
 
-<h2 id="JSON-UNESCAPING-AND-CSV-OUTPUT">JSON UNESCAPING AND CSV OUTPUT</h2>
+<h2 id="OUTPUT-FORMAT">OUTPUT FORMAT</h2>
 
 <p>Strings in JSON data must not contain control characters (e.g., <code>tab</code>,
 <code>newline</code>, etc.) These characters <em>must</em> be escaped with a backslash.
@@ -190,16 +197,12 @@ specification also allows escaping of unicode characters with <code>\u</code> es
 for example the copyright symbol © can be encoded as <code>\u00A9</code>, and the G-clef
 character 𝄞 as <code>\uD834\uDD1E</code>.</p>
 
-<p>Numbers may be expressed in a number of ways in JSON data, and there is a
-single <code>Number</code> type that encompasses both integer and floating point. Both
-decimal and exponential notation are valid in JSON.</p>
-
 <h3 id="Strings">Strings</h3>
 
-<p><strong>Jt</strong> does not unescape string values by default, in case they contain
-tab or newline characters that would break the tabular output format. If
-unescaped values are needed this can be achieved by invoking <strong>jt</strong> with the
-<code>-u</code> option in post processing. For example:</p>
+<p><strong>Jt</strong> does not unescape string values when it prints them in case they contain
+tab or newline characters that would break the tabular output format, but it
+does omit the enclosing double quotes. If unescaped values are needed this can
+be achieved by invoking <strong>jt</strong> with the <code>-u</code> option in post processing:</p>
 
 <pre><code>$ jt -u 'i love music \u266A'
 i love music ♪
@@ -215,19 +218,34 @@ required the <code>printf</code> program in coreutils is your friend:</p>
 2997924580
 </code></pre>
 
-<h3 id="CSV-Output">CSV Output</h3>
+<h3 id="Collections">Collections</h3>
 
-<p>The CSV format uses quoted values, which avoids the problems associated with
-values that contain tab and newline characters. The <code>-c</code> option puts <strong>jt</strong>
-into CSV output mode. In this mode JSON strings are unescaped by default. The
-<code>csvtool</code> program and <code>csvkit</code> suite of tools facilitate processing of CSV
-data in the shell.</p>
+<p>Objects and arrays are printed as JSON, with insignificant whitespace omitted.</p>
 
 <h2 id="EXAMPLES">EXAMPLES</h2>
 
 <p>We will use the following JSON input for the examples:</p>
 
 <pre><code>$ JSON='{"foo":"a","bar":{"x":"b"},"baz":[{"y":"c"},{"y":"d","z":"e"}]}'
+</code></pre>
+
+<p>We pretty-print it here for reference:</p>
+
+<pre><code>{
+    "bar": {
+        "x": "b"
+    },
+    "baz": [
+        {
+            "y": "c"
+        },
+        {
+            "y": "d",
+            "z": "e"
+        }
+    ],
+    "foo": "a"
+}
 </code></pre>
 
 <h3 id="Explore">Explore</h3>
@@ -243,6 +261,12 @@ baz
 <p>Print a nested object's keys:</p>
 
 <pre><code>$ echo "$JSON" | jt bar @
+x
+</code></pre>
+
+<p>Same as above, with fuzzy property name matching:</p>
+
+<pre><code>$ echo "$JSON" | jt ^b @
 x
 </code></pre>
 
@@ -297,6 +321,24 @@ a       b       c       0
 a       b       d       1
 </code></pre>
 
+<h3 id="Objects">Objects</h3>
+
+<p>Iterate over the values of an object without specifying intermediate keys:</p>
+
+<pre><code>$ echo $JSON | jt baz . %
+c
+d
+e
+</code></pre>
+
+<p>Iterate over the keys and values of an object without specifying intermediate keys:</p>
+
+<pre><code>$ echo $JSON | jt baz . ^ %
+y   c
+y   d
+z   e
+</code></pre>
+
 <h3 id="Joins">Joins</h3>
 
 <p>Notice the empty column &mdash; some objects don't have the <var>z</var> key:</p>
@@ -325,7 +367,7 @@ Distributed under the Eclipse Public License, version 1.0.</p>
 
   <ol class='man-decor man-foot man foot'>
     <li class='tl'></li>
-    <li class='tc'>May 2016</li>
+    <li class='tc'>November 2016</li>
     <li class='tr'>jt(1)</li>
   </ol>
 

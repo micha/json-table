@@ -1,28 +1,25 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "JT" "1" "May 2016" "" "JT MANUAL"
+.TH "JT" "1" "November 2016" "" "JT MANUAL"
 .
 .SH "NAME"
 \fBjt\fR \- transform JSON data to tabular format
 .
 .SH "SYNOPSIS"
-\fBjt\fR \fB\-h\fR
+\fBjt\fR \fB[\-hV]\fR
 .
 .br
-\fBjt\fR \fB\-u\fR \fIstring\fR
-.
-.br
-\fBjt\fR \fB\-c\fR [\fB\-js\fR] [\fB\-i\fR \fIfile\fR] [\fB\-o\fR \fIfile\fR] \fBCOMMAND\fR \.\.\.
-.
-.br
-\fBjt\fR [\fB\-js\fR] [\fB\-F\fR \fIchar\fR] [\fB\-R\fR \fIchar\fR] [\fB\-i\fR \fIfile\fR] [\fB\-o\fR \fIfile\fR] \fBCOMMAND\fR \.\.\.
+\fBjt\fR [\fB\-j\fR] [\fBCOMMAND\fR \.\.\.]
 .
 .SH "DESCRIPTION"
 \fBJt\fR transforms JSON data structures into tables of columns and rows for processing in the shell\. Extracting information from deeply nested JSON data is difficult and unreliable with tools like \fBsed\fR and \fBawk\fR, and tools that are specially designed for manipulating JSON are cumbersome to use in the shell because they either return their results as JSON or introduce a new turing complete scripting language that needs to be quoted and constructed via string interpolation\.
 .
 .P
-\fBJt\fR provides only what is needed to extract data from nested JSON data structures and organize the data into a table\. Tools like \fBcut\fR, \fBpaste\fR, \fBawk\fR, \fBjoin\fR, \fBsort\fR, \fBuniq\fR, etc\. can be used to efficiently reduce the tabular data to the final result\. Alternatively, \fBjt\fR can print output in CSV format for processing in a spreadsheet or with command line tools like \fBcsvtool\fR\.
+\fBJt\fR provides only what is needed to extract data from nested JSON data structures and organize the data into a table\. Tools like \fBcut\fR, \fBpaste\fR, \fBawk\fR, \fBjoin\fR, \fBsort\fR, \fBuniq\fR, etc\. can be used to efficiently reduce the tabular data to the final result\.
+.
+.P
+\fBJt\fR accepts JSON input (UTF\-8) on \fBstdin\fR and writes output to \fBstdout\fR\. The input stream may contain multiple JSON forms separated by whitespace (i\.e\. \fBSPACE\fR, \fBHT\fR, \fBCR\fR, or \fBLF\fR)\.
 .
 .SH "OPTIONS"
 .
@@ -35,36 +32,16 @@ Print usage info and exit\.
 Print version and license info and exit\.
 .
 .TP
-\fB\-c\fR
-Print output as CSV with JSON strings unescaped\.
-.
-.TP
 \fB\-j\fR
 Inner join mode: discard rows with missing columns\.
 .
 .TP
 \fB\-s\fR
-Stream mode: expect one JSON object per line of input\.
+Included for compatibility with earlier versions\.
 .
 .TP
 \fB\-u\fR \fIstring\fR
-Print unescaped UTF\-8 JSON \fIstring\fR and exit\.
-.
-.TP
-\fB\-F\fR \fIchar\fR
-Set the output field separator to \fIchar\fR (tab)\.
-.
-.TP
-\fB\-R\fR \fIchar\fR
-Set the output record separator to \fIchar\fR (newline)\.
-.
-.TP
-\fB\-i\fR \fIfile\fR
-Read JSON input from \fIfile\fR instead of from stdin\.
-.
-.TP
-\fB\-o\fR \fIfile\fR
-Write output to \fIfile\fR instead of to stdout\.
+Unescape JSON \fIstring\fR, print it, and exit (\fIstring\fR should not be enclosed in double quotes)\.
 .
 .SH "COMMANDS"
 Non\-option arguments are \fBcommands\fR in a limited stack language\. This language is not turing complete as it provides no branching or jump facilities\. It is similar to a calculator in that commands operate on data in, and push their results onto stack data structures provided by the \fBjt\fR runtime\. There are three stacks on which commands operate:
@@ -93,18 +70,22 @@ Restore the data stack to a saved state: pop the gosub stack and restore the dat
 .
 .TP
 \fB%\fR
-Print the value at the top of the data stack\. If the item at the top of the data stack is not a string or primitive type a blank field is printed\.
+Print the value at the top of the data stack\. If the item at the top of the data stack is not a string or primitive type its JSON representation is printed\. See the \fBOUTPUT FORMAT\fR section below for details\.
 .
 .TP
 \fB^\fR
-Print the array index at the top of the index stack\. It is an error if the index stack is empty\.
+Print the array index or object key at the top of the index stack\. Note that the index stack will always have at least one item \(em the index of the current JSON object read from stdin\.
 .
 .TP
 \fB@\fR
-Print the keys of the object at the top of the data stack\. It is an error if the item at the top of the data stack is not an object\.
+Print the keys of the object at the top of the data stack\. If the top of the data stack is not an object then its type is printed in brackets, eg\. \fB[string]\fR, \fB[number]\fR, \fB[boolean]\fR, or \fB[null]\fR\. If there is no value then \fB[none]\fR is printed\.
 .
 .TP
-\fIKEY\fR
+\fB\.\fR
+Iterate over the values of the object at the top of the data stack\. The current value will be pushed onto the data stack and the current key will be pushed onto the index stack\.
+.
+.TP
+\fB[\fR\fIKEY\fR\fB]\fR
 Drill down: get the value of the \fIKEY\fR property of the object at the top of the data stack and push that value onto the data stack\.
 .
 .IP
@@ -113,23 +94,28 @@ If the item at the top of the data stack is not an object or if the object has n
 .IP
 If the \fIKEY\fR property of the object is an array subsequent commands will operate on one of the items in the array, chosen automatically by \fBjt\fR\. The array index will be available to subsequent commands via the index stack\.
 .
+.TP
+\fIKEY\fR
+See \fB[\fR\fIKEY\fR\fB]\fR above \(em the \fB[\fR and \fB]\fR may be omitted if the property name \fIKEY\fR does not conflict with any \fBjt\fR command\.
+.
+.TP
+\fB^\fR\fIKEY\fR
+See \fIKEY\fR above \(em this variant drills down to the first property of the object whose name starts with \fIKEY\fR\. The match is not case sensitive\.
+.
 .P
 When \fBjt\fR starts, the root JSON object is pushed onto the data stack\. Then commands are evaluated, from left to right\. When a JSON array is pushed onto the data stack a corresponding index (starting at zero) is pushed onto the index stack, and the associated object in the array at that index is automatically pushed onto the data stack\.
 .
 .P
-When all commands have been evaluated, each item in the output stack is printed, separated by the field separator (default TAB), the data stack is restored to its initial state (containing only the root JSON object), and evaluation begins again, evaluating the commands from left to right\.
+When all commands have been evaluated, each item in the output stack is printed, separated by tabs, the data stack is restored to its initial state (containing only the root JSON object), and evaluation begins again, evaluating the commands from left to right\.
 .
 .P
 Each iteration will increment indices stored in the index stack such that all iterations follow a different path through the nested JSON tree, each traversing a different permuation of array indices\. You can think of this process as an implicit join, if that helps\.
 .
-.SH "JSON UNESCAPING AND CSV OUTPUT"
+.SH "OUTPUT FORMAT"
 Strings in JSON data must not contain control characters (e\.g\., \fBtab\fR, \fBnewline\fR, etc\.) These characters \fImust\fR be escaped with a backslash\. Additionally, any character \fImay\fR be escaped with a backslash\. The JSON specification also allows escaping of unicode characters with \fB\eu\fR escape, for example the copyright symbol © can be encoded as \fB\eu00A9\fR, and the G\-clef character 𝄞 as \fB\euD834\euDD1E\fR\.
 .
-.P
-Numbers may be expressed in a number of ways in JSON data, and there is a single \fBNumber\fR type that encompasses both integer and floating point\. Both decimal and exponential notation are valid in JSON\.
-.
 .SS "Strings"
-\fBJt\fR does not unescape string values by default, in case they contain tab or newline characters that would break the tabular output format\. If unescaped values are needed this can be achieved by invoking \fBjt\fR with the \fB\-u\fR option in post processing\. For example:
+\fBJt\fR does not unescape string values when it prints them in case they contain tab or newline characters that would break the tabular output format, but it does omit the enclosing double quotes\. If unescaped values are needed this can be achieved by invoking \fBjt\fR with the \fB\-u\fR option in post processing:
 .
 .IP "" 4
 .
@@ -156,8 +142,8 @@ $ printf %\.0f 2\.99792458e9
 .
 .IP "" 0
 .
-.SS "CSV Output"
-The CSV format uses quoted values, which avoids the problems associated with values that contain tab and newline characters\. The \fB\-c\fR option puts \fBjt\fR into CSV output mode\. In this mode JSON strings are unescaped by default\. The \fBcsvtool\fR program and \fBcsvkit\fR suite of tools facilitate processing of CSV data in the shell\.
+.SS "Collections"
+Objects and arrays are printed as JSON, with insignificant whitespace omitted\.
 .
 .SH "EXAMPLES"
 We will use the following JSON input for the examples:
@@ -167,6 +153,33 @@ We will use the following JSON input for the examples:
 .nf
 
 $ JSON=\'{"foo":"a","bar":{"x":"b"},"baz":[{"y":"c"},{"y":"d","z":"e"}]}\'
+.
+.fi
+.
+.IP "" 0
+.
+.P
+We pretty\-print it here for reference:
+.
+.IP "" 4
+.
+.nf
+
+{
+    "bar": {
+        "x": "b"
+    },
+    "baz": [
+        {
+            "y": "c"
+        },
+        {
+            "y": "d",
+            "z": "e"
+        }
+    ],
+    "foo": "a"
+}
 .
 .fi
 .
@@ -196,6 +209,20 @@ Print a nested object\'s keys:
 .nf
 
 $ echo "$JSON" | jt bar @
+x
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Same as above, with fuzzy property name matching:
+.
+.IP "" 4
+.
+.nf
+
+$ echo "$JSON" | jt ^b @
 x
 .
 .fi
@@ -298,6 +325,38 @@ Include the array index as a column in the result:
 $ echo "$JSON" | jt [ foo % ] [ bar x % ] baz y % ^
 a       b       c       0
 a       b       d       1
+.
+.fi
+.
+.IP "" 0
+.
+.SS "Objects"
+Iterate over the values of an object without specifying intermediate keys:
+.
+.IP "" 4
+.
+.nf
+
+$ echo $JSON | jt baz \. %
+c
+d
+e
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Iterate over the keys and values of an object without specifying intermediate keys:
+.
+.IP "" 4
+.
+.nf
+
+$ echo $JSON | jt baz \. ^ %
+y   c
+y   d
+z   e
 .
 .fi
 .

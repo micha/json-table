@@ -116,7 +116,7 @@ JSON='{"foo":"a","bar":{"x":"b"},"baz":[{"y":{"b":"c"}},{"y":"d","z":"e"}]}'
 assert $LINENO \
   "$(echo "$JSON" | ./jt [ foo % ] baz [ y % ] z %)" \
   "$(cat <<'EOT'
-a		
+a	{"b":"c"}	
 a	d	e
 EOT
 )"
@@ -130,7 +130,7 @@ EOT
 )
 
 assert $LINENO \
-  "$(echo "$JSON" | ./jt -s ^ [ a % ] [ b foo % ] c %)" \
+  "$(echo "$JSON" | ./jt ^ [ a % ] [ b foo % ] c %)" \
   "$(cat <<'EOT'
 0	100	1	1
 0	100	1	2

@@ -3,10 +3,8 @@ jt(1) -- transform JSON data to tabular format
 
 ## SYNOPSIS
 
-`jt` `-h`<br>
-`jt` `-u` <string><br>
-`jt` `-c` [`-js`] [`-i` <file>] [`-o` <file>] `COMMAND` ...<br>
-`jt` [`-js`] [`-F` <char>] [`-R` <char>] [`-i` <file>] [`-o` <file>] `COMMAND` ...
+`jt` `[-hV]`<br>
+`jt` [`-j`] [`COMMAND` ...]
 
 ## DESCRIPTION
 
@@ -21,9 +19,11 @@ via string interpolation.
 **Jt** provides only what is needed to extract data from nested JSON data
 structures and organize the data into a table. Tools like **cut**, **paste**,
 **awk**, **join**, **sort**, **uniq**, etc. can be used to efficiently reduce
-the tabular data to the final result. Alternatively, **jt** can print output
-in CSV format for processing in a spreadsheet or with command line tools like
-`csvtool`.
+the tabular data to the final result.
+
+**Jt** accepts JSON input (UTF-8) on `stdin` and writes output to `stdout`.
+The input stream may contain multiple JSON forms separated by whitespace (i.e.
+`SPACE`, `HT`, `CR`, or `LF`).
 
 ## OPTIONS
 
@@ -33,29 +33,15 @@ in CSV format for processing in a spreadsheet or with command line tools like
   * `-V`:
     Print version and license info and exit.
 
-  * `-c`:
-    Print output as CSV with JSON strings unescaped.
-
   * `-j`:
     Inner join mode: discard rows with missing columns.
 
   * `-s`:
-    Stream mode: expect one JSON object per line of input.
+    Included for compatibility with earlier versions.
 
   * `-u` <string>:
-    Print unescaped UTF-8 JSON <string> and exit.
-
-  * `-F` <char>:
-    Set the output field separator to <char> (tab).
-
-  * `-R` <char>:
-    Set the output record separator to <char> (newline).
-
-  * `-i` <file>:
-    Read JSON input from <file> instead of from stdin.
-
-  * `-o` <file>:
-    Write output to <file> instead of to stdout.
+    Unescape JSON <string>, print it, and exit (<string> should not be enclosed
+    in double quotes).
 
 ## COMMANDS
 
@@ -87,17 +73,26 @@ three stacks on which commands operate:
 
   * `%`:
     Print the value at the top of the data stack. If the item at the top of the
-    data stack is not a string or primitive type a blank field is printed.
+    data stack is not a string or primitive type its JSON representation is
+    printed. See the `OUTPUT FORMAT` section below for details.
 
   * `^`:
-    Print the array index at the top of the index stack. It is an error if the
-    index stack is empty.
+    Print the array index or object key at the top of the index stack. Note
+    that the index stack will always have at least one item &mdash; the index
+    of the current JSON object read from stdin.
 
   * `@`:
-    Print the keys of the object at the top of the data stack. It is an error
-    if the item at the top of the data stack is not an object.
+    Print the keys of the object at the top of the data stack. If the top of
+    the data stack is not an object then its type is printed in brackets, eg.
+    `[string]`, `[number]`, `[boolean]`, or `[null]`. If there is no value
+    then `[none]` is printed.
 
-  * <KEY>:
+  * `.`:
+    Iterate over the values of the object at the top of the data stack. The
+    current value will be pushed onto the data stack and the current key will
+    be pushed onto the index stack.
+
+  * `[`<KEY>`]`:
     Drill down: get the value of the <KEY> property of the object at the top
     of the data stack and push that value onto the data stack.
 
@@ -110,23 +105,31 @@ three stacks on which commands operate:
     The array index will be available to subsequent commands via the index
     stack.
 
+  * <KEY>:
+    See `[`<KEY>`]` above &mdash; the `[` and `]` may be omitted if the
+    property name <KEY> does not conflict with any `jt` command.
+
+  * `^`<KEY>:
+    See <KEY> above &mdash; this variant drills down to the first property of
+    the object whose name starts with <KEY>. The match is not case sensitive.
+
 When **jt** starts, the root JSON object is pushed onto the data stack. Then
 commands are evaluated, from left to right. When a JSON array is pushed onto
 the data stack a corresponding index (starting at zero) is pushed onto the
 index stack, and the associated object in the array at that index is
 automatically pushed onto the data stack.
 
-When all commands have been evaluated, each item in the output stack is printed,
-separated by the field separator (default TAB), the data stack is restored to
-its initial state (containing only the root JSON object), and evaluation begins
-again, evaluating the commands from left to right.
+When all commands have been evaluated, each item in the output stack is
+printed, separated by tabs, the data stack is restored to its initial state
+(containing only the root JSON object), and evaluation begins again, evaluating
+the commands from left to right.
 
 Each iteration will increment indices stored in the index stack such that all
 iterations follow a different path through the nested JSON tree, each traversing
 a different permuation of array indices. You can think of this process as an
 implicit join, if that helps.
 
-## JSON UNESCAPING AND CSV OUTPUT
+## OUTPUT FORMAT
 
 Strings in JSON data must not contain control characters (e.g., `tab`,
 `newline`, etc.) These characters _must_ be escaped with a backslash.
@@ -135,16 +138,12 @@ specification also allows escaping of unicode characters with `\u` escape,
 for example the copyright symbol © can be encoded as `\u00A9`, and the G-clef
 character 𝄞 as `\uD834\uDD1E`.
 
-Numbers may be expressed in a number of ways in JSON data, and there is a
-single `Number` type that encompasses both integer and floating point. Both
-decimal and exponential notation are valid in JSON.
-
 ### Strings
 
-**Jt** does not unescape string values by default, in case they contain
-tab or newline characters that would break the tabular output format. If
-unescaped values are needed this can be achieved by invoking **jt** with the
-`-u` option in post processing. For example:
+**Jt** does not unescape string values when it prints them in case they contain
+tab or newline characters that would break the tabular output format, but it
+does omit the enclosing double quotes. If unescaped values are needed this can
+be achieved by invoking **jt** with the `-u` option in post processing:
 
     $ jt -u 'i love music \u266A'
     i love music ♪
@@ -158,19 +157,33 @@ required the `printf` program in coreutils is your friend:
     $ printf %.0f 2.99792458e9
     2997924580
 
-### CSV Output
+### Collections
 
-The CSV format uses quoted values, which avoids the problems associated with
-values that contain tab and newline characters. The `-c` option puts **jt**
-into CSV output mode. In this mode JSON strings are unescaped by default. The
-`csvtool` program and `csvkit` suite of tools facilitate processing of CSV
-data in the shell.
+Objects and arrays are printed as JSON, with insignificant whitespace omitted.
 
 ## EXAMPLES
 
 We will use the following JSON input for the examples:
 
     $ JSON='{"foo":"a","bar":{"x":"b"},"baz":[{"y":"c"},{"y":"d","z":"e"}]}'
+
+We pretty-print it here for reference:
+
+    {
+        "bar": {
+            "x": "b"
+        },
+        "baz": [
+            {
+                "y": "c"
+            },
+            {
+                "y": "d",
+                "z": "e"
+            }
+        ],
+        "foo": "a"
+    }
 
 ### Explore
 
@@ -184,6 +197,11 @@ Explore JSON data, print an object's keys:
 Print a nested object's keys:
 
     $ echo "$JSON" | jt bar @
+    x
+
+Same as above, with fuzzy property name matching:
+
+    $ echo "$JSON" | jt ^b @
     x
 
 Print the keys of the first object in a nested array:
@@ -229,6 +247,22 @@ Include the array index as a column in the result:
     $ echo "$JSON" | jt [ foo % ] [ bar x % ] baz y % ^
     a       b       c       0
     a       b       d       1
+
+### Objects
+
+Iterate over the values of an object without specifying intermediate keys:
+
+    $ echo $JSON | jt baz . %
+    c
+    d
+    e
+
+Iterate over the keys and values of an object without specifying intermediate keys:
+
+    $ echo $JSON | jt baz . ^ %
+    y	c
+    y	d
+    z	e
 
 ### Joins
 

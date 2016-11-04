@@ -61,6 +61,24 @@ We'll use the following JSON data for the examples:
 
     $ JSON='{"foo":"a","bar":{"x":"b"},"baz":[{"y":"c"},{"y":"d","z":"e"}]}'
 
+We pretty-print it here for reference:
+
+    {
+        "bar": {
+            "x": "b"
+        },
+        "baz": [
+            {
+                "y": "c"
+            },
+            {
+                "y": "d",
+                "z": "e"
+            }
+        ],
+        "foo": "a"
+    }
+
 #### Explore JSON Structure
 
 Print an object's keys:
@@ -121,6 +139,22 @@ Use the `^` command to include the array index as a column in the result:
     $ echo "$JSON" | jt [ foo % ] [ bar x % ] baz y % ^
     a       b       c       0
     a       b       d       1
+
+#### Iterate Over Objects
+
+Iterate over the values of an object without specifying intermediate keys:
+
+    $ echo "$JSON" | jt baz . %
+    c
+    d
+    e
+
+Iterate over the keys and values of an object without specifying intermediate keys:
+
+    $ echo "$JSON" | jt baz . ^ %
+    y	c
+    y	d
+    z	e
 
 #### Left Join Vs. Inner Join
 
