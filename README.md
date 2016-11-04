@@ -19,7 +19,6 @@ tabular data to produce the final result.
 * **Self contained** &mdash; statically linked, has no build or runtime dependencies.
 * **Fast, small memory footprint** &mdash; efficiently process **large** JSON input.
 * **Streaming mode** &mdash; reads JSON objects one-per-line e.g., from log files.
-* **CSV output mode** &mdash; transform JSON input to CSV for spreadsheet analysis.
 
 #### Example
 
