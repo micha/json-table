@@ -165,6 +165,7 @@ We will use the following JSON input for the examples:
 We pretty-print it here for reference:
 
     {
+        "foo": "a",
         "bar": {
             "x": "b"
         },
@@ -176,8 +177,7 @@ We pretty-print it here for reference:
                 "y": "d",
                 "z": "e"
             }
-        ],
-        "foo": "a"
+        ]
     }
 
 ### Explore
