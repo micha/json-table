@@ -34,8 +34,6 @@ elb-2	i-b910a256
 ...
 ```
 
-There are more examples in the [EXAMPLES](#examples) section below.
-
 ## INSTALL
 
 Linux users can install prebuilt binaries from the release tarball:
