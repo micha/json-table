@@ -29,9 +29,7 @@ typedef enum {
   JS_EDONE
 } jserr_t;
 
-typedef struct jstok_t jstok_t;
-
-struct jstok_t {
+typedef struct {
   jstype_t type;
   size_t start;
   size_t end;
@@ -39,7 +37,7 @@ struct jstok_t {
   size_t parent;
   size_t first_child;
   size_t next_sibling;
-};
+} jstok_t;
 
 typedef struct {
   FILE *in;
@@ -48,11 +46,12 @@ typedef struct {
   jstok_t *toks;
   size_t curtok;
   size_t toks_size;
+  size_t depth;
 } jsparser_t;
 
 jstok_t *js_tok(jsparser_t *p, size_t t);
 
-size_t js_next_tok(jsparser_t *p);
+// predicates
 
 int js_is_array(jstok_t *tok);
 
@@ -66,9 +65,19 @@ int js_is_pair(jstok_t *tok);
 
 int js_is_item(jstok_t *tok);
 
+// parser
+
+void js_alloc(jsparser_t **p, FILE *in, size_t toks_size);
+
+void js_free(jsparser_t **p);
+
 jserr_t js_parse(jsparser_t *p, size_t t);
 
 jserr_t js_parse_one(jsparser_t *p, size_t *t);
+
+void js_reset(jsparser_t *p);
+
+// accessors
 
 size_t js_obj_get(jsparser_t *p, size_t obj, const char *key);
 
@@ -76,14 +85,16 @@ size_t js_obj_get_fuzzy(jsparser_t *p, size_t obj, const char *key);
 
 size_t js_array_get(jsparser_t *p, size_t ary, size_t idx);
 
+// create new nodes
+
+size_t js_create_index(jsparser_t *p, size_t idx);
+
+// printing, unescaping
+
 jserr_t js_print(jsparser_t *p, size_t t, Buffer *b, int json);
 
 jserr_t js_print_keys(jsparser_t *p, size_t t, Buffer *buf);
 
 char *js_unescape_string(char *in);
-
-void js_reset(jsparser_t *p);
-
-void js_alloc(jsparser_t **p, FILE *in, size_t toks_size);
 
 #endif

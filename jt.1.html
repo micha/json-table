@@ -65,7 +65,6 @@
     <a href="#OUTPUT-FORMAT">OUTPUT FORMAT</a>
     <a href="#EXAMPLES">EXAMPLES</a>
     <a href="#COPYRIGHT">COPYRIGHT</a>
-    <a href="#SEE-ALSO">SEE ALSO</a>
   </div>
 
   <ol class='man-decor man-head man head'>
@@ -82,7 +81,8 @@
 <h2 id="SYNOPSIS">SYNOPSIS</h2>
 
 <p><code>jt</code> <code>[-hV]</code><br />
-<code>jt</code> [<code>-j</code>] [<code>COMMAND</code> ...]</p>
+<code>jt</code> <code>-u</code> <var>string</var><br />
+<code>jt</code> [<code>-aj</code>] [<code>COMMAND</code> ...]</p>
 
 <h2 id="DESCRIPTION">DESCRIPTION</h2>
 
@@ -108,6 +108,8 @@ The input stream may contain multiple JSON forms separated by whitespace (i.e.
 <dl>
 <dt class="flush"><code>-h</code></dt><dd><p>Print usage info and exit.</p></dd>
 <dt class="flush"><code>-V</code></dt><dd><p>Print version and license info and exit.</p></dd>
+<dt class="flush"><code>-a</code></dt><dd><p>Explicit iteration mode: require the <code>.</code> command to iterate over arrays
+instead of iterating automatically.</p></dd>
 <dt class="flush"><code>-j</code></dt><dd><p>Inner join mode: discard rows with missing columns.</p></dd>
 <dt class="flush"><code>-s</code></dt><dd><p>Included for compatibility with earlier versions.</p></dd>
 <dt><code>-u</code> <var>string</var></dt><dd><p>Unescape JSON <var>string</var>, print it, and exit.</p></dd>
@@ -125,8 +127,9 @@ operate on the top of this stack to traverse the JSON tree and print values.</p>
 <li><p>The <code>gosub stack</code> contains pointers into the data stack. Commands push data
 stack pointers onto this stack to save the state of the data stack and pop
 them off to restore the data stack to a saved state.</p></li>
-<li><p>The <code>index stack</code> contains the indexes of nested arrays as <code>jt</code> iterates over
-them. Commands can print the value at the top of this stack.</p></li>
+<li><p>The <code>index stack</code> contains the indexes of nested arrays or properties of
+nested objects as <code>jt</code> iterates over them. Commands can print the value at
+the top of this stack.</p></li>
 </ul>
 
 
@@ -145,8 +148,8 @@ that the index stack will always have at least one item &mdash; the index
 of the current JSON object read from stdin.</p></dd>
 <dt class="flush"><code>@</code></dt><dd><p>Print the keys of the object at the top of the data stack. If the top of
 the data stack is not an object then its type is printed in brackets, eg.
-<code>[string]</code>, <code>[number]</code>, <code>[boolean]</code>, or <code>[null]</code>. If there is no value
-then <code>[none]</code> is printed.</p></dd>
+<code>[array]</code>, <code>[string]</code>, <code>[number]</code>, <code>[boolean]</code>, or <code>[null]</code>. If there is
+no value then <code>[none]</code> is printed.</p></dd>
 <dt class="flush"><code>.</code></dt><dd><p>Iterate over the values of the object at the top of the data stack. The
 current value will be pushed onto the data stack and the current key will
 be pushed onto the index stack.</p></dd>
@@ -163,8 +166,6 @@ The array index will be available to subsequent commands via the index
 stack.</p></dd>
 <dt class="flush"><var>KEY</var></dt><dd><p>See <code>[</code><var>KEY</var><code>]</code> above &mdash; the <code>[</code> and <code>]</code> may be omitted if the
 property name <var>KEY</var> does not conflict with any <code>jt</code> command.</p></dd>
-<dt class="flush"><code>^</code><var>KEY</var></dt><dd><p>See <var>KEY</var> above &mdash; this variant drills down to the first property of
-the object whose name starts with <var>KEY</var>. The match is not case sensitive.</p></dd>
 </dl>
 
 
@@ -350,19 +351,29 @@ path doesn't exist:</p>
 a       d       e
 </code></pre>
 
+<p>Multiple JSON objects in the input stream, separated by whitespace:</p>
+
+<pre><code>$ cat &lt;&lt;EOT | jt [ foo % ] [ bar % ]
+- {"foo":100,"bar":200}
+- {"foo":200,"bar":300}
+- {"foo":300,"bar":400}
+- EOT
+100     200
+200     300
+300     400
+</code></pre>
+
 <h2 id="COPYRIGHT">COPYRIGHT</h2>
 
-<p>Copyright © 2016 Micha Niskin <code>&lt;micha.niskin@gmail.com&gt;</code>.
-Distributed under the Eclipse Public License, version 1.0.</p>
-
-<h2 id="SEE-ALSO">SEE ALSO</h2>
-
-<p><span class="man-ref">jshon<span class="s">(1)</span></span>, <span class="man-ref">jq<span class="s">(1)</span></span>, <span class="man-ref">comm<span class="s">(1)</span></span>, <span class="man-ref">diff<span class="s">(1)</span></span>, <span class="man-ref">sort<span class="s">(1)</span></span>, <span class="man-ref">join<span class="s">(1)</span></span>, <span class="man-ref">uniq<span class="s">(1)</span></span>, <span class="man-ref">bash<span class="s">(1)</span></span></p>
+<p>Copyright © 2016 Micha Niskin <code>&lt;micha.niskin@gmail.com&gt;</code>, distributed under
+the Eclipse Public License, version 1.0. This is free software: you are free
+to change and redistribute it. There is NO WARRANTY, to the extent permitted
+by law.</p>
 
 
   <ol class='man-decor man-foot man foot'>
     <li class='tl'></li>
-    <li class='tc'>November 2016</li>
+    <li class='tc'>January 2017</li>
     <li class='tr'>jt(1)</li>
   </ol>
 

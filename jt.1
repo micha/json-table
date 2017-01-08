@@ -1,7 +1,7 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "JT" "1" "November 2016" "" "JT MANUAL"
+.TH "JT" "1" "January 2017" "" "JT MANUAL"
 .
 .SH "NAME"
 \fBjt\fR \- transform JSON data to tabular format
@@ -10,7 +10,10 @@
 \fBjt\fR \fB[\-hV]\fR
 .
 .br
-\fBjt\fR [\fB\-j\fR] [\fBCOMMAND\fR \.\.\.]
+\fBjt\fR \fB\-u\fR \fIstring\fR
+.
+.br
+\fBjt\fR [\fB\-aj\fR] [\fBCOMMAND\fR \.\.\.]
 .
 .SH "DESCRIPTION"
 \fBJt\fR transforms JSON data structures into tables of columns and rows for processing in the shell\. Extracting information from deeply nested JSON data is difficult and unreliable with tools like \fBsed\fR and \fBawk\fR, and tools that are specially designed for manipulating JSON are cumbersome to use in the shell because they either return their results as JSON or introduce a new turing complete scripting language that needs to be quoted and constructed via string interpolation\.
@@ -30,6 +33,10 @@ Print usage info and exit\.
 .TP
 \fB\-V\fR
 Print version and license info and exit\.
+.
+.TP
+\fB\-a\fR
+Explicit iteration mode: require the \fB\.\fR command to iterate over arrays instead of iterating automatically\.
 .
 .TP
 \fB\-j\fR
@@ -53,7 +60,7 @@ The \fBdata stack\fR contains JSON objects from the input stream\. Commands oper
 The \fBgosub stack\fR contains pointers into the data stack\. Commands push data stack pointers onto this stack to save the state of the data stack and pop them off to restore the data stack to a saved state\.
 .
 .IP "\(bu" 4
-The \fBindex stack\fR contains the indexes of nested arrays as \fBjt\fR iterates over them\. Commands can print the value at the top of this stack\.
+The \fBindex stack\fR contains the indexes of nested arrays or properties of nested objects as \fBjt\fR iterates over them\. Commands can print the value at the top of this stack\.
 .
 .IP "" 0
 .
@@ -78,7 +85,7 @@ Print the array index or object key at the top of the index stack\. Note that th
 .
 .TP
 \fB@\fR
-Print the keys of the object at the top of the data stack\. If the top of the data stack is not an object then its type is printed in brackets, eg\. \fB[string]\fR, \fB[number]\fR, \fB[boolean]\fR, or \fB[null]\fR\. If there is no value then \fB[none]\fR is printed\.
+Print the keys of the object at the top of the data stack\. If the top of the data stack is not an object then its type is printed in brackets, eg\. \fB[array]\fR, \fB[string]\fR, \fB[number]\fR, \fB[boolean]\fR, or \fB[null]\fR\. If there is no value then \fB[none]\fR is printed\.
 .
 .TP
 \fB\.\fR
@@ -97,10 +104,6 @@ If the \fIKEY\fR property of the object is an array subsequent commands will ope
 .TP
 \fIKEY\fR
 See \fB[\fR\fIKEY\fR\fB]\fR above \(em the \fB[\fR and \fB]\fR may be omitted if the property name \fIKEY\fR does not conflict with any \fBjt\fR command\.
-.
-.TP
-\fB^\fR\fIKEY\fR
-See \fIKEY\fR above \(em this variant drills down to the first property of the object whose name starts with \fIKEY\fR\. The match is not case sensitive\.
 .
 .P
 When \fBjt\fR starts, the root JSON object is pushed onto the data stack\. Then commands are evaluated, from left to right\. When a JSON array is pushed onto the data stack a corresponding index (starting at zero) is pushed onto the index stack, and the associated object in the array at that index is automatically pushed onto the data stack\.
@@ -397,8 +400,25 @@ a       d       e
 .
 .IP "" 0
 .
-.SH "COPYRIGHT"
-Copyright © 2016 Micha Niskin \fB<micha\.niskin@gmail\.com>\fR\. Distributed under the Eclipse Public License, version 1\.0\.
+.P
+Multiple JSON objects in the input stream, separated by whitespace:
 .
-.SH "SEE ALSO"
-jshon(1), jq(1), comm(1), diff(1), sort(1), join(1), uniq(1), bash(1)
+.IP "" 4
+.
+.nf
+
+$ cat <<EOT | jt [ foo % ] [ bar % ]
+\- {"foo":100,"bar":200}
+\- {"foo":200,"bar":300}
+\- {"foo":300,"bar":400}
+\- EOT
+100     200
+200     300
+300     400
+.
+.fi
+.
+.IP "" 0
+.
+.SH "COPYRIGHT"
+Copyright © 2016 Micha Niskin \fB<micha\.niskin@gmail\.com>\fR, distributed under the Eclipse Public License, version 1\.0\. This is free software: you are free to change and redistribute it\. There is NO WARRANTY, to the extent permitted by law\.

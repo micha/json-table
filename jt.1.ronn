@@ -4,7 +4,8 @@ jt(1) -- transform JSON data to tabular format
 ## SYNOPSIS
 
 `jt` `[-hV]`<br>
-`jt` [`-j`] [`COMMAND` ...]
+`jt` `-u` <string><br>
+`jt` [`-aj`] [`COMMAND` ...]
 
 ## DESCRIPTION
 
@@ -33,6 +34,10 @@ The input stream may contain multiple JSON forms separated by whitespace (i.e.
   * `-V`:
     Print version and license info and exit.
 
+  * `-a`:
+    Explicit iteration mode: require the `.` command to iterate over arrays
+    instead of iterating automatically.
+
   * `-j`:
     Inner join mode: discard rows with missing columns.
 
@@ -54,8 +59,9 @@ There are a number of stacks provided by the **jt** runtime:
   stack pointers onto this stack to save the state of the data stack and pop
   them off to restore the data stack to a saved state.
 
-* The `index stack` contains the indexes of nested arrays as `jt` iterates over
-  them. Commands can print the value at the top of this stack.
+* The `index stack` contains the indexes of nested arrays or properties of
+  nested objects as `jt` iterates over them. Commands can print the value at
+  the top of this stack.
 
 **Jt** provides the following commands:
 
@@ -80,8 +86,8 @@ There are a number of stacks provided by the **jt** runtime:
   * `@`:
     Print the keys of the object at the top of the data stack. If the top of
     the data stack is not an object then its type is printed in brackets, eg.
-    `[string]`, `[number]`, `[boolean]`, or `[null]`. If there is no value
-    then `[none]` is printed.
+    `[array]`, `[string]`, `[number]`, `[boolean]`, or `[null]`. If there is
+    no value then `[none]` is printed.
 
   * `.`:
     Iterate over the values of the object at the top of the data stack. The
@@ -104,10 +110,6 @@ There are a number of stacks provided by the **jt** runtime:
   * <KEY>:
     See `[`<KEY>`]` above &mdash; the `[` and `]` may be omitted if the
     property name <KEY> does not conflict with any `jt` command.
-
-  * `^`<KEY>:
-    See <KEY> above &mdash; this variant drills down to the first property of
-    the object whose name starts with <KEY>. The match is not case sensitive.
 
 When **jt** starts, the root JSON object is pushed onto the data stack. Then
 commands are evaluated, from left to right. When a JSON array is pushed onto
@@ -273,11 +275,20 @@ path doesn't exist:
     $ echo "$JSON" | jt -j [ foo % ] baz [ y % ] z %
     a       d       e
 
+Multiple JSON objects in the input stream, separated by whitespace:
+
+    $ cat <<EOT | jt [ foo % ] [ bar % ]
+    - {"foo":100,"bar":200}
+    - {"foo":200,"bar":300}
+    - {"foo":300,"bar":400}
+    - EOT
+    100     200
+    200     300
+    300     400
+
 ## COPYRIGHT
 
-Copyright © 2016 Micha Niskin `<micha.niskin@gmail.com>`.
-Distributed under the Eclipse Public License, version 1.0.
-
-## SEE ALSO
-
-jshon(1), jq(1), comm(1), diff(1), sort(1), join(1), uniq(1), bash(1)
+Copyright © 2016 Micha Niskin `<micha.niskin@gmail.com>`, distributed under
+the Eclipse Public License, version 1.0. This is free software: you are free
+to change and redistribute it. There is NO WARRANTY, to the extent permitted
+by law.

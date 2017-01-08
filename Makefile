@@ -1,7 +1,7 @@
 .PHONY: all clean docs install dist test
 
 OS      = $(shell uname -s)
-CFLAGS += -O3 -Wall -Werror -pedantic-errors -std=c99
+CFLAGS += -D_GNU_SOURCE=1 -O3 -Wall -Werror -pedantic-errors -std=c99
 ifneq (${OS}, Darwin)
 LDFLAGS = -static
 endif
@@ -17,7 +17,7 @@ clean:
 %.o: %.c
 	$(CC) -c $(CFLAGS) $< -o $@
 
-jt: jt.o
+jt: jt.o stack.o buffer.o js.o util.o
 	$(CC) $(LDFLAGS) $^ -o $@
 
 %.1: %.1.ronn
@@ -43,4 +43,6 @@ jt.tar: jt jt.1
 dist: jt.tar.gz
 
 test:
-	@./test.sh
+	@./test/test-jt.sh ./jt
+	@echo
+	@./test/test-parser.sh ./jt

@@ -17,6 +17,8 @@ ssize_t buf_append_read(Buffer *b, FILE *in) {
   ssize_t bytes_r = 0;
   int fd = fileno(in);
 
+  if (fd == -1) die_err("bad input stream");
+
   if ((bytes_r = read(fd, tmp, sizeof(tmp))) > 0)
     buf_append(b, (const char*) tmp, bytes_r);
 

@@ -8,11 +8,11 @@
  * parser helpers
  *****************************************************************************/
 
-jstok_t *js_tok(jsparser_t *p, size_t t) {
+inline jstok_t *js_tok(jsparser_t *p, size_t t) {
   return p->toks + t;
 }
 
-const char *js(jsparser_t *p) {
+static inline const char *js(jsparser_t *p) {
   return (p->js)->buf + p->pos;
 }
 
@@ -26,14 +26,14 @@ static void init_tok(jstok_t *tok) {
   tok->next_sibling = 0;
 }
 
-size_t js_next_tok(jsparser_t *p) {
+static size_t js_next_tok(jsparser_t *p) {
   if (p->curtok + 1 >= p->toks_size)
     p->toks = jrealloc(p->toks, sizeof(jstok_t) * (p->toks_size *= 2));
   init_tok(p->toks + (p->curtok += 1));
   return p->curtok;
 }
 
-static void js_ensure_buf(jsparser_t *p, size_t n) {
+static inline void js_ensure_buf(jsparser_t *p, size_t n) {
   while (p->pos + n + 1 >= (p->js)->pos)
     if (! buf_append_read(p->js, p->in)) break;
 }
@@ -66,27 +66,27 @@ static size_t js_scan_digits(jsparser_t *p) {
  * JSON type predicates
  *****************************************************************************/
 
-int js_is_array(jstok_t *tok) {
+inline int js_is_array(jstok_t *tok) {
   return tok->type == JS_ARRAY;
 }
 
-int js_is_object(jstok_t *tok) {
+inline int js_is_object(jstok_t *tok) {
   return tok->type == JS_OBJECT;
 }
 
-int js_is_pair(jstok_t *tok) {
+inline int js_is_pair(jstok_t *tok) {
   return tok->type == JS_PAIR;
 }
 
-int js_is_item(jstok_t *tok) {
+inline int js_is_item(jstok_t *tok) {
   return tok->type == JS_ITEM;
 }
 
-int js_is_collection(jstok_t *tok) {
+inline int js_is_collection(jstok_t *tok) {
   return js_is_array(tok) || js_is_object(tok);
 }
 
-int js_is_empty(jstok_t *tok) {
+inline int js_is_empty(jstok_t *tok) {
   return !tok->first_child;
 }
 
@@ -182,6 +182,9 @@ static jserr_t js_parse_collection(jsparser_t *p, size_t t) {
   size_t err, key, val, prev = 0;
   char start, end;
 
+  p->depth--;
+  if (!p->depth) return JS_EPARSE;
+
   js_ensure_buf(p, 1);
 
   if ((start = js(p)[0]) == '[' || start == '{') {
@@ -198,6 +201,7 @@ static jserr_t js_parse_collection(jsparser_t *p, size_t t) {
 
     if (js(p)[0] == end) {
       p->pos++;
+      p->depth++;
       break;
     } else {
       if (prev) {
@@ -259,6 +263,17 @@ jserr_t js_parse(jsparser_t *p, size_t t) {
 jserr_t js_parse_one(jsparser_t *p, size_t *t) {
   js_skip_ws(p);
   return (js(p)[0] == '\0') ? JS_EDONE : js_parse(p, (*t = js_next_tok(p)));
+}
+
+/*
+ * create JSON primitives
+ *****************************************************************************/
+
+size_t js_create_index(jsparser_t *p, size_t idx) {
+  size_t item = js_next_tok(p);
+  js_tok(p, item)->type = JS_ITEM;
+  js_tok(p, item)->idx  = idx;
+  return item;
 }
 
 /*
@@ -442,10 +457,13 @@ char *js_unescape_string(char *in) {
  * parser housekeeping
  *****************************************************************************/
 
+#define MAX_DEPTH 20
+
 void js_reset(jsparser_t *p) {
   p->curtok = 1;
   buf_reset(p->js, p->pos);
   p->pos = 0;
+  p->depth = MAX_DEPTH;
 }
 
 void js_alloc(jsparser_t **p, FILE *in, size_t toks_size) {
@@ -455,4 +473,11 @@ void js_alloc(jsparser_t **p, FILE *in, size_t toks_size) {
   (*p)->toks = jmalloc(sizeof(jstok_t) * toks_size);
   (*p)->toks_size = toks_size;
   js_reset(*p);
+}
+
+void js_free(jsparser_t **p) {
+  buf_free(&((*p)->js));
+  free((*p)->toks);
+  free(*p);
+  *p = NULL;
 }

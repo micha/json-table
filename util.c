@@ -4,17 +4,17 @@
 
 #include "util.h"
 
-int is_digit_char(char x) {
+inline int is_digit_char(char x) {
   return ('0' <= x && x <= '9');
 }
 
-int is_hex_char(char x) {
+inline int is_hex_char(char x) {
   return (('0' <= x && x <= '9') ||
           ('a' <= x && x <= 'f') ||
           ('A' <= x && x <= 'F'));
 }
 
-int is_ws_char(char x) {
+inline int is_ws_char(char x) {
   return (x == ' ' || x == '\t' || x == '\r' || x == '\n');
 }
 
