@@ -358,7 +358,7 @@ jserr_t js_print(jsparser_t *p, size_t t, Buffer *b, int json) {
       break;
     case JS_ITEM:
       if (!json) {
-        snprintf(digitbuf, 10, "%ld", tok->idx);
+        snprintf(digitbuf, 10, "%zu", tok->idx);
         buf_append(b, digitbuf, strlen(digitbuf));
       } else {
         js_print(p, tok->first_child, b, json);

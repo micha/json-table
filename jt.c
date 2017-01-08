@@ -8,7 +8,7 @@
 #include "util.h"
 
 #define STACKSIZE 256
-#define JT_VERSION "4.0.0"
+#define JT_VERSION "4.0.1"
 
 int left_join = 1;
 int auto_iter = 1;
