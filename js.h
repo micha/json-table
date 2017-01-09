@@ -93,7 +93,7 @@ size_t js_create_index(jsparser_t *p, size_t idx);
 
 jserr_t js_print(jsparser_t *p, size_t t, Buffer *b, int json);
 
-jserr_t js_print_keys(jsparser_t *p, size_t t, Buffer *buf);
+jserr_t js_print_info(jsparser_t *p, size_t t, Buffer *buf);
 
 char *js_unescape_string(char *in);
 

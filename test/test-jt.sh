@@ -20,10 +20,10 @@ assert() {
   fi
 }
 
-JSON='{"foo":"a","bar":{"x":"b"},"baz":[{"y":"c"},{"y":"d","z":"e"}]}'
-
 echo -e "\033[1;30mThe following should\033[0m ${PASS}:"
 echo -e "\033[1;30m----------------------------------------------\033[0m"
+
+JSON='{"foo":"a","bar":{"x":"b"},"baz":[{"y":"c"},{"y":"d","z":"e"}]}'
 
 assert $LINENO \
   "$(echo "$JSON" | $jt @)" \

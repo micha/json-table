@@ -382,15 +382,42 @@ jserr_t js_print(jsparser_t *p, size_t t, Buffer *b, int json) {
   return 0;
 }
 
-jserr_t js_print_keys(jsparser_t *p, size_t t, Buffer *b) {
-  size_t v = js_tok(p, t)->first_child;
+jserr_t js_print_info(jsparser_t *p, size_t t, Buffer *b) {
   jstok_t *tmp;
-  if (js_tok(p, t)->type != JS_OBJECT) return JS_EBUG;
-  while (v) {
-    tmp = js_tok(p, v);
-    buf_append(b, (p->js)->buf + tmp->start, tmp->end - tmp->start);
-    if ((v = js_tok(p, v)->next_sibling)) buf_append(b, "\n", 1);
+  size_t v;
+
+  switch (js_tok(p, t)->type) {
+    case JS_OBJECT:
+      v = js_tok(p, t)->first_child;
+      while (v) {
+        tmp = js_tok(p, v);
+        buf_append(b, (p->js)->buf + tmp->start, tmp->end - tmp->start);
+        if ((v = js_tok(p, v)->next_sibling)) buf_append(b, "\n", 1);
+      }
+      break;
+    case JS_ARRAY:
+      buf_append(b, "[array]", strlen("[array]"));
+      break;
+    case JS_STRING:
+      buf_append(b, "[string]", strlen("[string]"));
+      break;
+    case JS_NUMBER:
+      buf_append(b, "[number]", strlen("[number]"));
+      break;
+    case JS_TRUE:
+    case JS_FALSE:
+      buf_append(b, "[boolean]", strlen("[boolean]"));
+      break;
+    case JS_NULL:
+      buf_append(b, "[null]", strlen("[null]"));
+      break;
+    case JS_NONE:
+      buf_append(b, "[none]", strlen("[none]"));
+      break;
+    default:
+      return JS_EBUG;
   }
+
   return 0;
 }
 

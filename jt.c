@@ -65,35 +65,6 @@ int run(jsparser_t *p, int wordc, word_t *wordv) {
         cols = 1;
         stack_push(OUT, stack_head(IDX));
         break;
-      case '@':
-        switch (js_tok(p, d)->type) {
-          case JS_OBJECT:
-            js_print_keys(p, d, OUTBUF);
-            printf("%s\n", OUTBUF->buf);
-            break;
-          case JS_ARRAY:
-            printf("[array]\n");
-            break;
-          case JS_STRING:
-            printf("[string]\n");
-            break;
-          case JS_NUMBER:
-            printf("[number]\n");
-            break;
-          case JS_TRUE:
-          case JS_FALSE:
-            printf("[boolean]\n");
-            break;
-          case JS_NULL:
-            printf("[null]\n");
-            break;
-          case JS_NONE:
-            printf("[none]\n");
-            break;
-          default:
-            break;
-        }
-        exit(0);
       case '%':
         cols = 1;
         stack_push(OUT, d);
@@ -118,6 +89,10 @@ int run(jsparser_t *p, int wordc, word_t *wordv) {
           stack_push(DAT, 0);
         }
         break;
+      case '@':
+        js_print_info(p, d, OUTBUF);
+        printf("%s\n", OUTBUF->buf);
+        exit(0);
       default:
         die("unexpected command");
     }
