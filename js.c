@@ -129,6 +129,7 @@ static jserr_t js_parse_string(jsparser_t *p, size_t t) {
   }
 
   if (js(p)[0] != '\"') return JS_EPARSE;
+  else *((p->js)->buf + p->pos) = '\0';
   p->pos++;
 
   js_tok(p, t)->type = JS_STRING;
@@ -285,7 +286,7 @@ size_t js_obj_get(jsparser_t *p, size_t obj, const char *key) {
   jstok_t *tmp;
   for(v = js_tok(p, obj)->first_child; v; v = js_tok(p, v)->next_sibling) {
     tmp = js_tok(p, v);
-    if (!strncmp(key, (p->js)->buf + tmp->start, tmp->end - tmp->start))
+    if (!strcmp(key, (p->js)->buf + tmp->start))
       return js_tok(p, v)->first_child;
   }
   return 0;
