@@ -511,7 +511,7 @@ EOT
 
 ### Joins
 
-Notice the empty column &mdash; some objects don't have the <bar> key:
+Notice the empty column &mdash; some objects don't have the `bar` key:
 
 ```bash
 cat <<EOT | jt [ foo % ] [ bar % ]
