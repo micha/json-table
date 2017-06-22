@@ -92,23 +92,6 @@ bar
 baz
 ```
 
-Same as above, with fuzzy property name (prefix) matching:
-
-```bash
-cat <<EOT | jt ^f @
-{
-  "foo": {
-    "bar": 100,
-    "baz": 200
-  }
-}
-EOT
-```
-```
-bar
-baz
-```
-
 When a property name conflicts with a `jt` command you must wrap the property
 name with square brackets to drill down:
 
