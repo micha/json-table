@@ -8,7 +8,7 @@
 #include "util.h"
 
 #define STACKSIZE 256
-#define JT_VERSION "4.1.0"
+#define JT_VERSION "4.1.1"
 
 int left_join = 1;
 int auto_iter = 1;
@@ -75,7 +75,7 @@ int run(jsparser_t *p, int wordc, word_t *wordv) {
           stack_push(DAT, js_tok(p, d)->parsed);
         } else if (js_is_string(js_tok(p, d))) {
           unesc = js_unescape_string(((p->js)->buf) + js_tok(p, d)->start);
-          buf_append(p->js, unesc, js_tok(p, d)->end - js_tok(p, d)->start - 2);
+          buf_append(p->js, unesc, strlen(unesc));
           free(unesc);
           if (! js_parse_one(p, &root)) {
             js_tok(p, d)->parsed = root;
