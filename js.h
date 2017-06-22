@@ -37,7 +37,13 @@ typedef struct {
   size_t parent;
   size_t first_child;
   size_t next_sibling;
+  size_t parsed;
 } jstok_t;
+
+typedef struct {
+  size_t bufpos;
+  size_t parserpos;
+} jsstate_t;
 
 typedef struct {
   FILE *in;
@@ -52,6 +58,8 @@ typedef struct {
 jstok_t *js_tok(jsparser_t *p, size_t t);
 
 // predicates
+
+int js_is_string(jstok_t *tok);
 
 int js_is_array(jstok_t *tok);
 
@@ -76,6 +84,10 @@ jserr_t js_parse(jsparser_t *p, size_t t);
 jserr_t js_parse_one(jsparser_t *p, size_t *t);
 
 void js_reset(jsparser_t *p);
+
+void js_save(jsparser_t *p, jsstate_t *s);
+
+void js_restore(jsparser_t *p, jsstate_t *s);
 
 // accessors
 

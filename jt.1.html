@@ -150,6 +150,11 @@ of the current JSON object read from stdin.</p></dd>
 the data stack is not an object then its type is printed in brackets, eg.
 <code>[array]</code>, <code>[string]</code>, <code>[number]</code>, <code>[boolean]</code>, or <code>[null]</code>. If there is
 no value then <code>[none]</code> is printed.</p></dd>
+<dt class="flush"><code>+</code></dt><dd><p>Parse nested JSON: if the item at the top of the data stack is a string,
+parse it and push the result onto the data stack.</p>
+
+<p>If the item at the top of the data stack is not a string or if there is an
+error parsing the JSON then nothing is done (the operation is a no-op).</p></dd>
 <dt class="flush"><code>.</code></dt><dd><p>Iterate over the values of the object at the top of the data stack. The
 current value will be pushed onto the data stack and the current key will
 be pushed onto the index stack.</p></dd>
@@ -363,9 +368,23 @@ a       d       e
 300     400
 </code></pre>
 
+<h3 id="Nested-JSON">Nested JSON</h3>
+
+<p>Use the <code>+</code> command to parse nested JSON:</p>
+
+<pre><code>$ cat &lt;&lt;EOT | jt [ foo + bar % ] [ baz % ]
+- {"foo":"{\"bar\":100}","baz":200}
+- {"foo":"{\"bar\":200}","baz":300}
+- {"foo":"{\"bar\":300}","baz":400}
+- EOT
+100     200
+200     300
+300     400
+</code></pre>
+
 <h2 id="COPYRIGHT">COPYRIGHT</h2>
 
-<p>Copyright © 2016 Micha Niskin <code>&lt;micha.niskin@gmail.com&gt;</code>, distributed under
+<p>Copyright © 2017 Micha Niskin <code>&lt;micha.niskin@gmail.com&gt;</code>, distributed under
 the Eclipse Public License, version 1.0. This is free software: you are free
 to change and redistribute it. There is NO WARRANTY, to the extent permitted
 by law.</p>
@@ -373,7 +392,7 @@ by law.</p>
 
   <ol class='man-decor man-foot man foot'>
     <li class='tl'></li>
-    <li class='tc'>January 2017</li>
+    <li class='tc'>June 2017</li>
     <li class='tr'>jt(1)</li>
   </ol>
 

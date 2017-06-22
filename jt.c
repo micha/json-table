@@ -8,7 +8,7 @@
 #include "util.h"
 
 #define STACKSIZE 256
-#define JT_VERSION "4.0.2"
+#define JT_VERSION "4.1.0"
 
 int left_join = 1;
 int auto_iter = 1;
@@ -31,8 +31,9 @@ typedef struct {
  *****************************************************************************/
 
 int run(jsparser_t *p, int wordc, word_t *wordv) {
-  size_t d = stack_head(DAT), tmp, itr;
+  size_t d = stack_head(DAT), tmp, itr, root;
   int e = 0, cols = 0;
+  char *unesc;
 
   if (wordc <= 0) return 0;
 
@@ -68,6 +69,19 @@ int run(jsparser_t *p, int wordc, word_t *wordv) {
       case '%':
         cols = 1;
         stack_push(OUT, d);
+        break;
+      case '+':
+        if (js_tok(p, d)->parsed) {
+          stack_push(DAT, js_tok(p, d)->parsed);
+        } else if (js_is_string(js_tok(p, d))) {
+          unesc = js_unescape_string(((p->js)->buf) + js_tok(p, d)->start);
+          buf_append(p->js, unesc, js_tok(p, d)->end - js_tok(p, d)->start - 2);
+          free(unesc);
+          if (! js_parse_one(p, &root)) {
+            js_tok(p, d)->parsed = root;
+            stack_push(DAT, root);
+          }
+        }
         break;
       case '[':
         stack_push(SUB, stack_depth(DAT));
@@ -111,13 +125,13 @@ void usage(int status) {
   fprintf(stderr, "       jt -V\n");
   fprintf(stderr, "       jt -u <string>\n");
   fprintf(stderr, "       jt [-aj] [COMMAND ...]\n\n");
-  fprintf(stderr, "Where COMMAND is one of `[', `]', `%%', `@', `.', `^', or a property name.\n");
+  fprintf(stderr, "Where COMMAND is one of `[', `]', `%%', `@', `.', `^', `+', or a property name.\n");
   exit(status);
 }
 
 void version() {
   fprintf(stdout, "jt %s\n", JT_VERSION);
-  fprintf(stdout, "Copyright © 2016 Micha Niskin\n");
+  fprintf(stdout, "Copyright © 2017 Micha Niskin\n");
   fprintf(stdout, "License EPL v1.0 <https://www.eclipse.org/legal/epl-v10.html>.\n");
   fprintf(stdout, "Source code available <https://github.com/micha/json-table>.\n");
   fprintf(stdout, "This is free software: you are free to change and redistribute it.\n");
@@ -131,7 +145,7 @@ void parse_commands(int argc, char *argv[], word_t *wordv) {
     len = strlen(argv[i]);
     if (len == 1) {
       switch(argv[i][0]) {
-        case '[': case ']': case '%': case '^': case '@': case '.':
+        case '[': case ']': case '%': case '^': case '@': case '.': case '+':
           wordv[i].cmd = argv[i][0];
           break;
         default:
@@ -153,6 +167,7 @@ int main(int argc, char *argv[]) {
   jsparser_t *p;
   jserr_t err;
   int opt, cols, i;
+  jsstate_t saved_state;
 
   while ((opt = getopt(argc, argv, "+hVajsu:")) != -1) {
     switch (opt) {
@@ -201,6 +216,8 @@ int main(int argc, char *argv[]) {
 
     item = js_create_index(p, idx++);
 
+    js_save(p, &saved_state);
+
     stack_push(IDX, item);
     stack_push(DAT, root);
 
@@ -221,6 +238,7 @@ int main(int argc, char *argv[]) {
       buf_reset(OUTBUF, 0);
     } while (stack_depth(ITR) > 0);
 
+    js_restore(p, &saved_state);
     js_reset(p);
     stack_pop_to(DAT, -1);
     stack_pop_to(IDX, -1);

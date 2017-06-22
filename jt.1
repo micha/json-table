@@ -1,7 +1,7 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "JT" "1" "January 2017" "" "JT MANUAL"
+.TH "JT" "1" "June 2017" "" "JT MANUAL"
 .
 .SH "NAME"
 \fBjt\fR \- transform JSON data to tabular format
@@ -86,6 +86,13 @@ Print the array index or object key at the top of the index stack\. Note that th
 .TP
 \fB@\fR
 Print the keys of the object at the top of the data stack\. If the top of the data stack is not an object then its type is printed in brackets, eg\. \fB[array]\fR, \fB[string]\fR, \fB[number]\fR, \fB[boolean]\fR, or \fB[null]\fR\. If there is no value then \fB[none]\fR is printed\.
+.
+.TP
+\fB+\fR
+Parse nested JSON: if the item at the top of the data stack is a string, parse it and push the result onto the data stack\.
+.
+.IP
+If the item at the top of the data stack is not a string or if there is an error parsing the JSON then nothing is done (the operation is a no\-op)\.
 .
 .TP
 \fB\.\fR
@@ -420,5 +427,25 @@ $ cat <<EOT | jt [ foo % ] [ bar % ]
 .
 .IP "" 0
 .
+.SS "Nested JSON"
+Use the \fB+\fR command to parse nested JSON:
+.
+.IP "" 4
+.
+.nf
+
+$ cat <<EOT | jt [ foo + bar % ] [ baz % ]
+\- {"foo":"{\e"bar\e":100}","baz":200}
+\- {"foo":"{\e"bar\e":200}","baz":300}
+\- {"foo":"{\e"bar\e":300}","baz":400}
+\- EOT
+100     200
+200     300
+300     400
+.
+.fi
+.
+.IP "" 0
+.
 .SH "COPYRIGHT"
-Copyright © 2016 Micha Niskin \fB<micha\.niskin@gmail\.com>\fR, distributed under the Eclipse Public License, version 1\.0\. This is free software: you are free to change and redistribute it\. There is NO WARRANTY, to the extent permitted by law\.
+Copyright © 2017 Micha Niskin \fB<micha\.niskin@gmail\.com>\fR, distributed under the Eclipse Public License, version 1\.0\. This is free software: you are free to change and redistribute it\. There is NO WARRANTY, to the extent permitted by law\.

@@ -164,4 +164,20 @@ assert $LINENO \
 EOT
 )"
 
+JSON=$(cat <<'EOT'
+{"foo":"{\"bar\":100}","baz":200}
+{"foo":"{\"bar\":200}","baz":300}
+{"foo":"{\"bar\":300}","baz":400}
+EOT
+)
+
+assert $LINENO \
+  "$(echo "$JSON" | $jt [ foo + bar % ] [ baz % ])" \
+  "$(cat <<'EOT'
+100	200
+200	300
+300	400
+EOT
+)"
+
 [[ $fails == 0 ]] || exit 1

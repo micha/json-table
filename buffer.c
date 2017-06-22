@@ -27,6 +27,11 @@ ssize_t buf_append_read(Buffer *b, FILE *in) {
   return bytes_r;
 }
 
+void buf_rewind(Buffer *b, size_t pos) {
+  b->pos = pos;
+  (b->buf)[b->pos] = '\0';
+}
+
 void buf_reset(Buffer *b, size_t start) {
   if (0 < start && start < b->pos)
     memmove(b->buf, b->buf + start, (b->pos -= start));

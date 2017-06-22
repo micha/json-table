@@ -89,6 +89,13 @@ There are a number of stacks provided by the **jt** runtime:
     `[array]`, `[string]`, `[number]`, `[boolean]`, or `[null]`. If there is
     no value then `[none]` is printed.
 
+  * `+`:
+    Parse nested JSON: if the item at the top of the data stack is a string,
+    parse it and push the result onto the data stack.
+
+    If the item at the top of the data stack is not a string or if there is an
+    error parsing the JSON then nothing is done (the operation is a no-op).
+
   * `.`:
     Iterate over the values of the object at the top of the data stack. The
     current value will be pushed onto the data stack and the current key will
@@ -286,9 +293,22 @@ Multiple JSON objects in the input stream, separated by whitespace:
     200     300
     300     400
 
+### Nested JSON
+
+Use the `+` command to parse nested JSON:
+
+    $ cat <<EOT | jt [ foo + bar % ] [ baz % ]
+    - {"foo":"{\"bar\":100}","baz":200}
+    - {"foo":"{\"bar\":200}","baz":300}
+    - {"foo":"{\"bar\":300}","baz":400}
+    - EOT
+    100     200
+    200     300
+    300     400
+
 ## COPYRIGHT
 
-Copyright © 2016 Micha Niskin `<micha.niskin@gmail.com>`, distributed under
+Copyright © 2017 Micha Niskin `<micha.niskin@gmail.com>`, distributed under
 the Eclipse Public License, version 1.0. This is free software: you are free
 to change and redistribute it. There is NO WARRANTY, to the extent permitted
 by law.

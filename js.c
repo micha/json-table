@@ -24,6 +24,7 @@ static void init_tok(jstok_t *tok) {
   tok->parent = 0;
   tok->first_child = 0;
   tok->next_sibling = 0;
+  tok->parsed = 0;
 }
 
 static size_t js_next_tok(jsparser_t *p) {
@@ -65,6 +66,10 @@ static size_t js_scan_digits(jsparser_t *p) {
 /*
  * JSON type predicates
  *****************************************************************************/
+
+inline int js_is_string(jstok_t *tok) {
+  return tok->type == JS_STRING;
+}
 
 inline int js_is_array(jstok_t *tok) {
   return tok->type == JS_ARRAY;
@@ -486,6 +491,17 @@ char *js_unescape_string(char *in) {
  *****************************************************************************/
 
 #define MAX_DEPTH 20
+
+void js_save(jsparser_t *p, jsstate_t *s) {
+  s->bufpos     = (p->js)->pos;
+  s->parserpos  = p->pos;
+  p->pos        = s->bufpos;
+}
+
+void js_restore(jsparser_t *p, jsstate_t *s) {
+  buf_rewind(p->js, s->bufpos);
+  p->pos = s->parserpos;
+}
 
 void js_reset(jsparser_t *p) {
   p->curtok = 1;
