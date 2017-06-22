@@ -18,6 +18,7 @@ tabular data to produce the final result.
 
 * **Self contained** &mdash; statically linked, has no build or runtime dependencies.
 * **Fast, small memory footprint** &mdash; efficiently process **large** JSON input.
+* **Correct** &mdash; parser does not accept invalid JSON (see tests for details).
 * **Streaming mode** &mdash; reads JSON objects one-per-line e.g., from log files.
 
 #### Example
@@ -352,8 +353,42 @@ EOT
 ```
 
 Should the first `^` be printing the array index (which it does, in this case)
-or the object key (i.e. `foo`)? Explicit iteration with the `-a` flag disables
-implicit iteration:
+or the object key (i.e. `foo`)? Explicit iteration with the `-a` flag eliminates
+the ambiguity:
+
+```bash
+cat <<EOT | jt -a . . ^ . ^ %
+{
+  "foo": [
+    {"bar":100},
+    {"bar":200}
+  ]
+}
+EOT
+```
+```
+0       bar     100
+1       bar     200
+```
+
+prints the array index and:
+
+```bash
+cat <<EOT | jt -a . ^ . . ^ %
+{
+  "foo": [
+    {"bar":100},
+    {"bar":200}
+  ]
+}
+EOT
+```
+```
+foo     bar     100
+foo     bar     200
+```
+
+prints the object key, and
 
 ```bash
 cat <<EOT | jt -a . ^ . ^ . ^ %
@@ -369,6 +404,8 @@ EOT
 foo     0       bar     100
 foo     1       bar     200
 ```
+
+prints both.
 
 ### JSON Streams
 
