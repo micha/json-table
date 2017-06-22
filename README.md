@@ -96,6 +96,7 @@ There are a number of stacks provided by the **jt** runtime:
 
 **Jt** provides the following commands:
 
+|Command|Description|
 |:--:|----|
 | **[** | Save the state of the data stack. The current data stack pointer is pushed onto the gosub stack. |
 | **]** | Restore the data stack to a saved state: pop the gosub stack and restore the data stack pointer to that state. |
