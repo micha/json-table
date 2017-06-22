@@ -96,7 +96,6 @@ There are a number of stacks provided by the **jt** runtime:
 
 **Jt** provides the following commands:
 
-|    |    |
 |:--:|----|
 | **[** | Save the state of the data stack. The current data stack pointer is pushed onto the gosub stack. |
 | **]** | Restore the data stack to a saved state: pop the gosub stack and restore the data stack pointer to that state. |
@@ -107,6 +106,8 @@ There are a number of stacks provided by the **jt** runtime:
 | **.** | Iterate over the values of the object at the top of the data stack. The current value will be pushed onto the data stack and the current key will be pushed onto the index stack. |
 | **[***KEY***]** | Drill down: get the value of the *KEY* property of the object at the top of the data stack and push that value onto the data stack.<br><br>If the item at the top of the data stack is not an object or if the object has no *KEY* property a blank field is printed, unless the `-j` option was specified in which case the entire row is removed from the output.<br><br>If the *KEY* property of the object is an array subsequent commands will operate on one of the items in the array, chosen automatically by **jt**.  The array index will be available to subsequent commands via the index stack. |
 | *KEY* | See **[***KEY***]** above &mdash; the **[** and **]** may be omitted if the property name *KEY* does not conflict with any **jt** command. |
+
+### Operation
 
 When **jt** starts, the root JSON object is pushed onto the data stack. Then
 commands are evaluated, from left to right. When a JSON array is pushed onto
