@@ -69,9 +69,132 @@ make && make test && sudo make install
 
 See the [man page][man] or `man jt` in your terminal.
 
+### Options
+
+- **-h** &mdash; Print usage info and exit.
+- **-V** &mdash; Print version and license info and exit.
+- **-a** &mdash; Enable explicit iteration mode.
+- **-j** &mdash; Enable inner join mode.
+- **-s** &mdash; No-op (included for compatibility with earlier versions).
+- **-u** *<string>* &mdash; Unescape JSON *<string>*, print it, and exit.
+
+### Commands
+
+Non-option arguments are commands in a limited stack-based programming language.
+There are a number of stacks provided by the **jt** runtime:
+
+- The **data stack** contains JSON objects from the input stream. Commands
+  operate on the top of this stack to traverse the JSON tree and print values.
+
+- The **gosub stack** contains pointers into the data stack. Commands push data
+  stack pointers onto this stack to save the state of the data stack and pop
+  them off to restore the data stack to a saved state.
+
+- The **index stack** contains the indexes of nested arrays or properties of
+  nested objects as **jt** iterates over them. Commands can print the value at
+  the top of this stack.
+
+**Jt** provides the following commands:
+
+* **[** &mdash; Save the state of the data stack. The current data stack
+  pointer is pushed onto the gosub stack.
+
+* **]** &mdash; Restore the data stack to a saved state: pop the gosub stack
+  and restore the data stack pointer to that state.
+
+* **%** &mdash; Print the value at the top of the data stack. If the item at
+  the top of the data stack is not a string or primitive type its JSON
+  representation is printed. See the **Output Format** section below for
+  details.
+
+* **^** &mdash; Print the array index or object key at the top of the index
+  stack. Note that the index stack will always have at least one item &mdash;
+  the index of the current JSON object read from stdin.
+
+* **@** &mdash; Print the keys of the object at the top of the data stack. If
+  the top of the data stack is not an object then its type is printed in
+  brackets, eg.  `[array]`, `[string]`, `[number]`, `[boolean]`, or `[null]`.
+  If there is no value then `[none]` is printed.
+
+* **+** &mdash; Parse nested JSON: if the item at the top of the data stack is
+  a string, parse it and push the result onto the data stack.
+
+  If the item at the top of the data stack is not a string or if there is an
+  error parsing the JSON then nothing is done (the operation is a no-op).
+
+* **.** &mdash; Iterate over the values of the object at the top of the data
+  stack. The current value will be pushed onto the data stack and the current
+  key will be pushed onto the index stack.
+
+* **[***KEY***]** &mdash; Drill down: get the value of the *KEY* property of
+  the object at the top of the data stack and push that value onto the data
+  stack.
+
+  If the item at the top of the data stack is not an object or if the object
+  has no *KEY* property a blank field is printed, unless the `-j` option was
+  specified in which case the entire row is removed from the output.
+
+  If the *KEY* property of the object is an array subsequent commands will
+  operate on one of the items in the array, chosen automatically by **jt**.
+  The array index will be available to subsequent commands via the index
+  stack.
+
+* *KEY*:
+  See **[***KEY***]** above &mdash; the **[** and **]** may be omitted if the
+  property name *KEY* does not conflict with any **jt** command.
+
+When **jt** starts, the root JSON object is pushed onto the data stack. Then
+commands are evaluated, from left to right. When a JSON array is pushed onto
+the data stack a corresponding index (starting at zero) is pushed onto the
+index stack, and the associated object in the array at that index is
+automatically pushed onto the data stack.
+
+When all commands have been evaluated, each item in the output stack is
+printed, separated by tabs, the data stack is restored to its initial state
+(containing only the root JSON object), and evaluation begins again, evaluating
+the commands from left to right.
+
+Each iteration will increment indices stored in the index stack such that all
+iterations follow a different path through the nested JSON tree, each traversing
+a different permuation of array indices. You can think of this process as an
+implicit join, if that helps.
+
+### Output Format
+
+The format of printed output from **Jt** (see `%` in **Commands**, above)
+depends on the type of thing being printed.
+
+JSON primitives (i.e. `null`, `true`, and `false`) and numbers are printed
+verbatim. **Jt** does not process them in any way. Numbers can be of arbitrary
+precision, as long as they conform to the JSON parsing grammar.
+
+If special formatting is required the `printf` program is your friend:
+
+```bash
+printf %.0f 2.99792458e9
+```
+```
+2997924580
+```
+
+Strings are printed verbatim, minus the enclosing double quotes. No unescaping
+is performed because tabs or newlines in JSON strings would break the tabular
+output format.
+
+If unescaped values are desired the `-u` option can be used:
+
+```bash
+jt -u 'i love music \u266A'
+```
+```
+i love music ♪
+```
+
+Objects and arrays are printed as JSON, with insignificant whitespace omitted.
+
 ## EXAMPLES
 
-Below are a number of examples demonstrating how to use `jt` commands to do
+Below are a number of examples demonstrating how to use **jt** commands to do
 some simple exploration and extraction of data from JSON and JSON streams.
 
 ### Exploration
@@ -139,7 +262,7 @@ bar
 baz
 ```
 
-When a property name conflicts with a `jt` command you must wrap the property
+When a property name conflicts with a **jt** command you must wrap the property
 name with square brackets to drill down:
 
 ```bash
@@ -244,7 +367,7 @@ EOT
 
 ### Iteration (Arrays)
 
-`Jt` automatically iterates over arrays, running the program once for each
+**Jt** automatically iterates over arrays, running the program once for each
 item in the array. This produces one tab-delimited record for each iteration,
 separated by newlines:
 
@@ -365,7 +488,7 @@ foo     baz     200
 
 ### JSON Streams
 
-`Jt` automatically iterates over all entities in a [JSON stream][json-stream]
+**Jt** automatically iterates over all entities in a [JSON stream][json-stream]
 (a stream of JSON entities delimited by optional insignificant whitespace):
 
 ```bash
