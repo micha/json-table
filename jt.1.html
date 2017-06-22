@@ -340,6 +340,15 @@ y       d
 z       e
 </code></pre>
 
+<h3 id="Printing-JSON">Printing JSON</h3>
+
+<p>Collections (objects and arrays) are printed as JSON by the <code>%</code> command:</p>
+
+<pre><code>$ echo "$JSON" | jt [ foo % ] [ bar % ] [ baz % ]
+a       {"x":"b"}       {"y":"c"}
+a       {"x":"b"}       {"y":"d","z":"e"}
+</code></pre>
+
 <h3 id="Joins">Joins</h3>
 
 <p>Notice the empty column &mdash; some objects don't have the <var>z</var> key:</p>

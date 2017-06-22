@@ -268,6 +268,14 @@ Iterate over the keys and values of an object without specifying intermediate ke
     y       d
     z       e
 
+### Printing JSON
+
+Collections (objects and arrays) are printed as JSON by the `%` command:
+
+    $ echo "$JSON" | jt [ foo % ] [ bar % ] [ baz % ]
+    a       {"x":"b"}       {"y":"c"}
+    a       {"x":"b"}       {"y":"d","z":"e"}
+
 ### Joins
 
 Notice the empty column &mdash; some objects don't have the <z> key:

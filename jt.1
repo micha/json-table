@@ -378,6 +378,21 @@ z       e
 .
 .IP "" 0
 .
+.SS "Printing JSON"
+Collections (objects and arrays) are printed as JSON by the \fB%\fR command:
+.
+.IP "" 4
+.
+.nf
+
+$ echo "$JSON" | jt [ foo % ] [ bar % ] [ baz % ]
+a       {"x":"b"}       {"y":"c"}
+a       {"x":"b"}       {"y":"d","z":"e"}
+.
+.fi
+.
+.IP "" 0
+.
 .SS "Joins"
 Notice the empty column \(em some objects don\'t have the \fIz\fR key:
 .

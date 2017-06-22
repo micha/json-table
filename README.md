@@ -207,6 +207,18 @@ y       d
 z       e
 ```
 
+### Printing JSON
+
+Collections (objects and arrays) are printed as JSON by the `%` command:
+
+```bash
+$ echo "$JSON" | jt [ foo % ] [ bar % ] [ baz % ]
+```
+```
+a       {"x":"b"}       {"y":"c"}
+a       {"x":"b"}       {"y":"d","z":"e"}
+```
+
 ### Joins
 
 Notice the empty column &mdash; some objects don't have the <z> key:
@@ -264,6 +276,6 @@ EOT
 
 ## COPYRIGHT
 
-Copyright © 2016 Micha Niskin. Distributed under the Eclipse Public License.
+Copyright © 2017 Micha Niskin. Distributed under the Eclipse Public License.
 
 [man]: http://htmlpreview.github.io/?https://raw.githubusercontent.com/micha/json-table/master/jt.1.html
