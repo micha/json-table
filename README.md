@@ -363,80 +363,6 @@ foo     bar     100
 foo     baz     200
 ```
 
-### Explicit Iteration
-
-Sometimes the implicit iteration over arrays is awkward:
-
-```bash
-cat <<EOT | jt . ^ . ^ %
-{
-  "foo": [
-    {"bar":100},
-    {"bar":200}
-  ]
-}
-EOT
-```
-```
-0       bar     100
-1       bar     200
-```
-
-Should the first `^` be printing the array index (which it does, in this case)
-or the object key (i.e. `foo`)? Explicit iteration with the `-a` flag eliminates
-the ambiguity:
-
-```bash
-cat <<EOT | jt -a . . ^ . ^ %
-{
-  "foo": [
-    {"bar":100},
-    {"bar":200}
-  ]
-}
-EOT
-```
-```
-0       bar     100
-1       bar     200
-```
-
-prints the array index and:
-
-```bash
-cat <<EOT | jt -a . ^ . . ^ %
-{
-  "foo": [
-    {"bar":100},
-    {"bar":200}
-  ]
-}
-EOT
-```
-```
-foo     bar     100
-foo     bar     200
-```
-
-prints the object key, and
-
-```bash
-cat <<EOT | jt -a . ^ . ^ . ^ %
-{
-  "foo": [
-    {"bar":100},
-    {"bar":200}
-  ]
-}
-EOT
-```
-```
-foo     0       bar     100
-foo     1       bar     200
-```
-
-prints both.
-
 ### JSON Streams
 
 `Jt` automatically iterates over all entities in a [JSON stream][json-stream]
@@ -585,6 +511,80 @@ EOT
 200
 300     3000
 ```
+
+### Explicit Iteration
+
+Sometimes the implicit iteration over arrays is awkward:
+
+```bash
+cat <<EOT | jt . ^ . ^ %
+{
+  "foo": [
+    {"bar":100},
+    {"bar":200}
+  ]
+}
+EOT
+```
+```
+0       bar     100
+1       bar     200
+```
+
+Should the first `^` be printing the array index (which it does, in this case)
+or the object key (i.e. `foo`)? Explicit iteration with the `-a` flag eliminates
+the ambiguity:
+
+```bash
+cat <<EOT | jt -a . . ^ . ^ %
+{
+  "foo": [
+    {"bar":100},
+    {"bar":200}
+  ]
+}
+EOT
+```
+```
+0       bar     100
+1       bar     200
+```
+
+prints the array index and:
+
+```bash
+cat <<EOT | jt -a . ^ . . ^ %
+{
+  "foo": [
+    {"bar":100},
+    {"bar":200}
+  ]
+}
+EOT
+```
+```
+foo     bar     100
+foo     bar     200
+```
+
+prints the object key, and
+
+```bash
+cat <<EOT | jt -a . ^ . ^ . ^ %
+{
+  "foo": [
+    {"bar":100},
+    {"bar":200}
+  ]
+}
+EOT
+```
+```
+foo     0       bar     100
+foo     1       bar     200
+```
+
+prints both.
 
 ## COPYRIGHT
 
