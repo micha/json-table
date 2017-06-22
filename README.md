@@ -54,38 +54,16 @@ See the [man page][man] or `man jt` in your terminal.
 
 ## EXAMPLES
 
-We will use the following JSON input for the examples:
+Use the `@` command to print an object's keys:
 
 ```bash
-JSON='{"foo":"a","bar":{"x":"b"},"baz":[{"y":"c"},{"y":"d","z":"e"}]}'
-```
-
-We pretty-print it here for reference:
-
-```json
+cat <<EOT | jt @
 {
-    "foo": "a",
-    "bar": {
-        "x": "b"
-    },
-    "baz": [
-        {
-            "y": "c"
-        },
-        {
-            "y": "d",
-            "z": "e"
-        }
-    ]
+  "foo": 100,
+  "bar": 200,
+  "baz": 300
 }
-```
-
-### Explore
-
-Explore JSON data, print an object's keys:
-
-```bash
-echo "$JSON" | jt @
+EOT
 ```
 ```
 foo
@@ -93,161 +71,315 @@ bar
 baz
 ```
 
-Print a nested object's keys:
+### Drill Down
+
+Property names are also commands. Use `foo` here as a command to drill down
+into the `foo` property and then use `@` to print its keys:
 
 ```bash
-echo "$JSON" | jt bar @
+cat <<EOT | jt foo @
+{
+  "foo": {
+    "bar": 100,
+    "baz": 200
+  }
+}
+EOT
 ```
 ```
-x
-```
-
-Same as above, with fuzzy property name matching:
-
-```bash
-echo "$JSON" | jt ^b @
-```
-```
-x
-```
-
-Print the keys of the first object in a nested array:
-
-```bash
-echo "$JSON" | jt baz @
-```
-```
-y
+bar
+baz
 ```
 
-Print the indexes in a nested array:
+Same as above, with fuzzy property name (prefix) matching:
 
 ```bash
-echo "$JSON" | jt baz ^
+cat <<EOT | jt ^f @
+{
+  "foo": {
+    "bar": 100,
+    "baz": 200
+  }
+}
+EOT
 ```
 ```
-0
-1
+bar
+baz
+```
+
+When a property name conflicts with a `jt` command you must wrap the property
+name with square brackets to drill down:
+
+```bash
+cat <<EOT | jt [@] @
+{
+  "@": {
+    "bar": 100,
+    "baz": 200
+  }
+}
+EOT
+```
+```
+bar
+baz
+```
+
+It's okay if the property name itself has square brackets. Just wrap with more
+brackets:
+
+```bash
+cat <<EOT | jt [[@]] @
+{
+  "[@]": {
+    "bar": 100,
+    "baz": 200
+  }
+}
+EOT
+```
+```
+bar
+baz
 ```
 
 ### Extract
 
-Extract values from JSON data:
+The `%` command prints the item at the top of the data stack. Note that when
+the top item is a collection it is printed as JSON (insiginificant whitespace
+removed):
 
 ```bash
-echo "$JSON" | jt foo %
+cat <<EOT | jt %
+{
+  "foo": 100,
+  "bar": 200
+}
+EOT
 ```
 ```
-a
+{"foo":100,"bar":200}
 ```
 
-Extract nested JSON data:
+Drill down and print:
 
 ```bash
-echo "$JSON" | jt bar x %
+cat <<EOT | jt foo bar %
+{
+  "foo": {
+    "bar": 100
+  }
+}
+EOT
 ```
 ```
-b
+100
+```
+
+The `%` command can be used multiple times. The printed values will be delimited
+by tabs:
+
+```bash
+cat <<EOT | jt % foo % bar %
+{
+  "foo": {
+    "bar": 100
+  }
+}
+EOT
+```
+```
+{"foo":{"bar":100}}     {"bar":100}     100
 ```
 
 ### Save / Restore
 
-Extract multiple values by saving and restoring the data stack:
-
-```bash
-echo "$JSON" | jt [ foo % ] bar x %
-```
-```
-a       b
-```
-
-### Arrays
-
-Iterate over nested arrays, producing one row per iteration:
-
-```bash
-echo "$JSON" | jt [ foo % ] [ bar x % ] baz y %
-```
-```
-a       b       c
-a       b       d
-```
-
-Include the array index as a column in the result:
-
-```bash
-echo "$JSON" | jt [ foo % ] [ bar x % ] baz y % ^
-```
-```
-a       b       c       0
-a       b       d       1
-```
-
-### Objects
-
-Iterate over the values of an object without specifying intermediate keys:
-
-```bash
-echo $JSON | jt baz . %
-```
-```
-c
-d
-e
-```
-
-Iterate over the keys and values of an object without specifying intermediate keys:
-
-```bash
-echo $JSON | jt baz . ^ %
-```
-```
-y       c
-y       d
-z       e
-```
-
-### Printing JSON
-
-Collections (objects and arrays) are printed as JSON by the `%` command:
-
-```bash
-$ echo "$JSON" | jt [ foo % ] [ bar % ] [ baz % ]
-```
-```
-a       {"x":"b"}       {"y":"c"}
-a       {"x":"b"}       {"y":"d","z":"e"}
-```
-
-### Joins
-
-Notice the empty column &mdash; some objects don't have the <z> key:
-
-```bash
-echo "$JSON" | jt [ foo % ] baz [ y % ] z %
-```
-```
-a       c
-a       d       e
-```
-
-Inner join mode will remove rows from the output when any key in the traversal
-path doesn't exist:
-
-```bash
-echo "$JSON" | jt -j [ foo % ] baz [ y % ] z %
-```
-```
-a       d       e
-```
-
-Multiple JSON objects in the input stream, separated by whitespace:
+The `[` and `]` commands provide a sort of `GOSUB` facility &mdash; the data
+stack is saved by `[` and restored by `]`. This can be used to extract values
+from different paths in the JSON as a single record:
 
 ```bash
 cat <<EOT | jt [ foo % ] [ bar % ]
-{"foo":100,"bar":200}
-{"foo":200,"bar":300}
-{"foo":300,"bar":400}
+{
+  "foo": 100,
+  "bar": 200
+}
+EOT
+```
+```
+100     200
+```
+
+### Iteration (Arrays)
+
+`Jt` automatically iterates over arrays, running the program once for each
+item in the array. This produces one tab-delimited record for each iteration,
+separated by newlines:
+
+```bash
+cat <<EOT | jt [ foo % ] [ bar baz % ]
+{
+  "foo": 100,
+  "bar": [
+    {"baz": 200},
+    {"baz": 300},
+    {"baz": 400}
+  ]
+}
+EOT
+```
+```
+100     200
+100     300
+100     400
+```
+
+The `^` command includes the array index as a column in the result:
+
+```bash
+cat <<EOT | jt [ foo % ] [ bar ^ baz % ]
+{
+  "foo": 100,
+  "bar": [
+    {"baz": 200},
+    {"baz": 300},
+    {"baz": 400}
+  ]
+}
+EOT
+```
+```
+100     0       200
+100     1       300
+100     2       400
+```
+
+Note that `^` is scoped &mdash; it prints the index of the innermost enclosing
+loop:
+
+```bash
+cat <<EOT | jt foo ^ bar ^ %
+{
+  "foo": [
+    {"bar": [100, 200]},
+    {"bar": [300, 400]}
+  ]
+}
+EOT
+```
+```
+0       0       100
+0       1       200
+1       0       300
+1       1       400
+```
+
+### Iteration (Objects)
+
+The `.` command iterates over the values of an object:
+
+```bash
+cat <<EOT | jt . %
+{
+  "foo": 100,
+  "bar": 200,
+  "baz": 300
+}
+EOT
+```
+```
+100
+200
+300
+```
+
+When iterating over an object the `^` command prints the name of the current
+property:
+
+```bash
+cat <<EOT | jt [ foo % ] [ bar . ^ % ]
+{
+  "foo": 100,
+  "bar": {
+    "baz": 200,
+    "baf": 300,
+    "qux": 400
+  }
+}
+EOT
+```
+```
+100     baz     200
+100     baf     300
+100     qux     400
+```
+
+The scope of `^` is similar when iterating over objects:
+
+```bash
+cat <<EOT | jt . ^ . ^ %
+{
+  "foo": {
+    "bar": 100,
+    "baz": 200
+  }
+}
+EOT
+```
+```
+foo     bar     100
+foo     baz     200
+```
+
+### Explicit Iteration
+
+Sometimes the implicit iteration over arrays is awkward:
+
+```bash
+cat <<EOT | jt . ^ . ^ %
+{
+  "foo": [
+    {"bar":100},
+    {"bar":200}
+  ]
+}
+EOT
+```
+```
+0       bar     100
+1       bar     200
+```
+
+Should the first `^` be printing the array index (which it does, in this case)
+or the object key (i.e. `foo`)? Explicit iteration with the `-a` flag disables
+implicit iteration:
+
+```bash
+cat <<EOT | jt -a . ^ . ^ . ^ %
+{
+  "foo": [
+    {"bar":100},
+    {"bar":200}
+  ]
+}
+EOT
+```
+```
+foo     0       bar     100
+foo     1       bar     200
+```
+
+### JSON Streams
+
+`Jt` automatically iterates over all entities in a [JSON stream][json-stream]
+(a stream of JSON entities delimited by optional insignificant whitespace):
+
+```bash
+cat <<EOT | jt [ foo % ] [ bar % ]
+{"foo": 100, "bar": 200}
+{"foo": 200, "bar": 300}
+{"foo": 300, "bar": 400}
 EOT
 ```
 ```
@@ -256,9 +388,60 @@ EOT
 300     400
 ```
 
+Insignificant whitespace is ignored:
+
+```bash
+cat <<EOT | jt [ foo % ] [ bar % ]
+{
+  "foo": 100,
+  "bar": 200
+}{"foo":200,"bar":300}
+    {
+      "foo": 300,
+      "bar": 400
+    }
+EOT
+```
+```
+100     200
+200     300
+300     400
+```
+
+Within a JSON stream the `^` command prints the current stream index:
+
+```bash
+cat <<EOT | jt ^ [ foo % ] [ bar % ]
+{"foo": 100, "bar": 200}
+{"foo": 200, "bar": 300}
+{"foo": 300, "bar": 400}
+EOT
+```
+```
+0       100     200
+1       200     300
+2       300     400
+```
+
+Note that one entity in the stream may result in more than one output record
+when iteration is involved:
+
+```bash
+cat <<EOT | jt [ foo % ] [ bar % ]
+{"foo":10,"bar":[100,200]}
+{"foo":20,"bar":[300,400]}
+EOT
+```
+```
+10      100
+10      200
+20      300
+20      400
+```
+
 ### Nested JSON
 
-Use the `+` command to parse nested JSON:
+The `+` command to parses JSON embedded in strings:
 
 ```bash
 cat <<EOT | jt [ foo + bar % ] [ baz % ]
@@ -273,9 +456,72 @@ EOT
 300     400
 ```
 
+Note that `+` pushes the resulting JSON entity onto the data stack &mdash; it
+does not mutate the original JSON:
+
+```bash
+cat <<EOT | jt [ foo + bar % ] %
+{"foo":"{\"bar\":100}","baz":200}
+{"foo":"{\"bar\":200}","baz":300}
+{"foo":"{\"bar\":300}","baz":400}
+EOT
+```
+```
+100     {"foo":"{\"bar\":100}","baz":200}
+200     {"foo":"{\"bar\":200}","baz":300}
+300     {"foo":"{\"bar\":300}","baz":400}
+```
+
+### Joins
+
+Notice the empty column &mdash; some objects don't have the <bar> key:
+
+```bash
+cat <<EOT | jt [ foo % ] [ bar % ]
+{"foo":100,"bar":1000}
+{"foo":200}
+{"foo":300,"bar":3000}
+EOT
+```
+```
+100     1000
+200
+300     3000
+```
+
+Enable inner join mode with the `-j` flag. This removes output rows when a key
+in the traversal path doesn't exist:
+
+```bash
+cat <<EOT | jt -j [ foo % ] [ bar % ]
+{"foo":100,"bar":1000}
+{"foo":200}
+{"foo":300,"bar":3000}
+EOT
+```
+```
+100     1000
+300     3000
+```
+
+Note that this does not remove rows when the key exists and the value is empty:
+
+```bash
+cat <<EOT | jt -j [ foo % ] [ bar % ]
+{"foo":100,"bar":1000}
+{"foo":200,"bar":""}
+{"foo":300,"bar":3000}
+EOT
+```
+```
+100     1000
+200
+300     3000
+```
 
 ## COPYRIGHT
 
 Copyright © 2017 Micha Niskin. Distributed under the Eclipse Public License.
 
 [man]: http://htmlpreview.github.io/?https://raw.githubusercontent.com/micha/json-table/master/jt.1.html
+[json-stream]: https://en.wikipedia.org/wiki/JSON_Streaming#Concatenated_JSON
