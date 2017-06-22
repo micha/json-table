@@ -71,7 +71,13 @@ See the [man page][man] or `man jt` in your terminal.
 
 ## EXAMPLES
 
-Use the `@` command to print an object's keys:
+Below are a number of examples demonstrating how to use `jt` commands to do
+some simple exploration and extraction of data from JSON and JSON streams.
+
+### Exploration
+
+The `@` command prints information about the item at the top of the data stack.
+When the item is an object `@` prints its keys:
 
 ```bash
 cat <<EOT | jt @
@@ -86,6 +92,31 @@ EOT
 foo
 bar
 baz
+```
+
+When the top item is an array `@` prints information about the first item in
+the array:
+
+```bash
+cat <<EOT | jt @
+[{"foo":100,"bar":200,"baz":300}]
+EOT
+```
+```
+foo
+bar
+baz
+```
+
+Otherwise, `@` prints the type of the item:
+
+```bash
+cat <<EOT | jt @
+"hello world"
+EOT
+```
+```
+[string]
 ```
 
 ### Drill Down
