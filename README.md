@@ -139,9 +139,8 @@ There are a number of stacks provided by the **jt** runtime:
   The array index will be available to subsequent commands via the index
   stack.
 
-* *KEY*:
-  See **[***KEY***]** above &mdash; the **[** and **]** may be omitted if the
-  property name *KEY* does not conflict with any **jt** command.
+* *KEY* &mdash; See **[***KEY***]** above &mdash; the **[** and **]** may be
+  omitted if the property name *KEY* does not conflict with any **jt** command.
 
 When **jt** starts, the root JSON object is pushed onto the data stack. Then
 commands are evaluated, from left to right. When a JSON array is pushed onto
