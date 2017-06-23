@@ -22,7 +22,7 @@
 \fBJt\fR provides only what is needed to extract data from nested JSON data structures and organize the data into a table\. Tools like \fBcut\fR, \fBpaste\fR, \fBawk\fR, \fBjoin\fR, \fBsort\fR, \fBuniq\fR, etc\. can be used to efficiently reduce the tabular data to the final result\.
 .
 .P
-\fBJt\fR accepts JSON input (UTF\-8) on \fBstdin\fR and writes output to \fBstdout\fR\. The input stream may contain multiple JSON forms separated by (optional) whitespace (i\.e\. \fBSPACE\fR, \fBHT\fR, \fBCR\fR, or \fBLF\fR)\.
+\fBJt\fR accepts JSON input (UTF\-8) on \fIstdin\fR and writes output to \fIstdout\fR\. The input stream may contain multiple JSON forms separated by (optional) whitespace (i\.e\. \fBSPACE\fR, \fBHT\fR, \fBCR\fR, or \fBLF\fR)\.
 .
 .SH "OPTIONS"
 .
@@ -74,7 +74,7 @@ The \fBoutput stack\fR contains values to be printed after each iteration\.
 When \fBjt\fR starts, the following happens:
 .
 .IP "1." 4
-One JSON form is read from \fBstdin\fR, parsed, and pushed onto the data stack\.
+One JSON form is read from \fIstdin\fR, parsed, and pushed onto the data stack\.
 .
 .IP "2." 4
 If the top of the data stack is a JSON array the next item in the array is pushed onto the data stack based on state previously saved on the loop stack\. The loop stack is then popped and pushed onto the index stack\.
@@ -126,7 +126,7 @@ Print the keys of the object at the top of the data stack and exit\.
 If the value at the top of the data stack is an array the first item in the array is pushed onto the data stack and the command is reevaluated\.
 .
 .IP
-If the value at the top of the data stack is not an object or an array then its type is printed in brackets, eg\. \fB[array]\fR, \fB[string]\fR, \fB[number]\fR, \fB[boolean]\fR, or \fB[null]\fR\. If there is no value then \fB[none]\fR is printed\.
+If the value at the top of the data stack is not an object or an array then its type is printed in brackets, eg\. \fI[array]\fR, \fI[string]\fR, \fI[number]\fR, \fI[boolean]\fR, or \fI[null]\fR\. If there is no value then \fI[none]\fR is printed\.
 .
 .TP
 \fB+\fR
@@ -770,7 +770,7 @@ EOT
 .IP "" 0
 .
 .SS "Nested JSON"
-The \fB+\fR command to parses JSON embedded in strings:
+The \fB+\fR command parses JSON embedded in strings:
 .
 .IP "" 4
 .
@@ -799,7 +799,7 @@ EOT
 .IP "" 0
 .
 .P
-Note that \fB+\fR pushes the resulting JSON entity onto the data stack \(em it does not mutate the original JSON:
+Note that \fB+\fR pushes the resulting JSON entity onto the data stack \(em it does not modify the original JSON:
 .
 .IP "" 4
 .
@@ -828,7 +828,7 @@ EOT
 .IP "" 0
 .
 .SS "Joins"
-Notice the empty column \(em some objects don\'t have the \fBbar\fR key:
+Notice the empty column \(em some objects don\'t have the \fIbar\fR key:
 .
 .IP "" 4
 .
@@ -945,7 +945,7 @@ EOT
 .IP "" 0
 .
 .P
-Should the first \fB^\fR be printing the array index (which it does, in this case) or the object key (i\.e\. \fBfoo\fR)? Explicit iteration with the \fB\-a\fR flag eliminates the ambiguity:
+Should the first \fB^\fR be printing the array index (which it does, in this case) or the object key (i\.e\. \fIfoo\fR)? Explicit iteration with the \fB\-a\fR flag eliminates the ambiguity:
 .
 .IP "" 4
 .

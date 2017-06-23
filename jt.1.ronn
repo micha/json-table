@@ -22,7 +22,7 @@ structures and organize the data into a table. Tools like **cut**, **paste**,
 **awk**, **join**, **sort**, **uniq**, etc. can be used to efficiently reduce
 the tabular data to the final result.
 
-**Jt** accepts JSON input (UTF-8) on `stdin` and writes output to `stdout`.
+**Jt** accepts JSON input (UTF-8) on <stdin> and writes output to <stdout>.
 The input stream may contain multiple JSON forms separated by (optional)
 whitespace (i.e. `SPACE`, `HT`, `CR`, or `LF`).
 
@@ -50,7 +50,7 @@ whitespace (i.e. `SPACE`, `HT`, `CR`, or `LF`).
 ## OPERATION
 
 Non-option arguments are words (commands) in a stack-based programming language.
-Commands operate on the stacks provided by the `jt` runtime:
+Commands operate on the stacks provided by the **jt** runtime:
 
   * The `data stack` contains JSON values commands will operate on.
 
@@ -65,7 +65,7 @@ Commands operate on the stacks provided by the `jt` runtime:
 
 When **jt** starts, the following happens:
 
-1. One JSON form is read from `stdin`, parsed, and pushed onto the data stack.
+1. One JSON form is read from <stdin>, parsed, and pushed onto the data stack.
 
 2. If the top of the data stack is a JSON array the next item in the array is
    pushed onto the data stack based on state previously saved on the loop stack.
@@ -114,8 +114,8 @@ This process is repeated until there is no more JSON to read.
     array is pushed onto the data stack and the command is reevaluated.
 
     If the value at the top of the data stack is not an object or an array then
-    its type is printed in brackets, eg. `[array]`, `[string]`, `[number]`,
-    `[boolean]`, or `[null]`. If there is no value then `[none]` is printed.
+    its type is printed in brackets, eg. <[array]>, <[string]>, <[number]>,
+    <[boolean]>, or <[null]>. If there is no value then <[none]> is printed.
 
   * `+`:
     Parse embedded JSON: if the item at the top of the data stack is a string,
@@ -520,7 +520,7 @@ EOT
 
 ### Nested JSON
 
-The `+` command to parses JSON embedded in strings:
+The `+` command parses JSON embedded in strings:
 
 ```bash
 cat <<EOT | jt [ foo + bar % ] [ baz % ]
@@ -536,7 +536,7 @@ EOT
 ```
 
 Note that `+` pushes the resulting JSON entity onto the data stack &mdash; it
-does not mutate the original JSON:
+does not modify the original JSON:
 
 ```bash
 cat <<EOT | jt [ foo + bar % ] %
@@ -553,7 +553,7 @@ EOT
 
 ### Joins
 
-Notice the empty column &mdash; some objects don't have the `bar` key:
+Notice the empty column &mdash; some objects don't have the <bar> key:
 
 ```bash
 cat <<EOT | jt [ foo % ] [ bar % ]
@@ -618,7 +618,7 @@ EOT
 ```
 
 Should the first `^` be printing the array index (which it does, in this case)
-or the object key (i.e. `foo`)? Explicit iteration with the `-a` flag eliminates
+or the object key (i.e. <foo>)? Explicit iteration with the `-a` flag eliminates
 the ambiguity:
 
 ```bash
