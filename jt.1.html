@@ -61,6 +61,7 @@
     <a href="#SYNOPSIS">SYNOPSIS</a>
     <a href="#DESCRIPTION">DESCRIPTION</a>
     <a href="#OPTIONS">OPTIONS</a>
+    <a href="#OPERATION">OPERATION</a>
     <a href="#COMMANDS">COMMANDS</a>
     <a href="#OUTPUT-FORMAT">OUTPUT FORMAT</a>
     <a href="#EXAMPLES">EXAMPLES</a>
@@ -100,8 +101,8 @@ structures and organize the data into a table. Tools like <strong>cut</strong>, 
 the tabular data to the final result.</p>
 
 <p><strong>Jt</strong> accepts JSON input (UTF-8) on <code>stdin</code> and writes output to <code>stdout</code>.
-The input stream may contain multiple JSON forms separated by whitespace (i.e.
-<code>SPACE</code>, <code>HT</code>, <code>CR</code>, or <code>LF</code>).</p>
+The input stream may contain multiple JSON forms separated by (optional)
+whitespace (i.e. <code>SPACE</code>, <code>HT</code>, <code>CR</code>, or <code>LF</code>).</p>
 
 <h2 id="OPTIONS">OPTIONS</h2>
 
@@ -116,22 +117,43 @@ instead of iterating automatically.</p></dd>
 </dl>
 
 
-<h2 id="COMMANDS">COMMANDS</h2>
+<h2 id="OPERATION">OPERATION</h2>
 
-<p>Non-option arguments are commands in a limited stack-based programming language.
-There are a number of stacks provided by the <strong>jt</strong> runtime:</p>
+<p>Non-option arguments are words (commands) in a stack-based programming language.
+Commands operate on the stacks provided by the <code>jt</code> runtime:</p>
 
 <ul>
-<li><p>The <code>data stack</code> contains JSON objects from the input stream. Commands
-operate on the top of this stack to traverse the JSON tree and print values.</p></li>
-<li><p>The <code>gosub stack</code> contains pointers into the data stack. Commands push data
-stack pointers onto this stack to save the state of the data stack and pop
-them off to restore the data stack to a saved state.</p></li>
-<li><p>The <code>index stack</code> contains the indexes of nested arrays or properties of
-nested objects as <code>jt</code> iterates over them. Commands can print the value at
-the top of this stack.</p></li>
+<li><p>The <code>data stack</code> contains JSON values commands will operate on.</p></li>
+<li><p>The <code>gosub stack</code> contains pointers into the data stack to save and restore
+state.</p></li>
+<li><p>The <code>index stack</code> contains pointers to current iterators during iteration.</p></li>
+<li><p>The <code>loop stack</code> contains pointers to current iterators between iterations.</p></li>
+<li><p>The <code>output stack</code> contains values to be printed after each iteration.</p></li>
 </ul>
 
+
+<p>When <strong>jt</strong> starts, the following happens:</p>
+
+<ol>
+<li><p>One JSON form is read from <code>stdin</code>, parsed, and pushed onto the data stack.</p></li>
+<li><p>If the top of the data stack is a JSON array the next item in the array is
+pushed onto the data stack based on state previously saved on the loop stack.
+The loop stack is then popped and pushed onto the index stack.</p></li>
+<li><p>The next command is executed.</p></li>
+<li><p>Steps 2 and 3 are repeated until no commands are left to execute.</p></li>
+<li><p>Values in the output stack are printed, separated by tabs and followed by a
+newline (see <strong>OUTPUT FORMAT</strong> below). Data, output, and gosub stacks are
+reset to their states as they were after step 1.</p></li>
+<li><p>Loop variables are popped off of the index stack. They are then incremented
+and pushed onto the loop stack as necessary.</p></li>
+<li><p>Steps 2 through 6 are repeated until the loop stack is empty (i.e. there are
+no more iterations left).</p></li>
+</ol>
+
+
+<p>This process is repeated until there is no more JSON to read.</p>
+
+<h2 id="COMMANDS">COMMANDS</h2>
 
 <p><strong>Jt</strong> provides the following commands:</p>
 
@@ -140,17 +162,19 @@ the top of this stack.</p></li>
 onto the gosub stack.</p></dd>
 <dt class="flush"><code>]</code></dt><dd><p>Restore the data stack to a saved state: pop the gosub stack and restore
 the data stack pointer to that state.</p></dd>
-<dt class="flush"><code>%</code></dt><dd><p>Print the value at the top of the data stack. If the item at the top of the
-data stack is not a string or primitive type its JSON representation is
-printed. See the <code>OUTPUT FORMAT</code> section below for details.</p></dd>
-<dt class="flush"><code>^</code></dt><dd><p>Print the array index or object key at the top of the index stack. Note
-that the index stack will always have at least one item &mdash; the index
-of the current JSON object read from stdin.</p></dd>
-<dt class="flush"><code>@</code></dt><dd><p>Print the keys of the object at the top of the data stack. If the top of
-the data stack is not an object then its type is printed in brackets, eg.
-<code>[array]</code>, <code>[string]</code>, <code>[number]</code>, <code>[boolean]</code>, or <code>[null]</code>. If there is
-no value then <code>[none]</code> is printed.</p></dd>
-<dt class="flush"><code>+</code></dt><dd><p>Parse nested JSON: if the item at the top of the data stack is a string,
+<dt class="flush"><code>%</code></dt><dd><p>Push the value at the top of the data stack onto the output stack.</p></dd>
+<dt class="flush"><code>^</code></dt><dd><p>Push the value at the top of the index stack onto the output stack. Note
+that the index stack will always have at least one item: the index of the
+last JSON object read from stdin.</p></dd>
+<dt class="flush"><code>@</code></dt><dd><p>Print the keys of the object at the top of the data stack and exit.</p>
+
+<p>If the value at the top of the data stack is an array the first item in the
+array is pushed onto the data stack and the command is reevaluated.</p>
+
+<p>If the value at the top of the data stack is not an object or an array then
+its type is printed in brackets, eg. <code>[array]</code>, <code>[string]</code>, <code>[number]</code>,
+<code>[boolean]</code>, or <code>[null]</code>. If there is no value then <code>[none]</code> is printed.</p></dd>
+<dt class="flush"><code>+</code></dt><dd><p>Parse embedded JSON: if the item at the top of the data stack is a string,
 parse it and push the result onto the data stack.</p>
 
 <p>If the item at the top of the data stack is not a string or if there is an
@@ -174,25 +198,9 @@ property name <var>KEY</var> does not conflict with any <code>jt</code> command.
 </dl>
 
 
-<p>When <strong>jt</strong> starts, the root JSON object is pushed onto the data stack. Then
-commands are evaluated, from left to right. When a JSON array is pushed onto
-the data stack a corresponding index (starting at zero) is pushed onto the
-index stack, and the associated object in the array at that index is
-automatically pushed onto the data stack.</p>
-
-<p>When all commands have been evaluated, each item in the output stack is
-printed, separated by tabs, the data stack is restored to its initial state
-(containing only the root JSON object), and evaluation begins again, evaluating
-the commands from left to right.</p>
-
-<p>Each iteration will increment indices stored in the index stack such that all
-iterations follow a different path through the nested JSON tree, each traversing
-a different permuation of array indices. You can think of this process as an
-implicit join, if that helps.</p>
-
 <h2 id="OUTPUT-FORMAT">OUTPUT FORMAT</h2>
 
-<p>The format of printed output from <strong>Jt</strong> (see <code>%</code> in <strong>COMMANDS</strong>, above)
+<p>The format of printed output from <strong>jt</strong> (see <code>%</code> in <strong>COMMANDS</strong>, above)
 depends on the type of thing being printed:</p>
 
 <h3 id="Primitives">Primitives</h3>
@@ -221,175 +229,474 @@ i love music ♪
 
 <h3 id="Collections">Collections</h3>
 
-<p>Objects and arrays are printed as JSON, with insignificant whitespace omitted.</p>
+<p>Objects and arrays are printed as JSON with whitespace removed.</p>
 
 <h2 id="EXAMPLES">EXAMPLES</h2>
 
-<p>We will use the following JSON input for the examples:</p>
-
-<pre><code>$ JSON='{"foo":"a","bar":{"x":"b"},"baz":[{"y":"c"},{"y":"d","z":"e"}]}'
-</code></pre>
-
-<p>We pretty-print it here for reference:</p>
-
-<pre><code>{
-    "foo": "a",
-    "bar": {
-        "x": "b"
-    },
-    "baz": [
-        {
-            "y": "c"
-        },
-        {
-            "y": "d",
-            "z": "e"
-        }
-    ]
-}
-</code></pre>
+<p>Below are a number of examples demonstrating how to use <strong>jt</strong> commands to do
+some simple exploration and extraction of data from JSON and JSON streams.</p>
 
 <h3 id="Explore">Explore</h3>
 
-<p>Explore JSON data, print an object's keys:</p>
+<p>The <code>@</code> command prints information about the item at the top of the data stack.
+When the item is an object <code>@</code> prints its keys:</p>
 
-<pre><code>$ echo "$JSON" | jt @
-foo
+<pre><code class="bash">cat &lt;&lt;EOT | jt @
+{
+  "foo": 100,
+  "bar": 200,
+  "baz": 300
+}
+EOT
+</code></pre>
+
+<pre><code>foo
 bar
 baz
 </code></pre>
 
-<p>Print a nested object's keys:</p>
+<p>When the top item is an array <code>@</code> prints information about the first item in
+the array:</p>
 
-<pre><code>$ echo "$JSON" | jt bar @
-x
+<pre><code class="bash">cat &lt;&lt;EOT | jt @
+[{"foo":100,"bar":200,"baz":300}]
+EOT
 </code></pre>
 
-<p>Same as above, with fuzzy property name matching:</p>
-
-<pre><code>$ echo "$JSON" | jt ^b @
-x
+<pre><code>foo
+bar
+baz
 </code></pre>
 
-<p>Print the keys of the first object in a nested array:</p>
+<p>Otherwise, <code>@</code> prints the type of the item:</p>
 
-<pre><code>$ echo "$JSON" | jt baz @
-y
+<pre><code class="bash">cat &lt;&lt;EOT | jt @
+"hello world"
+EOT
 </code></pre>
 
-<p>Print the indexes in a nested array:</p>
+<pre><code>[string]
+</code></pre>
 
-<pre><code>$ echo "$JSON" | jt baz ^
-0
-1
+<h3 id="Drill-Down">Drill Down</h3>
+
+<p>Property names are also commands. Use <code>foo</code> here as a command to drill down
+into the <code>foo</code> property and then use <code>@</code> to print its keys:</p>
+
+<pre><code class="bash">cat &lt;&lt;EOT | jt foo @
+{
+  "foo": {
+    "bar": 100,
+    "baz": 200
+  }
+}
+EOT
+</code></pre>
+
+<pre><code>bar
+baz
+</code></pre>
+
+<p>When a property name conflicts with a <strong>jt</strong> command you must wrap the property
+name with square brackets to drill down:</p>
+
+<pre><code class="bash">cat &lt;&lt;EOT | jt [@] @
+{
+  "@": {
+    "bar": 100,
+    "baz": 200
+  }
+}
+EOT
+</code></pre>
+
+<pre><code>bar
+baz
 </code></pre>
 
 <h3 id="Extract">Extract</h3>
 
-<p>Extract values from JSON data:</p>
+<p>The <code>%</code> command prints the item at the top of the data stack. Note that when
+the top item is a collection it is printed as JSON (insiginificant whitespace
+removed):</p>
 
-<pre><code>$ echo "$JSON" | jt foo %
-a
+<pre><code class="bash">cat &lt;&lt;EOT | jt %
+{
+  "foo": 100,
+  "bar": 200
+}
+EOT
 </code></pre>
 
-<p>Extract nested JSON data:</p>
+<pre><code>{"foo":100,"bar":200}
+</code></pre>
 
-<pre><code>$ echo "$JSON" | jt bar x %
-b
+<p>Drill down and print:</p>
+
+<pre><code class="bash">cat &lt;&lt;EOT | jt foo bar %
+{
+  "foo": {
+    "bar": 100
+  }
+}
+EOT
+</code></pre>
+
+<pre><code>100
+</code></pre>
+
+<p>The <code>%</code> command can be used multiple times. The printed values will be delimited
+by tabs:</p>
+
+<pre><code class="bash">cat &lt;&lt;EOT | jt % foo % bar %
+{
+  "foo": {
+    "bar": 100
+  }
+}
+EOT
+</code></pre>
+
+<pre><code>{"foo":{"bar":100}}     {"bar":100}     100
 </code></pre>
 
 <h3 id="Save-Restore">Save / Restore</h3>
 
-<p>Extract multiple values by saving and restoring the data stack:</p>
+<p>The <code>[</code> and <code>]</code> commands provide a sort of <code>GOSUB</code> facility &mdash; the data
+stack is saved by <code>[</code> and restored by <code>]</code>. This can be used to extract values
+from different paths in the JSON as a single record:</p>
 
-<pre><code>$ echo "$JSON" | jt [ foo % ] bar x %
-a       b
+<pre><code class="bash">cat &lt;&lt;EOT | jt [ foo % ] [ bar % ]
+{
+  "foo": 100,
+  "bar": 200
+}
+EOT
 </code></pre>
 
-<h3 id="Arrays">Arrays</h3>
-
-<p>Iterate over nested arrays, producing one row per iteration:</p>
-
-<pre><code>$ echo "$JSON" | jt [ foo % ] [ bar x % ] baz y %
-a       b       c
-a       b       d
+<pre><code>100     200
 </code></pre>
 
-<p>Include the array index as a column in the result:</p>
+<h3 id="Iteration-Arrays-">Iteration (Arrays)</h3>
 
-<pre><code>$ echo "$JSON" | jt [ foo % ] [ bar x % ] baz y % ^
-a       b       c       0
-a       b       d       1
+<p><strong>Jt</strong> automatically iterates over arrays, running the program once for each
+item in the array. This produces one tab-delimited record for each iteration,
+separated by newlines:</p>
+
+<pre><code class="bash">cat &lt;&lt;EOT | jt [ foo % ] [ bar baz % ]
+{
+  "foo": 100,
+  "bar": [
+    {"baz": 200},
+    {"baz": 300},
+    {"baz": 400}
+  ]
+}
+EOT
 </code></pre>
 
-<h3 id="Objects">Objects</h3>
-
-<p>Iterate over the values of an object without specifying intermediate keys:</p>
-
-<pre><code>$ echo $JSON | jt baz . %
-c
-d
-e
+<pre><code>100     200
+100     300
+100     400
 </code></pre>
 
-<p>Iterate over the keys and values of an object without specifying intermediate keys:</p>
+<p>The <code>^</code> command includes the array index as a column in the result:</p>
 
-<pre><code>$ echo $JSON | jt baz . ^ %
-y       c
-y       d
-z       e
+<pre><code class="bash">cat &lt;&lt;EOT | jt [ foo % ] [ bar ^ baz % ]
+{
+  "foo": 100,
+  "bar": [
+    {"baz": 200},
+    {"baz": 300},
+    {"baz": 400}
+  ]
+}
+EOT
 </code></pre>
 
-<h3 id="Printing-JSON">Printing JSON</h3>
-
-<p>Collections (objects and arrays) are printed as JSON by the <code>%</code> command:</p>
-
-<pre><code>$ echo "$JSON" | jt [ foo % ] [ bar % ] [ baz % ]
-a       {"x":"b"}       {"y":"c"}
-a       {"x":"b"}       {"y":"d","z":"e"}
+<pre><code>100     0       200
+100     1       300
+100     2       400
 </code></pre>
 
-<h3 id="Joins">Joins</h3>
+<p>Note that <code>^</code> is scoped &mdash; it prints the index of the innermost enclosing
+loop:</p>
 
-<p>Notice the empty column &mdash; some objects don't have the <var>z</var> key:</p>
-
-<pre><code>$ echo "$JSON" | jt [ foo % ] baz [ y % ] z %
-a       c
-a       d       e
+<pre><code class="bash">cat &lt;&lt;EOT | jt foo ^ bar ^ %
+{
+  "foo": [
+    {"bar": [100, 200]},
+    {"bar": [300, 400]}
+  ]
+}
+EOT
 </code></pre>
 
-<p>Inner join mode will remove rows from the output when any key in the traversal
-path doesn't exist:</p>
-
-<pre><code>$ echo "$JSON" | jt -j [ foo % ] baz [ y % ] z %
-a       d       e
+<pre><code>0       0       100
+0       1       200
+1       0       300
+1       1       400
 </code></pre>
 
-<p>Multiple JSON objects in the input stream, separated by whitespace:</p>
+<h3 id="Iteration-Objects-">Iteration (Objects)</h3>
 
-<pre><code>$ cat &lt;&lt;EOT | jt [ foo % ] [ bar % ]
-- {"foo":100,"bar":200}
-- {"foo":200,"bar":300}
-- {"foo":300,"bar":400}
-- EOT
-100     200
+<p>The <code>.</code> command iterates over the values of an object:</p>
+
+<pre><code class="bash">cat &lt;&lt;EOT | jt . %
+{
+  "foo": 100,
+  "bar": 200,
+  "baz": 300
+}
+EOT
+</code></pre>
+
+<pre><code>100
+200
+300
+</code></pre>
+
+<p>When iterating over an object the <code>^</code> command prints the name of the current
+property:</p>
+
+<pre><code class="bash">cat &lt;&lt;EOT | jt [ foo % ] [ bar . ^ % ]
+{
+  "foo": 100,
+  "bar": {
+    "baz": 200,
+    "baf": 300,
+    "qux": 400
+  }
+}
+EOT
+</code></pre>
+
+<pre><code>100     baz     200
+100     baf     300
+100     qux     400
+</code></pre>
+
+<p>The scope of <code>^</code> is similar when iterating over objects:</p>
+
+<pre><code class="bash">cat &lt;&lt;EOT | jt . ^ . ^ %
+{
+  "foo": {
+    "bar": 100,
+    "baz": 200
+  }
+}
+EOT
+</code></pre>
+
+<pre><code>foo     bar     100
+foo     baz     200
+</code></pre>
+
+<h3 id="JSON-Streams">JSON Streams</h3>
+
+<p><strong>Jt</strong> automatically iterates over all entities in a stream of JSON entities
+delimited by optional whitespace:</p>
+
+<pre><code class="bash">cat &lt;&lt;EOT | jt [ foo % ] [ bar % ]
+{"foo": 100, "bar": 200}
+{"foo": 200, "bar": 300}
+{"foo": 300, "bar": 400}
+EOT
+</code></pre>
+
+<pre><code>100     200
 200     300
 300     400
+</code></pre>
+
+<p>Whitespace is ignored:</p>
+
+<pre><code class="bash">cat &lt;&lt;EOT | jt [ foo % ] [ bar % ]
+{"foo": 100,"bar": 200}{"foo":200,"bar":300}{
+  "foo": 300,
+  "bar": 400
+}
+EOT
+</code></pre>
+
+<pre><code>100     200
+200     300
+300     400
+</code></pre>
+
+<p>Within a JSON stream the <code>^</code> command prints the current stream index:</p>
+
+<pre><code class="bash">cat &lt;&lt;EOT | jt ^ [ foo % ] [ bar % ]
+{"foo": 100, "bar": 200}
+{"foo": 200, "bar": 300}
+{"foo": 300, "bar": 400}
+EOT
+</code></pre>
+
+<pre><code>0       100     200
+1       200     300
+2       300     400
+</code></pre>
+
+<p>Note that one entity in the stream may result in more than one output record
+when iteration is involved:</p>
+
+<pre><code class="bash">cat &lt;&lt;EOT | jt [ foo % ] [ bar % ]
+{"foo":10,"bar":[100,200]}
+{"foo":20,"bar":[300,400]}
+EOT
+</code></pre>
+
+<pre><code>10      100
+10      200
+20      300
+20      400
 </code></pre>
 
 <h3 id="Nested-JSON">Nested JSON</h3>
 
-<p>Use the <code>+</code> command to parse nested JSON:</p>
+<p>The <code>+</code> command to parses JSON embedded in strings:</p>
 
-<pre><code>$ cat &lt;&lt;EOT | jt [ foo + bar % ] [ baz % ]
-- {"foo":"{\"bar\":100}","baz":200}
-- {"foo":"{\"bar\":200}","baz":300}
-- {"foo":"{\"bar\":300}","baz":400}
-- EOT
-100     200
+<pre><code class="bash">cat &lt;&lt;EOT | jt [ foo + bar % ] [ baz % ]
+{"foo":"{\"bar\":100}","baz":200}
+{"foo":"{\"bar\":200}","baz":300}
+{"foo":"{\"bar\":300}","baz":400}
+EOT
+</code></pre>
+
+<pre><code>100     200
 200     300
 300     400
 </code></pre>
+
+<p>Note that <code>+</code> pushes the resulting JSON entity onto the data stack &mdash; it
+does not mutate the original JSON:</p>
+
+<pre><code class="bash">cat &lt;&lt;EOT | jt [ foo + bar % ] %
+{"foo":"{\"bar\":100}","baz":200}
+{"foo":"{\"bar\":200}","baz":300}
+{"foo":"{\"bar\":300}","baz":400}
+EOT
+</code></pre>
+
+<pre><code>100     {"foo":"{\"bar\":100}","baz":200}
+200     {"foo":"{\"bar\":200}","baz":300}
+300     {"foo":"{\"bar\":300}","baz":400}
+</code></pre>
+
+<h3 id="Joins">Joins</h3>
+
+<p>Notice the empty column &mdash; some objects don't have the <code>bar</code> key:</p>
+
+<pre><code class="bash">cat &lt;&lt;EOT | jt [ foo % ] [ bar % ]
+{"foo":100,"bar":1000}
+{"foo":200}
+{"foo":300,"bar":3000}
+EOT
+</code></pre>
+
+<pre><code>100     1000
+200
+300     3000
+</code></pre>
+
+<p>Enable inner join mode with the <code>-j</code> flag. This removes output rows when a key
+in the traversal path doesn't exist:</p>
+
+<pre><code class="bash">cat &lt;&lt;EOT | jt -j [ foo % ] [ bar % ]
+{"foo":100,"bar":1000}
+{"foo":200}
+{"foo":300,"bar":3000}
+EOT
+</code></pre>
+
+<pre><code>100     1000
+300     3000
+</code></pre>
+
+<p>Note that this does not remove rows when the key exists and the value is empty:</p>
+
+<pre><code class="bash">cat &lt;&lt;EOT | jt -j [ foo % ] [ bar % ]
+{"foo":100,"bar":1000}
+{"foo":200,"bar":""}
+{"foo":300,"bar":3000}
+EOT
+</code></pre>
+
+<pre><code>100     1000
+200
+300     3000
+</code></pre>
+
+<h3 id="Explicit-Iteration">Explicit Iteration</h3>
+
+<p>Sometimes the implicit iteration over arrays is awkward:</p>
+
+<pre><code class="bash">cat &lt;&lt;EOT | jt . ^ . ^ %
+{
+  "foo": [
+    {"bar":100},
+    {"bar":200}
+  ]
+}
+EOT
+</code></pre>
+
+<pre><code>0       bar     100
+1       bar     200
+</code></pre>
+
+<p>Should the first <code>^</code> be printing the array index (which it does, in this case)
+or the object key (i.e. <code>foo</code>)? Explicit iteration with the <code>-a</code> flag eliminates
+the ambiguity:</p>
+
+<pre><code class="bash">cat &lt;&lt;EOT | jt -a . . ^ . ^ %
+{
+  "foo": [
+    {"bar":100},
+    {"bar":200}
+  ]
+}
+EOT
+</code></pre>
+
+<pre><code>0       bar     100
+1       bar     200
+</code></pre>
+
+<p>prints the array index and:</p>
+
+<pre><code class="bash">cat &lt;&lt;EOT | jt -a . ^ . . ^ %
+{
+  "foo": [
+    {"bar":100},
+    {"bar":200}
+  ]
+}
+EOT
+</code></pre>
+
+<pre><code>foo     bar     100
+foo     bar     200
+</code></pre>
+
+<p>prints the object key, and</p>
+
+<pre><code class="bash">cat &lt;&lt;EOT | jt -a . ^ . ^ . ^ %
+{
+  "foo": [
+    {"bar":100},
+    {"bar":200}
+  ]
+}
+EOT
+</code></pre>
+
+<pre><code>foo     0       bar     100
+foo     1       bar     200
+</code></pre>
+
+<p>prints both.</p>
 
 <h2 id="COPYRIGHT">COPYRIGHT</h2>
 

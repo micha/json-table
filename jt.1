@@ -22,7 +22,7 @@
 \fBJt\fR provides only what is needed to extract data from nested JSON data structures and organize the data into a table\. Tools like \fBcut\fR, \fBpaste\fR, \fBawk\fR, \fBjoin\fR, \fBsort\fR, \fBuniq\fR, etc\. can be used to efficiently reduce the tabular data to the final result\.
 .
 .P
-\fBJt\fR accepts JSON input (UTF\-8) on \fBstdin\fR and writes output to \fBstdout\fR\. The input stream may contain multiple JSON forms separated by whitespace (i\.e\. \fBSPACE\fR, \fBHT\fR, \fBCR\fR, or \fBLF\fR)\.
+\fBJt\fR accepts JSON input (UTF\-8) on \fBstdin\fR and writes output to \fBstdout\fR\. The input stream may contain multiple JSON forms separated by (optional) whitespace (i\.e\. \fBSPACE\fR, \fBHT\fR, \fBCR\fR, or \fBLF\fR)\.
 .
 .SH "OPTIONS"
 .
@@ -50,21 +50,56 @@ Included for compatibility with earlier versions\.
 \fB\-u\fR \fIstring\fR
 Unescape JSON \fIstring\fR, print it, and exit\.
 .
-.SH "COMMANDS"
-Non\-option arguments are commands in a limited stack\-based programming language\. There are a number of stacks provided by the \fBjt\fR runtime:
+.SH "OPERATION"
+Non\-option arguments are words (commands) in a stack\-based programming language\. Commands operate on the stacks provided by the \fBjt\fR runtime:
 .
 .IP "\(bu" 4
-The \fBdata stack\fR contains JSON objects from the input stream\. Commands operate on the top of this stack to traverse the JSON tree and print values\.
+The \fBdata stack\fR contains JSON values commands will operate on\.
 .
 .IP "\(bu" 4
-The \fBgosub stack\fR contains pointers into the data stack\. Commands push data stack pointers onto this stack to save the state of the data stack and pop them off to restore the data stack to a saved state\.
+The \fBgosub stack\fR contains pointers into the data stack to save and restore state\.
 .
 .IP "\(bu" 4
-The \fBindex stack\fR contains the indexes of nested arrays or properties of nested objects as \fBjt\fR iterates over them\. Commands can print the value at the top of this stack\.
+The \fBindex stack\fR contains pointers to current iterators during iteration\.
+.
+.IP "\(bu" 4
+The \fBloop stack\fR contains pointers to current iterators between iterations\.
+.
+.IP "\(bu" 4
+The \fBoutput stack\fR contains values to be printed after each iteration\.
 .
 .IP "" 0
 .
 .P
+When \fBjt\fR starts, the following happens:
+.
+.IP "1." 4
+One JSON form is read from \fBstdin\fR, parsed, and pushed onto the data stack\.
+.
+.IP "2." 4
+If the top of the data stack is a JSON array the next item in the array is pushed onto the data stack based on state previously saved on the loop stack\. The loop stack is then popped and pushed onto the index stack\.
+.
+.IP "3." 4
+The next command is executed\.
+.
+.IP "4." 4
+Steps 2 and 3 are repeated until no commands are left to execute\.
+.
+.IP "5." 4
+Values in the output stack are printed, separated by tabs and followed by a newline (see \fBOUTPUT FORMAT\fR below)\. Data, output, and gosub stacks are reset to their states as they were after step 1\.
+.
+.IP "6." 4
+Loop variables are popped off of the index stack\. They are then incremented and pushed onto the loop stack as necessary\.
+.
+.IP "7." 4
+Steps 2 through 6 are repeated until the loop stack is empty (i\.e\. there are no more iterations left)\.
+.
+.IP "" 0
+.
+.P
+This process is repeated until there is no more JSON to read\.
+.
+.SH "COMMANDS"
 \fBJt\fR provides the following commands:
 .
 .TP
@@ -77,19 +112,25 @@ Restore the data stack to a saved state: pop the gosub stack and restore the dat
 .
 .TP
 \fB%\fR
-Print the value at the top of the data stack\. If the item at the top of the data stack is not a string or primitive type its JSON representation is printed\. See the \fBOUTPUT FORMAT\fR section below for details\.
+Push the value at the top of the data stack onto the output stack\.
 .
 .TP
 \fB^\fR
-Print the array index or object key at the top of the index stack\. Note that the index stack will always have at least one item \(em the index of the current JSON object read from stdin\.
+Push the value at the top of the index stack onto the output stack\. Note that the index stack will always have at least one item: the index of the last JSON object read from stdin\.
 .
 .TP
 \fB@\fR
-Print the keys of the object at the top of the data stack\. If the top of the data stack is not an object then its type is printed in brackets, eg\. \fB[array]\fR, \fB[string]\fR, \fB[number]\fR, \fB[boolean]\fR, or \fB[null]\fR\. If there is no value then \fB[none]\fR is printed\.
+Print the keys of the object at the top of the data stack and exit\.
+.
+.IP
+If the value at the top of the data stack is an array the first item in the array is pushed onto the data stack and the command is reevaluated\.
+.
+.IP
+If the value at the top of the data stack is not an object or an array then its type is printed in brackets, eg\. \fB[array]\fR, \fB[string]\fR, \fB[number]\fR, \fB[boolean]\fR, or \fB[null]\fR\. If there is no value then \fB[none]\fR is printed\.
 .
 .TP
 \fB+\fR
-Parse nested JSON: if the item at the top of the data stack is a string, parse it and push the result onto the data stack\.
+Parse embedded JSON: if the item at the top of the data stack is a string, parse it and push the result onto the data stack\.
 .
 .IP
 If the item at the top of the data stack is not a string or if there is an error parsing the JSON then nothing is done (the operation is a no\-op)\.
@@ -112,17 +153,8 @@ If the \fIKEY\fR property of the object is an array subsequent commands will ope
 \fIKEY\fR
 See \fB[\fR\fIKEY\fR\fB]\fR above \(em the \fB[\fR and \fB]\fR may be omitted if the property name \fIKEY\fR does not conflict with any \fBjt\fR command\.
 .
-.P
-When \fBjt\fR starts, the root JSON object is pushed onto the data stack\. Then commands are evaluated, from left to right\. When a JSON array is pushed onto the data stack a corresponding index (starting at zero) is pushed onto the index stack, and the associated object in the array at that index is automatically pushed onto the data stack\.
-.
-.P
-When all commands have been evaluated, each item in the output stack is printed, separated by tabs, the data stack is restored to its initial state (containing only the root JSON object), and evaluation begins again, evaluating the commands from left to right\.
-.
-.P
-Each iteration will increment indices stored in the index stack such that all iterations follow a different path through the nested JSON tree, each traversing a different permuation of array indices\. You can think of this process as an implicit join, if that helps\.
-.
 .SH "OUTPUT FORMAT"
-The format of printed output from \fBJt\fR (see \fB%\fR in \fBCOMMANDS\fR, above) depends on the type of thing being printed:
+The format of printed output from \fBjt\fR (see \fB%\fR in \fBCOMMANDS\fR, above) depends on the type of thing being printed:
 .
 .SS "Primitives"
 JSON primitives (i\.e\. \fBnull\fR, \fBtrue\fR, and \fBfalse\fR) and numbers are printed verbatim\. \fBJt\fR does not process them in any way\. Numbers can be of arbitrary precision, as long as they conform to the JSON parsing grammar\.
@@ -159,56 +191,34 @@ i love music ♪
 .IP "" 0
 .
 .SS "Collections"
-Objects and arrays are printed as JSON, with insignificant whitespace omitted\.
+Objects and arrays are printed as JSON with whitespace removed\.
 .
 .SH "EXAMPLES"
-We will use the following JSON input for the examples:
-.
-.IP "" 4
-.
-.nf
-
-$ JSON=\'{"foo":"a","bar":{"x":"b"},"baz":[{"y":"c"},{"y":"d","z":"e"}]}\'
-.
-.fi
-.
-.IP "" 0
-.
-.P
-We pretty\-print it here for reference:
-.
-.IP "" 4
-.
-.nf
-
-{
-    "foo": "a",
-    "bar": {
-        "x": "b"
-    },
-    "baz": [
-        {
-            "y": "c"
-        },
-        {
-            "y": "d",
-            "z": "e"
-        }
-    ]
-}
-.
-.fi
-.
-.IP "" 0
+Below are a number of examples demonstrating how to use \fBjt\fR commands to do some simple exploration and extraction of data from JSON and JSON streams\.
 .
 .SS "Explore"
-Explore JSON data, print an object\'s keys:
+The \fB@\fR command prints information about the item at the top of the data stack\. When the item is an object \fB@\fR prints its keys:
 .
 .IP "" 4
 .
 .nf
 
-$ echo "$JSON" | jt @
+cat <<EOT | jt @
+{
+  "foo": 100,
+  "bar": 200,
+  "baz": 300
+}
+EOT
+.
+.fi
+.
+.IP "" 0
+.
+.IP "" 4
+.
+.nf
+
 foo
 bar
 baz
@@ -218,242 +228,568 @@ baz
 .IP "" 0
 .
 .P
-Print a nested object\'s keys:
+When the top item is an array \fB@\fR prints information about the first item in the array:
 .
 .IP "" 4
 .
 .nf
 
-$ echo "$JSON" | jt bar @
-x
+cat <<EOT | jt @
+[{"foo":100,"bar":200,"baz":300}]
+EOT
+.
+.fi
+.
+.IP "" 0
+.
+.IP "" 4
+.
+.nf
+
+foo
+bar
+baz
 .
 .fi
 .
 .IP "" 0
 .
 .P
-Same as above, with fuzzy property name matching:
+Otherwise, \fB@\fR prints the type of the item:
 .
 .IP "" 4
 .
 .nf
 
-$ echo "$JSON" | jt ^b @
-x
+cat <<EOT | jt @
+"hello world"
+EOT
+.
+.fi
+.
+.IP "" 0
+.
+.IP "" 4
+.
+.nf
+
+[string]
+.
+.fi
+.
+.IP "" 0
+.
+.SS "Drill Down"
+Property names are also commands\. Use \fBfoo\fR here as a command to drill down into the \fBfoo\fR property and then use \fB@\fR to print its keys:
+.
+.IP "" 4
+.
+.nf
+
+cat <<EOT | jt foo @
+{
+  "foo": {
+    "bar": 100,
+    "baz": 200
+  }
+}
+EOT
+.
+.fi
+.
+.IP "" 0
+.
+.IP "" 4
+.
+.nf
+
+bar
+baz
 .
 .fi
 .
 .IP "" 0
 .
 .P
-Print the keys of the first object in a nested array:
+When a property name conflicts with a \fBjt\fR command you must wrap the property name with square brackets to drill down:
 .
 .IP "" 4
 .
 .nf
 
-$ echo "$JSON" | jt baz @
-y
+cat <<EOT | jt [@] @
+{
+  "@": {
+    "bar": 100,
+    "baz": 200
+  }
+}
+EOT
 .
 .fi
 .
 .IP "" 0
 .
-.P
-Print the indexes in a nested array:
-.
 .IP "" 4
 .
 .nf
 
-$ echo "$JSON" | jt baz ^
-0
-1
+bar
+baz
 .
 .fi
 .
 .IP "" 0
 .
 .SS "Extract"
-Extract values from JSON data:
+The \fB%\fR command prints the item at the top of the data stack\. Note that when the top item is a collection it is printed as JSON (insiginificant whitespace removed):
 .
 .IP "" 4
 .
 .nf
 
-$ echo "$JSON" | jt foo %
-a
+cat <<EOT | jt %
+{
+  "foo": 100,
+  "bar": 200
+}
+EOT
+.
+.fi
+.
+.IP "" 0
+.
+.IP "" 4
+.
+.nf
+
+{"foo":100,"bar":200}
 .
 .fi
 .
 .IP "" 0
 .
 .P
-Extract nested JSON data:
+Drill down and print:
 .
 .IP "" 4
 .
 .nf
 
-$ echo "$JSON" | jt bar x %
-b
+cat <<EOT | jt foo bar %
+{
+  "foo": {
+    "bar": 100
+  }
+}
+EOT
+.
+.fi
+.
+.IP "" 0
+.
+.IP "" 4
+.
+.nf
+
+100
+.
+.fi
+.
+.IP "" 0
+.
+.P
+The \fB%\fR command can be used multiple times\. The printed values will be delimited by tabs:
+.
+.IP "" 4
+.
+.nf
+
+cat <<EOT | jt % foo % bar %
+{
+  "foo": {
+    "bar": 100
+  }
+}
+EOT
+.
+.fi
+.
+.IP "" 0
+.
+.IP "" 4
+.
+.nf
+
+{"foo":{"bar":100}}     {"bar":100}     100
 .
 .fi
 .
 .IP "" 0
 .
 .SS "Save / Restore"
-Extract multiple values by saving and restoring the data stack:
+The \fB[\fR and \fB]\fR commands provide a sort of \fBGOSUB\fR facility \(em the data stack is saved by \fB[\fR and restored by \fB]\fR\. This can be used to extract values from different paths in the JSON as a single record:
 .
 .IP "" 4
 .
 .nf
 
-$ echo "$JSON" | jt [ foo % ] bar x %
-a       b
+cat <<EOT | jt [ foo % ] [ bar % ]
+{
+  "foo": 100,
+  "bar": 200
+}
+EOT
 .
 .fi
 .
 .IP "" 0
 .
-.SS "Arrays"
-Iterate over nested arrays, producing one row per iteration:
-.
 .IP "" 4
 .
 .nf
 
-$ echo "$JSON" | jt [ foo % ] [ bar x % ] baz y %
-a       b       c
-a       b       d
+100     200
 .
 .fi
 .
 .IP "" 0
 .
-.P
-Include the array index as a column in the result:
+.SS "Iteration (Arrays)"
+\fBJt\fR automatically iterates over arrays, running the program once for each item in the array\. This produces one tab\-delimited record for each iteration, separated by newlines:
 .
 .IP "" 4
 .
 .nf
 
-$ echo "$JSON" | jt [ foo % ] [ bar x % ] baz y % ^
-a       b       c       0
-a       b       d       1
+cat <<EOT | jt [ foo % ] [ bar baz % ]
+{
+  "foo": 100,
+  "bar": [
+    {"baz": 200},
+    {"baz": 300},
+    {"baz": 400}
+  ]
+}
+EOT
 .
 .fi
 .
 .IP "" 0
 .
-.SS "Objects"
-Iterate over the values of an object without specifying intermediate keys:
-.
 .IP "" 4
 .
 .nf
 
-$ echo $JSON | jt baz \. %
-c
-d
-e
-.
-.fi
-.
-.IP "" 0
-.
-.P
-Iterate over the keys and values of an object without specifying intermediate keys:
-.
-.IP "" 4
-.
-.nf
-
-$ echo $JSON | jt baz \. ^ %
-y       c
-y       d
-z       e
-.
-.fi
-.
-.IP "" 0
-.
-.SS "Printing JSON"
-Collections (objects and arrays) are printed as JSON by the \fB%\fR command:
-.
-.IP "" 4
-.
-.nf
-
-$ echo "$JSON" | jt [ foo % ] [ bar % ] [ baz % ]
-a       {"x":"b"}       {"y":"c"}
-a       {"x":"b"}       {"y":"d","z":"e"}
-.
-.fi
-.
-.IP "" 0
-.
-.SS "Joins"
-Notice the empty column \(em some objects don\'t have the \fIz\fR key:
-.
-.IP "" 4
-.
-.nf
-
-$ echo "$JSON" | jt [ foo % ] baz [ y % ] z %
-a       c
-a       d       e
+100     200
+100     300
+100     400
 .
 .fi
 .
 .IP "" 0
 .
 .P
-Inner join mode will remove rows from the output when any key in the traversal path doesn\'t exist:
+The \fB^\fR command includes the array index as a column in the result:
 .
 .IP "" 4
 .
 .nf
 
-$ echo "$JSON" | jt \-j [ foo % ] baz [ y % ] z %
-a       d       e
+cat <<EOT | jt [ foo % ] [ bar ^ baz % ]
+{
+  "foo": 100,
+  "bar": [
+    {"baz": 200},
+    {"baz": 300},
+    {"baz": 400}
+  ]
+}
+EOT
+.
+.fi
+.
+.IP "" 0
+.
+.IP "" 4
+.
+.nf
+
+100     0       200
+100     1       300
+100     2       400
 .
 .fi
 .
 .IP "" 0
 .
 .P
-Multiple JSON objects in the input stream, separated by whitespace:
+Note that \fB^\fR is scoped \(em it prints the index of the innermost enclosing loop:
 .
 .IP "" 4
 .
 .nf
 
-$ cat <<EOT | jt [ foo % ] [ bar % ]
-\- {"foo":100,"bar":200}
-\- {"foo":200,"bar":300}
-\- {"foo":300,"bar":400}
-\- EOT
+cat <<EOT | jt foo ^ bar ^ %
+{
+  "foo": [
+    {"bar": [100, 200]},
+    {"bar": [300, 400]}
+  ]
+}
+EOT
+.
+.fi
+.
+.IP "" 0
+.
+.IP "" 4
+.
+.nf
+
+0       0       100
+0       1       200
+1       0       300
+1       1       400
+.
+.fi
+.
+.IP "" 0
+.
+.SS "Iteration (Objects)"
+The \fB\.\fR command iterates over the values of an object:
+.
+.IP "" 4
+.
+.nf
+
+cat <<EOT | jt \. %
+{
+  "foo": 100,
+  "bar": 200,
+  "baz": 300
+}
+EOT
+.
+.fi
+.
+.IP "" 0
+.
+.IP "" 4
+.
+.nf
+
+100
+200
+300
+.
+.fi
+.
+.IP "" 0
+.
+.P
+When iterating over an object the \fB^\fR command prints the name of the current property:
+.
+.IP "" 4
+.
+.nf
+
+cat <<EOT | jt [ foo % ] [ bar \. ^ % ]
+{
+  "foo": 100,
+  "bar": {
+    "baz": 200,
+    "baf": 300,
+    "qux": 400
+  }
+}
+EOT
+.
+.fi
+.
+.IP "" 0
+.
+.IP "" 4
+.
+.nf
+
+100     baz     200
+100     baf     300
+100     qux     400
+.
+.fi
+.
+.IP "" 0
+.
+.P
+The scope of \fB^\fR is similar when iterating over objects:
+.
+.IP "" 4
+.
+.nf
+
+cat <<EOT | jt \. ^ \. ^ %
+{
+  "foo": {
+    "bar": 100,
+    "baz": 200
+  }
+}
+EOT
+.
+.fi
+.
+.IP "" 0
+.
+.IP "" 4
+.
+.nf
+
+foo     bar     100
+foo     baz     200
+.
+.fi
+.
+.IP "" 0
+.
+.SS "JSON Streams"
+\fBJt\fR automatically iterates over all entities in a stream of JSON entities delimited by optional whitespace:
+.
+.IP "" 4
+.
+.nf
+
+cat <<EOT | jt [ foo % ] [ bar % ]
+{"foo": 100, "bar": 200}
+{"foo": 200, "bar": 300}
+{"foo": 300, "bar": 400}
+EOT
+.
+.fi
+.
+.IP "" 0
+.
+.IP "" 4
+.
+.nf
+
 100     200
 200     300
 300     400
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Whitespace is ignored:
+.
+.IP "" 4
+.
+.nf
+
+cat <<EOT | jt [ foo % ] [ bar % ]
+{"foo": 100,"bar": 200}{"foo":200,"bar":300}{
+  "foo": 300,
+  "bar": 400
+}
+EOT
+.
+.fi
+.
+.IP "" 0
+.
+.IP "" 4
+.
+.nf
+
+100     200
+200     300
+300     400
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Within a JSON stream the \fB^\fR command prints the current stream index:
+.
+.IP "" 4
+.
+.nf
+
+cat <<EOT | jt ^ [ foo % ] [ bar % ]
+{"foo": 100, "bar": 200}
+{"foo": 200, "bar": 300}
+{"foo": 300, "bar": 400}
+EOT
+.
+.fi
+.
+.IP "" 0
+.
+.IP "" 4
+.
+.nf
+
+0       100     200
+1       200     300
+2       300     400
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Note that one entity in the stream may result in more than one output record when iteration is involved:
+.
+.IP "" 4
+.
+.nf
+
+cat <<EOT | jt [ foo % ] [ bar % ]
+{"foo":10,"bar":[100,200]}
+{"foo":20,"bar":[300,400]}
+EOT
+.
+.fi
+.
+.IP "" 0
+.
+.IP "" 4
+.
+.nf
+
+10      100
+10      200
+20      300
+20      400
 .
 .fi
 .
 .IP "" 0
 .
 .SS "Nested JSON"
-Use the \fB+\fR command to parse nested JSON:
+The \fB+\fR command to parses JSON embedded in strings:
 .
 .IP "" 4
 .
 .nf
 
-$ cat <<EOT | jt [ foo + bar % ] [ baz % ]
-\- {"foo":"{\e"bar\e":100}","baz":200}
-\- {"foo":"{\e"bar\e":200}","baz":300}
-\- {"foo":"{\e"bar\e":300}","baz":400}
-\- EOT
+cat <<EOT | jt [ foo + bar % ] [ baz % ]
+{"foo":"{\e"bar\e":100}","baz":200}
+{"foo":"{\e"bar\e":200}","baz":300}
+{"foo":"{\e"bar\e":300}","baz":400}
+EOT
+.
+.fi
+.
+.IP "" 0
+.
+.IP "" 4
+.
+.nf
+
 100     200
 200     300
 300     400
@@ -461,6 +797,248 @@ $ cat <<EOT | jt [ foo + bar % ] [ baz % ]
 .fi
 .
 .IP "" 0
+.
+.P
+Note that \fB+\fR pushes the resulting JSON entity onto the data stack \(em it does not mutate the original JSON:
+.
+.IP "" 4
+.
+.nf
+
+cat <<EOT | jt [ foo + bar % ] %
+{"foo":"{\e"bar\e":100}","baz":200}
+{"foo":"{\e"bar\e":200}","baz":300}
+{"foo":"{\e"bar\e":300}","baz":400}
+EOT
+.
+.fi
+.
+.IP "" 0
+.
+.IP "" 4
+.
+.nf
+
+100     {"foo":"{\e"bar\e":100}","baz":200}
+200     {"foo":"{\e"bar\e":200}","baz":300}
+300     {"foo":"{\e"bar\e":300}","baz":400}
+.
+.fi
+.
+.IP "" 0
+.
+.SS "Joins"
+Notice the empty column \(em some objects don\'t have the \fBbar\fR key:
+.
+.IP "" 4
+.
+.nf
+
+cat <<EOT | jt [ foo % ] [ bar % ]
+{"foo":100,"bar":1000}
+{"foo":200}
+{"foo":300,"bar":3000}
+EOT
+.
+.fi
+.
+.IP "" 0
+.
+.IP "" 4
+.
+.nf
+
+100     1000
+200
+300     3000
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Enable inner join mode with the \fB\-j\fR flag\. This removes output rows when a key in the traversal path doesn\'t exist:
+.
+.IP "" 4
+.
+.nf
+
+cat <<EOT | jt \-j [ foo % ] [ bar % ]
+{"foo":100,"bar":1000}
+{"foo":200}
+{"foo":300,"bar":3000}
+EOT
+.
+.fi
+.
+.IP "" 0
+.
+.IP "" 4
+.
+.nf
+
+100     1000
+300     3000
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Note that this does not remove rows when the key exists and the value is empty:
+.
+.IP "" 4
+.
+.nf
+
+cat <<EOT | jt \-j [ foo % ] [ bar % ]
+{"foo":100,"bar":1000}
+{"foo":200,"bar":""}
+{"foo":300,"bar":3000}
+EOT
+.
+.fi
+.
+.IP "" 0
+.
+.IP "" 4
+.
+.nf
+
+100     1000
+200
+300     3000
+.
+.fi
+.
+.IP "" 0
+.
+.SS "Explicit Iteration"
+Sometimes the implicit iteration over arrays is awkward:
+.
+.IP "" 4
+.
+.nf
+
+cat <<EOT | jt \. ^ \. ^ %
+{
+  "foo": [
+    {"bar":100},
+    {"bar":200}
+  ]
+}
+EOT
+.
+.fi
+.
+.IP "" 0
+.
+.IP "" 4
+.
+.nf
+
+0       bar     100
+1       bar     200
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Should the first \fB^\fR be printing the array index (which it does, in this case) or the object key (i\.e\. \fBfoo\fR)? Explicit iteration with the \fB\-a\fR flag eliminates the ambiguity:
+.
+.IP "" 4
+.
+.nf
+
+cat <<EOT | jt \-a \. \. ^ \. ^ %
+{
+  "foo": [
+    {"bar":100},
+    {"bar":200}
+  ]
+}
+EOT
+.
+.fi
+.
+.IP "" 0
+.
+.IP "" 4
+.
+.nf
+
+0       bar     100
+1       bar     200
+.
+.fi
+.
+.IP "" 0
+.
+.P
+prints the array index and:
+.
+.IP "" 4
+.
+.nf
+
+cat <<EOT | jt \-a \. ^ \. \. ^ %
+{
+  "foo": [
+    {"bar":100},
+    {"bar":200}
+  ]
+}
+EOT
+.
+.fi
+.
+.IP "" 0
+.
+.IP "" 4
+.
+.nf
+
+foo     bar     100
+foo     bar     200
+.
+.fi
+.
+.IP "" 0
+.
+.P
+prints the object key, and
+.
+.IP "" 4
+.
+.nf
+
+cat <<EOT | jt \-a \. ^ \. ^ \. ^ %
+{
+  "foo": [
+    {"bar":100},
+    {"bar":200}
+  ]
+}
+EOT
+.
+.fi
+.
+.IP "" 0
+.
+.IP "" 4
+.
+.nf
+
+foo     0       bar     100
+foo     1       bar     200
+.
+.fi
+.
+.IP "" 0
+.
+.P
+prints both\.
 .
 .SH "COPYRIGHT"
 Copyright © 2017 Micha Niskin \fB<micha\.niskin@gmail\.com>\fR, distributed under the Eclipse Public License, version 1\.0\. This is free software: you are free to change and redistribute it\. There is NO WARRANTY, to the extent permitted by law\.
