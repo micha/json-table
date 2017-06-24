@@ -22,7 +22,19 @@ tabular data to produce the final result.
 
 #### Example
 
-Extract values from a JSON stream:
+Suppose we have some JSON data in a log file that we want to process:
+
+```json
+{"account":123,"amount":1.00}
+{"account":789,"amount":2.00}
+{"account":123,"amount":3.00}
+{"account":123,"amount":4.00}
+{"account":456,"amount":5.00}
+```
+
+First, use **jt** to extract interesting values to get us out of JSON-world and
+into a nice tab delimited, newline separated tabular format that is amenable to
+processing with shell utilities:
 
 ```bash
 cat <<+++ |
@@ -42,8 +54,9 @@ jt [ account % ] amount %
 456     5.00
 ```
 
-From here we can process the values with Unix shell utilities. For example, to
-compute the sum of the amounts for account 123:
+**Jt** is simple to use because that's all it does. From here we can process
+the values in the shell. For example, to compute the sum of the amounts for
+account 123:
 
 ```bash
 cat <<+++ |
@@ -59,7 +72,7 @@ jt [ account % ] amount % | awk -F\\t '$1 == 123 {print $2}' | paste -sd+ |bc
 9.00
 ```
 
-Or compute the amount frequencies:
+Or to compute the amount frequencies for the account:
 
 ```bash
 cat <<+++ |
