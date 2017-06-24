@@ -22,33 +22,20 @@ tabular data to produce the final result.
 
 #### Example
 
-You can get an idea of what **jt** can do from this one-liner that produces
-a table of ELB names to EC2 instance IDs from the complex JSON returned by the
-`aws elb` tool:
+Sum the amounts for account 123:
 
 ```bash
-aws elb describe-load-balancers \
-  |jt LoadBalancerDescriptions [ LoadBalancerName % ] Instances InstanceId %
+cat <<+++ |
+{"account":123,"amount":1.00}
+{"account":789,"amount":2.00}
+{"account":123,"amount":3.00}
+{"account":123,"amount":4.00}
+{"account":456,"amount":5.00}
++++
+jt [ account % ] amount % | awk -F\\t '$1 == 123 {print $2}' | paste -sd+ |bc
 ```
 ```
-elb-1	i-94a6f73a
-elb-2	i-b910a256
-...
-```
-
-or filter JSON log files:
-
-```bash
-cat <<EOT | jt [ account % ] % | awk -F\\t '$1 == 123 {print $2}'
-{"account":123,"balance":100}
-{"account":789,"balance":200}
-{"account":123,"balance":300}
-{"account":456,"balance":400}
-EOT
-```
-```
-{"account":123,"balance":100}
-{"account":123,"balance":300}
+8.00
 ```
 
 ## INSTALL
