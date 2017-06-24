@@ -22,6 +22,26 @@ tabular data to produce the final result.
 
 #### Example
 
+Extract values from a JSON stream:
+
+```bash
+cat <<+++ |
+{"account":123,"amount":1.00}
+{"account":789,"amount":2.00}
+{"account":123,"amount":3.00}
+{"account":123,"amount":4.00}
+{"account":456,"amount":5.00}
++++
+jt [ account % ] amount %
+```
+```
+123     1.00
+789     2.00
+123     3.00
+123     4.00
+456     5.00
+```
+
 Sum the amounts for account 123:
 
 ```bash
