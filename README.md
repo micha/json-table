@@ -42,20 +42,38 @@ jt [ account % ] amount %
 456     5.00
 ```
 
-Sum the amounts for account 123:
+From here we can process the values with Unix shell utilities. For example, to
+compute the sum of the amounts for account 123:
 
 ```bash
 cat <<+++ |
 {"account":123,"amount":1.00}
 {"account":789,"amount":2.00}
-{"account":123,"amount":3.00}
+{"account":123,"amount":4.00}
 {"account":123,"amount":4.00}
 {"account":456,"amount":5.00}
 +++
 jt [ account % ] amount % | awk -F\\t '$1 == 123 {print $2}' | paste -sd+ |bc
 ```
 ```
-8.00
+9.00
+```
+
+Or compute the amount frequencies:
+
+```bash
+cat <<+++ |
+{"account":123,"amount":1.00}
+{"account":789,"amount":2.00}
+{"account":123,"amount":4.00}
+{"account":123,"amount":4.00}
+{"account":456,"amount":5.00}
++++
+jt [ account % ] amount % | awk -F\\t '$1 == 123 {print $2}' | sort | uniq -c
+```
+```
+      1 1.00
+      2 4.00
 ```
 
 ## INSTALL
