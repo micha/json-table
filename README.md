@@ -54,9 +54,9 @@ jt [ account % ] amount %
 456     5.00
 ```
 
-**Jt** is simple to use because that's all it does. From here we can process
-the values in the shell. For example, to compute the sum of the amounts for
-account 123:
+**Jt** is simple to use (and *fast*) because that's all it does. From here we
+can process the values in the shell. For example, to compute the sum of the
+amounts for account 123:
 
 ```bash
 cat <<+++ |
