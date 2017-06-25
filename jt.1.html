@@ -88,8 +88,9 @@
 
 <h2 id="DESCRIPTION">DESCRIPTION</h2>
 
-<p><strong>Jt</strong> reads UTF-8 encoded JSON forms from <var>stdin</var> and writes tab-delimited,
-newline-separated records to <var>stdout</var>.</p>
+<p><strong>Jt</strong> reads UTF-8 encoded JSON forms from <var>stdin</var> and writes tab separated
+values (or CSV) to <var>stdout</var>. A simple stack-based programming language is used
+to extract values from the JSON input for printing.</p>
 
 <h2 id="OPTIONS">OPTIONS</h2>
 
@@ -98,7 +99,7 @@ newline-separated records to <var>stdout</var>.</p>
 <dt class="flush"><code>-V</code></dt><dd><p>Print version and license info and exit.</p></dd>
 <dt class="flush"><code>-a</code></dt><dd><p>Explicit iteration mode: require the <code>.</code> command to iterate over arrays
 instead of iterating automatically.</p></dd>
-<dt class="flush"><code>-c</code></dt><dd><p>CSV output mode: write records as comma-separated values.</p></dd>
+<dt class="flush"><code>-c</code></dt><dd><p>CSV output mode: write RFC 4180 compliant CSV records.</p></dd>
 <dt class="flush"><code>-j</code></dt><dd><p>Inner join mode: discard rows with missing columns.</p></dd>
 <dt class="flush"><code>-s</code></dt><dd><p>A no-op, included for compatibility with earlier versions.</p></dd>
 <dt><code>-u</code> <var>string</var></dt><dd><p>Unescape JSON <var>string</var>, print it, and exit. Double-quotes around <var>string</var>
