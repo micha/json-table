@@ -23,7 +23,7 @@ tabular data to produce the final result.
 * **Fast, small memory footprint** &mdash; efficiently process **large** JSON input.
 * **Correct** &mdash; parser does not accept invalid JSON (see tests for details).
 
-#### Example
+#### Example 1
 
 Suppose we have some JSON data in a log file that we want to process:
 
@@ -92,6 +92,8 @@ jt [ account % ] amount % | awk -F\\t '$1 == 123 {print $2}' | sort | uniq -c
       2 4.00
 ```
 
+#### Example 2
+
 **Jt** can also extract data from nested JSON:
 
 ```bash
@@ -104,17 +106,14 @@ cat <<+++ |
         {
           "id": "i-9fb75dc",
           "az": "us-east-1a",
-          "state": "InService"
         },
         {
           "id": "i-95393ba",
           "az": "us-east-1a",
-          "state": "Terminating:Wait"
         },
         {
           "id": "i-241fd0b",
           "az": "us-east-1b",
-          "state": "InService"
         }
       ]
     },
@@ -124,26 +123,24 @@ cat <<+++ |
         {
           "id": "i-4bbab16",
           "az": "us-east-1a",
-          "state": "InService"
         },
         {
           "id": "i-417c312",
           "az": "us-east-1b",
-          "state": "InService"
         }
       ]
     }
   ]
 }
 +++
-jt asgs [ name % ] instances [ id % ] [ az % ] [ state % ]
+jt asgs [ name % ] instances [ id % ] [ az % ]
 ```
 ```
-test1   i-9fb75dc       us-east-1a      InService
-test1   i-95393ba       us-east-1a      Terminating:Wait
-test1   i-241fd0b       us-east-1b      InService
-test2   i-4bbab16       us-east-1a      InService
-test2   i-417c312       us-east-1b      InService
+test1   i-9fb75dc       us-east-1a
+test1   i-95393ba       us-east-1a
+test1   i-241fd0b       us-east-1b
+test2   i-4bbab16       us-east-1a
+test2   i-417c312       us-east-1b
 ```
 
 ## INSTALL
