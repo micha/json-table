@@ -3,5 +3,5 @@ install:
   - sudo apt-get update
   - DEBIAN_FRONTEND=noninteractive sudo apt-get install -y valgrind
 script:
-  - make && ./jt -V && make test && make -B VALGRIND=1 memcheck
+  - make && ./jt -V && make test && make benchmark && make -B VALGRIND=1 memcheck
   - mkdir -p zzz && cat jt.tar.gz | (cd zzz && tar xzvf -) && cp zzz/bin/jt . && ./jt -V && make test

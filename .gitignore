@@ -18,3 +18,4 @@ target/
 *.a
 /a.out
 /test.c
+/test/enron.json

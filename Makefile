@@ -55,10 +55,21 @@ test:
 	@echo
 	@./test/test-parser.sh ./jt
 
-memcheck: jt
-	zcat test/stocks.json.gz \
+test/enron.json: test/enron.json.gz
+	zcat $^ > $@
+
+memcheck: jt test/enron.json
+	cat test/enron.json \
 		|valgrind \
 			--tool=memcheck --leak-check=yes --show-reachable=yes \
-			--num-callers=20 --track-fds=yes --track-origins=yes --error-exitcode=1 \
-			./jt [ _id '$$oid' % ] [ Ticker % ] [ Company % ] [ "Market Cap" % ] [ Price % ] \
+			--num-callers=20 --track-fds=yes --track-origins=no --error-exitcode=1 \
+			./jt [ _id '\$$oid' % ] [ sender % ] [ recipients % ] [ subject % ] [ text % ] \
 		> /dev/null
+
+benchmark: jt test/enron.json
+	for i in `seq 1 20`; do \
+		cat test/enron.json \
+			| /usr/bin/time -f "%U\t%S\t%E\t%P\t%X\t%D\t%M\t%F\t%R\t%I" \
+				./jt [ _id '\$$oid' % ] [ sender % ] [ recipients % ] [ subject % ] [ text % ] \
+			> /dev/null; \
+	done
