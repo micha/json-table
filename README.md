@@ -4,6 +4,8 @@
 values (or CSV) to `stdout`. A simple stack-based programming language is used
 to extract values from the JSON input for printing.
 
+## OVERVIEW
+
 Extracting information from deeply nested JSON data is difficult and unreliable
 with tools like **sed** and **awk**, and tools that are specially designed for
 manipulating JSON are cumbersome to use in the shell because they either return
