@@ -17,7 +17,7 @@ structures and organize the data into a table. Tools like **cut**, **paste**,
 **join**, **sort**, **uniq**, etc. can be used to efficiently reduce the
 tabular data to produce the final result.
 
-#### Features
+### Features
 
 * **Self contained** &mdash; statically linked, has no build or runtime dependencies.
 * **Fast, small memory footprint** &mdash; efficiently process **large** JSON input.
