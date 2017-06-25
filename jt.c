@@ -36,7 +36,7 @@ int run(jsparser_t *p, int wordc, word_t *wordv) {
 
   if (wordc <= 0) return 0;
 
-  if ((js_is_array(js_tok(p, d)) && auto_iter) || (e = (wordv[0].cmd == '.'))) {
+  if (d && ((js_is_array(js_tok(p, d)) && auto_iter) || (e = (wordv[0].cmd == '.')))) {
     if (!js_is_collection(js_tok(p, d)) || js_is_empty(js_tok(p, d))) {
       stack_push(DAT, 0);
       run(p, wordc - e, wordv + e);
@@ -89,7 +89,7 @@ int run(jsparser_t *p, int wordc, word_t *wordv) {
         stack_pop(SUB);
         break;
       case '\0':
-        if (js_is_collection(js_tok(p, d))) {
+        if (d && js_is_collection(js_tok(p, d))) {
           tmp = js_is_object(js_tok(p, d))
             ? js_obj_get(p, d, wordv[0].text)
             : js_array_get(p, d, strtosizet(wordv[0].text));
@@ -144,6 +144,7 @@ void parse_commands(int argc, char *argv[], word_t *wordv) {
       switch(argv[i][0]) {
         case '[': case ']': case '%': case '^': case '@': case '.': case '+':
           wordv[i].cmd = argv[i][0];
+          wordv[i].text = NULL;
           break;
         default:
           wordv[i].cmd = '\0';
@@ -258,7 +259,7 @@ int main(int argc, char *argv[]) {
     stack_pop_to(IDX, -1);
   }
 
-  /*
+#ifdef JT_VALGRIND
   js_free(&p);
 
   buf_free(&OUTBUF);
@@ -270,7 +271,7 @@ int main(int argc, char *argv[]) {
   stack_free(&IDX);
 
   free(wordv);
-  */
+#endif /* JT_VALGRIND */
 
   return 0;
 }

@@ -16,7 +16,7 @@
 \fBjt\fR [\fB\-aj\fR] [\fBCOMMAND\fR \.\.\.]
 .
 .SH "DESCRIPTION"
-\fBJt\fR reads UTF\-8 encoded JSON forms from \fIstdin\fR and writes tab\-delimited, newline\-separated records to \fIstdout\fR\.
+\fBJt\fR reads UTF\-8 encoded JSON forms from \fIstdin\fR and writes tab separated values (or CSV) to \fIstdout\fR\. A simple stack\-based programming language is used to extract values from the JSON input for printing\.
 .
 .SH "OPTIONS"
 .
@@ -34,7 +34,7 @@ Explicit iteration mode: require the \fB\.\fR command to iterate over arrays ins
 .
 .TP
 \fB\-c\fR
-CSV output mode: write records as comma\-separated values\.
+CSV output mode: write RFC 4180 compliant CSV records\.
 .
 .TP
 \fB\-j\fR

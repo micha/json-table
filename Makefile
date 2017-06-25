@@ -1,10 +1,18 @@
 .PHONY: all clean docs install dist test
 
-OS      = $(shell uname -s)
-CFLAGS += -D_GNU_SOURCE=1 -O3 -Wall -Werror -Winline -pedantic-errors -std=c99
-ifneq (${OS}, Darwin)
-LDFLAGS = -static
+ifeq (${VALGRIND}, 1)
+O_LEVEL = 0
+CFLAGS += -g -DJT_VALGRIND
+else
+O_LEVEL = 3
 endif
+
+#ifneq (${OS}, Darwin)
+#LDFLAGS = -static
+#endif
+
+OS      = $(shell uname -s)
+CFLAGS += -D_GNU_SOURCE=1 -O$(O_LEVEL) -Wall -Werror -Winline -pedantic-errors -std=c99
 PREFIX  = /usr/local
 BINDIR  = $(PREFIX)/bin
 MANDIR  = $(PREFIX)/man/man1
@@ -46,3 +54,11 @@ test:
 	@./test/test-jt.sh ./jt
 	@echo
 	@./test/test-parser.sh ./jt
+
+memcheck: jt
+	zcat test/stocks.json.gz \
+		|valgrind \
+			--tool=memcheck --leak-check=yes --show-reachable=yes \
+			--num-callers=20 --track-fds=yes --track-origins=yes --error-exitcode=1 \
+			./jt [ _id '$$oid' % ] [ Ticker % ] [ Company % ] [ "Market Cap" % ] [ Price % ] \
+		> /dev/null

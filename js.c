@@ -24,7 +24,7 @@ static inline const char *js(jsparser_t *p) {
   return (p->js)->buf + p->pos;
 }
 
-static void init_tok(jstok_t *tok) {
+static inline void init_tok(jstok_t *tok) {
   tok->type = JS_NONE;
   tok->start = 0;
   tok->end = 0;
@@ -544,6 +544,7 @@ void js_reset(jsparser_t *p) {
 void js_alloc(jsparser_t **p, FILE *in, size_t toks_size) {
   *p = jmalloc(sizeof(jsparser_t));
   buf_alloc(&((*p)->js));
+  (*p)->pos = 0;
   (*p)->in = in;
   (*p)->toks = jmalloc(sizeof(jstok_t) * toks_size);
   (*p)->toks_size = toks_size;

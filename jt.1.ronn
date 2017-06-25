@@ -9,8 +9,9 @@ jt(1) -- transform JSON data to tabular format
 
 ## DESCRIPTION
 
-**Jt** reads UTF-8 encoded JSON forms from <stdin> and writes tab-delimited,
-newline-separated records to <stdout>.
+**Jt** reads UTF-8 encoded JSON forms from <stdin> and writes tab separated
+values (or CSV) to <stdout>. A simple stack-based programming language is used
+to extract values from the JSON input for printing.
 
 ## OPTIONS
 
@@ -25,7 +26,7 @@ newline-separated records to <stdout>.
     instead of iterating automatically.
 
   * `-c`:
-    CSV output mode: write records as comma-separated values.
+    CSV output mode: write RFC 4180 compliant CSV records.
 
   * `-j`:
     Inner join mode: discard rows with missing columns.
