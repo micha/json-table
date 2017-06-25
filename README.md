@@ -103,44 +103,29 @@ cat <<+++ |
     {
       "name": "test1",
       "instances": [
-        {
-          "id": "i-9fb75dc",
-          "az": "us-east-1a",
-        },
-        {
-          "id": "i-95393ba",
-          "az": "us-east-1a",
-        },
-        {
-          "id": "i-241fd0b",
-          "az": "us-east-1b",
-        }
+        {"id": "i-9fb75dc", "az": "us-east-1a", "state": "InService"},
+        {"id": "i-95393ba", "az": "us-east-1a", "state": "Terminating:Wait"},
+        {"id": "i-241fd0b", "az": "us-east-1b", "state": "InService"}
       ]
     },
     {
       "name": "test2",
       "instances": [
-        {
-          "id": "i-4bbab16",
-          "az": "us-east-1a",
-        },
-        {
-          "id": "i-417c312",
-          "az": "us-east-1b",
-        }
+        {"id": "i-4bbab16", "az": "us-east-1a", "state": "InService"},
+        {"id": "i-417c312", "az": "us-east-1b", "state": "InService"}
       ]
     }
   ]
 }
 +++
-jt asgs [ name % ] instances [ id % ] [ az % ]
+jt asgs [ name % ] instances [ id % ] [ az % ] [ state % ]
 ```
 ```
-test1   i-9fb75dc       us-east-1a
-test1   i-95393ba       us-east-1a
-test1   i-241fd0b       us-east-1b
-test2   i-4bbab16       us-east-1a
-test2   i-417c312       us-east-1b
+test1   i-9fb75dc       us-east-1a      InService
+test1   i-95393ba       us-east-1a      Terminating:Wait
+test1   i-241fd0b       us-east-1b      InService
+test2   i-4bbab16       us-east-1a      InService
+test2   i-417c312       us-east-1b      InService
 ```
 
 ## INSTALL
