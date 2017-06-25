@@ -1,7 +1,8 @@
 # json-table [![Build Status](https://travis-ci.org/micha/json-table.svg?branch=master)](https://travis-ci.org/micha/json-table)
 
-**Jt** transforms JSON data structures into tables of columns and rows for
-processing in the shell.
+**Jt** reads UTF-8 encoded JSON forms from `stdin` and writes tab separated
+values (or CSV) to `stdout`. A simple stack-based programming language is used
+to extract values from the JSON input for printing.
 
 Extracting information from deeply nested JSON data is difficult and unreliable
 with tools like **sed** and **awk**, and tools that are specially designed for
