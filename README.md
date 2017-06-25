@@ -128,6 +128,39 @@ test2   i-4bbab16       us-east-1a      InService
 test2   i-417c312       us-east-1b      InService
 ```
 
+The resulting TSV data can be piped to **awk**, for example, to get just the
+instances in `test1` that are in service:
+
+```bash
+cat <<+++ |
+{
+  "asgs": [
+    {
+      "name": "test1",
+      "instances": [
+        {"id": "i-9fb75dc", "az": "us-east-1a", "state": "InService"},
+        {"id": "i-95393ba", "az": "us-east-1a", "state": "Terminating:Wait"},
+        {"id": "i-241fd0b", "az": "us-east-1b", "state": "InService"}
+      ]
+    },
+    {
+      "name": "test2",
+      "instances": [
+        {"id": "i-4bbab16", "az": "us-east-1a", "state": "InService"},
+        {"id": "i-417c312", "az": "us-east-1b", "state": "InService"}
+      ]
+    }
+  ]
+}
++++
+jt asgs [ name % ] instances [ id % ] [ az % ] [ state % ] |
+awk -F\\t '$1 == "test1" && $4 == "InService" {print}'
+```
+```
+test1   i-9fb75dc       us-east-1a      InService
+test1   i-241fd0b       us-east-1b      InService
+```
+
 ## INSTALL
 
 Linux users can install prebuilt binaries from the release tarball:
