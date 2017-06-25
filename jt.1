@@ -16,7 +16,7 @@
 \fBjt\fR [\fB\-aj\fR] [\fBCOMMAND\fR \.\.\.]
 .
 .SH "DESCRIPTION"
-\fBJt\fR extracts information from UTF\-8 encoded JSON forms read from \fIstdin\fR and writes the results as tab\-delimited, newline\-separated records to \fIstdout\fR for processing with common Unix text processing utilities in shell pipelines\.
+\fBJt\fR reads UTF\-8 encoded JSON forms from \fIstdin\fR and writes tab\-delimited, newline\-separated records to \fIstdout\fR\.
 .
 .SH "OPTIONS"
 .
@@ -33,16 +33,20 @@ Print version and license info and exit\.
 Explicit iteration mode: require the \fB\.\fR command to iterate over arrays instead of iterating automatically\.
 .
 .TP
+\fB\-c\fR
+CSV output mode: write records as comma\-separated values\.
+.
+.TP
 \fB\-j\fR
 Inner join mode: discard rows with missing columns\.
 .
 .TP
 \fB\-s\fR
-Included for compatibility with earlier versions\.
+A no\-op, included for compatibility with earlier versions\.
 .
 .TP
 \fB\-u\fR \fIstring\fR
-Unescape JSON \fIstring\fR, print it, and exit\.
+Unescape JSON \fIstring\fR, print it, and exit\. Double\-quotes around \fIstring\fR are optional\.
 .
 .SH "OPERATION"
 Non\-option arguments are words (commands) in a stack\-based programming language\. Commands operate on the stacks provided by the \fBjt\fR runtime:
@@ -185,7 +189,32 @@ i love music ♪
 .IP "" 0
 .
 .SS "Collections"
-Objects and arrays are printed as JSON with whitespace removed\.
+Objects and arrays are printed as JSON with whitespace removed\. Note that it is only possible to print arrays when the \fB\-a\fR option is specified (see the \fBIteration (Arrays)\fR and \fBExplicit Iteration\fR sections below)\.
+.
+.SS "CSV"
+The \fB\-c\fR flag enables CSV output conforming to RFC 4180\. This format supports strings containing tabs, newlines, etc\.:
+.
+.IP "" 4
+.
+.nf
+
+$ cat <<+++ |
+\- {
+\-   "foo": "one\ettwo",
+\-   "bar": "three\enfour",
+\-   "baz": "music \e"\eu266A\e""
+\- }
+\- +++
+\- jt \-c [ foo % ] [ bar % ] baz %
+"one    two","three
+four","music ""♪"""
+.
+.fi
+.
+.IP "" 0
+.
+.SH "EXIT STATUS"
+\fBJt\fR will exit with a status of 0 on success, 1 on error\.
 .
 .SH "EXAMPLES"
 Below are a number of examples demonstrating how to use \fBjt\fR commands to do some simple exploration and extraction of data from JSON and JSON streams\.
@@ -197,20 +226,11 @@ Remember the \fBbash\fR heredoc syntax with pipelines:
 .
 .nf
 
-cat <<+++ |
-foo
-bar
-+++
-sed s/^/the/ | paste \-sd,
-.
-.fi
-.
-.IP "" 0
-.
-.IP "" 4
-.
-.nf
-
+$ cat <<+++ |
+\- foo
+\- bar
+\- +++
+\- sed s/^/the/ | paste \-sd,
 thefoo,thebar
 .
 .fi
@@ -224,23 +244,14 @@ The \fB@\fR command prints information about the item at the top of the data sta
 .
 .nf
 
-cat <<+++ |
-{
-  "foo": 100,
-  "bar": 200,
-  "baz": 300
-}
-+++
-jt @
-.
-.fi
-.
-.IP "" 0
-.
-.IP "" 4
-.
-.nf
-
+$ cat <<+++ |
+\- {
+\-   "foo": 100,
+\-   "bar": 200,
+\-   "baz": 300
+\- }
+\- +++
+\- jt @
 foo
 bar
 baz
@@ -256,28 +267,19 @@ When the top item is an array \fB@\fR prints information about the first item in
 .
 .nf
 
-cat <<+++ |
-[
-  {
-    "foo": 100,
-    "bar": 200
-  },
-  {
-    "baz": 300,
-    "baf": 400
-  }
-]
-+++
-jt @
-.
-.fi
-.
-.IP "" 0
-.
-.IP "" 4
-.
-.nf
-
+$ cat <<+++ |
+\- [
+\-   {
+\-     "foo": 100,
+\-     "bar": 200
+\-   },
+\-   {
+\-     "baz": 300,
+\-     "baf": 400
+\-   }
+\- ]
+\- +++
+\- jt @
 foo
 bar
 .
@@ -292,19 +294,10 @@ Otherwise, \fB@\fR prints the type of the item:
 .
 .nf
 
-cat <<+++ |
-"hello world"
-+++
-jt @
-.
-.fi
-.
-.IP "" 0
-.
-.IP "" 4
-.
-.nf
-
+$ cat <<+++ |
+\- "hello world"
+\- +++
+\- jt @
 [string]
 .
 .fi
@@ -318,24 +311,15 @@ Property names are also commands\. Use \fBfoo\fR here as a command to drill down
 .
 .nf
 
-cat <<+++ |
-{
-  "foo": {
-    "bar": 100,
-    "baz": 200
-  }
-}
-+++
-jt foo @
-.
-.fi
-.
-.IP "" 0
-.
-.IP "" 4
-.
-.nf
-
+$ cat <<+++ |
+\- {
+\-   "foo": {
+\-     "bar": 100,
+\-     "baz": 200
+\-   }
+\- }
+\- +++
+\- jt foo @
 bar
 baz
 .
@@ -344,30 +328,21 @@ baz
 .IP "" 0
 .
 .P
-When a property name conflicts with a \fBjt\fR command you must wrap the property name with square brackets to drill down:
+A property name that conflicts with a \fBjt\fR command may be wrapped with square brackets to drill down:
 .
 .IP "" 4
 .
 .nf
 
-cat <<+++ |
-{
-  "@": {
-    "bar": 100,
-    "baz": 200
-  }
-}
-+++
-jt [@] @
-.
-.fi
-.
-.IP "" 0
-.
-.IP "" 4
-.
-.nf
-
+$ cat <<+++ |
+\- {
+\-   "@": {
+\-     "bar": 100,
+\-     "baz": 200
+\-   }
+\- }
+\- +++
+\- jt [@] @
 bar
 baz
 .
@@ -382,22 +357,13 @@ The \fB%\fR command prints the item at the top of the data stack\. Note that whe
 .
 .nf
 
-cat <<+++ |
-{
-  "foo": 100,
-  "bar": 200
-}
-+++
-jt %
-.
-.fi
-.
-.IP "" 0
-.
-.IP "" 4
-.
-.nf
-
+$ cat <<+++ |
+\- {
+\-   "foo": 100,
+\-   "bar": 200
+\- }
+\- +++
+\- jt %
 {"foo":100,"bar":200}
 .
 .fi
@@ -411,23 +377,14 @@ Drill down and print:
 .
 .nf
 
-cat <<+++ |
-{
-  "foo": {
-    "bar": 100
-  }
-}
-+++
-jt foo bar %
-.
-.fi
-.
-.IP "" 0
-.
-.IP "" 4
-.
-.nf
-
+$ cat <<+++ |
+\- {
+\-   "foo": {
+\-     "bar": 100
+\-   }
+\- }
+\- +++
+\- jt foo bar %
 100
 .
 .fi
@@ -441,23 +398,14 @@ The \fB%\fR command can be used multiple times\. The printed values will be deli
 .
 .nf
 
-cat <<+++ |
-{
-  "foo": {
-    "bar": 100
-  }
-}
-+++
-jt % foo % bar %
-.
-.fi
-.
-.IP "" 0
-.
-.IP "" 4
-.
-.nf
-
+$ cat <<+++ |
+\- {
+\-   "foo": {
+\-     "bar": 100
+\-   }
+\- }
+\- +++
+\- jt % foo % bar %
 {"foo":{"bar":100}}     {"bar":100}     100
 .
 .fi
@@ -465,28 +413,19 @@ jt % foo % bar %
 .IP "" 0
 .
 .SS "Save / Restore"
-The \fB[\fR and \fB]\fR commands provide a sort of \fBGOSUB\fR facility \(em the data stack is saved by \fB[\fR and restored by \fB]\fR\. This can be used to extract values from different paths in the JSON as a single record:
+The \fB[\fR and \fB]\fR commands provide a sort of \fBGOSUB\fR facility\. Use \fB[\fR to save the data stack\'s state on the gosub stack\. Then drill down and print a value\. The \fB]\fR command pops the gosub stack and restores the data stack to that state\. Now it is possible to drill down into a different path to print another value:
 .
 .IP "" 4
 .
 .nf
 
-cat <<+++ |
-{
-  "foo": 100,
-  "bar": 200
-}
-+++
-jt [ foo % ] bar %
-.
-.fi
-.
-.IP "" 0
-.
-.IP "" 4
-.
-.nf
-
+$ cat <<+++ |
+\- {
+\-   "foo": 100,
+\-   "bar": 200
+\- }
+\- +++
+\- jt [ foo % ] bar %
 100     200
 .
 .fi
@@ -500,25 +439,16 @@ The \fB[\fR and \fB]\fR commands can be nested:
 .
 .nf
 
-cat <<+++ |
-{
-  "foo": {
-    "bar": 100,
-    "baz": 200
-  },
-  "baf": "quux"
-}
-+++
-jt [ foo [ bar % ] [ baz % ] ] baf %
-.
-.fi
-.
-.IP "" 0
-.
-.IP "" 4
-.
-.nf
-
+$ cat <<+++ |
+\- {
+\-   "foo": {
+\-     "bar": 100,
+\-     "baz": 200
+\-   },
+\-   "baf": "quux"
+\- }
+\- +++
+\- jt [ foo [ bar % ] [ baz % ] ] baf %
 100     200     quux
 .
 .fi
@@ -532,26 +462,17 @@ jt [ foo [ bar % ] [ baz % ] ] baf %
 .
 .nf
 
-cat <<+++ |
-{
-  "foo": 100,
-  "bar": [
-    {"baz": 200},
-    {"baz": 300},
-    {"baz": 400}
-  ]
-}
-+++
-jt [ foo % ] bar baz %
-.
-.fi
-.
-.IP "" 0
-.
-.IP "" 4
-.
-.nf
-
+$ cat <<+++ |
+\- {
+\-   "foo": 100,
+\-   "bar": [
+\-     {"baz": 200},
+\-     {"baz": 300},
+\-     {"baz": 400}
+\-   ]
+\- }
+\- +++
+\- jt [ foo % ] bar baz %
 100     200
 100     300
 100     400
@@ -567,26 +488,17 @@ The \fB^\fR command includes the array index as a column in the result:
 .
 .nf
 
-cat <<+++ |
-{
-  "foo": 100,
-  "bar": [
-    {"baz": 200},
-    {"baz": 300},
-    {"baz": 400}
-  ]
-}
-+++
-jt [ foo % ] bar ^ baz %
-.
-.fi
-.
-.IP "" 0
-.
-.IP "" 4
-.
-.nf
-
+$ cat <<+++ |
+\- {
+\-   "foo": 100,
+\-   "bar": [
+\-     {"baz": 200},
+\-     {"baz": 300},
+\-     {"baz": 400}
+\-   ]
+\- }
+\- +++
+\- jt [ foo % ] bar ^ baz %
 100     0       200
 100     1       300
 100     2       400
@@ -602,24 +514,15 @@ Note that \fB^\fR is scoped \(em it prints the index of the innermost enclosing 
 .
 .nf
 
-cat <<+++ |
-{
-  "foo": [
-    {"bar": [100, 200]},
-    {"bar": [300, 400]}
-  ]
-}
-+++
-jt foo ^ bar ^ %
-.
-.fi
-.
-.IP "" 0
-.
-.IP "" 4
-.
-.nf
-
+$ cat <<+++ |
+\- {
+\-   "foo": [
+\-     {"bar": [100, 200]},
+\-     {"bar": [300, 400]}
+\-   ]
+\- }
+\- +++
+\- jt foo ^ bar ^ %
 0       0       100
 0       1       200
 1       0       300
@@ -636,23 +539,14 @@ The \fB\.\fR command iterates over the values of an object:
 .
 .nf
 
-cat <<+++ |
-{
-  "foo": 100,
-  "bar": 200,
-  "baz": 300
-}
-+++
-jt \. %
-.
-.fi
-.
-.IP "" 0
-.
-.IP "" 4
-.
-.nf
-
+$ cat <<+++ |
+\- {
+\-   "foo": 100,
+\-   "bar": 200,
+\-   "baz": 300
+\- }
+\- +++
+\- jt \. %
 100
 200
 300
@@ -668,29 +562,17 @@ When iterating over an object the \fB^\fR command prints the name of the current
 .
 .nf
 
-cat <<+++ |
-{
-  "foo": 100,
-  "bar": {
-    "baz": 200,
-    "baf": 300,
-    "qux": 400
-  }
-}
-+++
-jt [ foo % ] bar \. ^ %
-.
-.fi
-.
-.IP "" 0
-.
-.IP "" 4
-.
-.nf
-
-100     baz     200
-100     baf     300
-100     qux     400
+$ cat <<+++ |
+\- {
+\-   "foo": 100,
+\-   "bar": 200,
+\-   "baz": 300
+\- }
+\- +++
+\- jt \. ^ %
+foo     100
+bar     200
+baz     300
 .
 .fi
 .
@@ -703,24 +585,15 @@ The scope of \fB^\fR is similar when iterating over objects:
 .
 .nf
 
-cat <<+++ |
-{
-  "foo": {
-    "bar": 100,
-    "baz": 200
-  }
-}
-+++
-jt \. ^ \. ^ %
-.
-.fi
-.
-.IP "" 0
-.
-.IP "" 4
-.
-.nf
-
+$ cat <<+++ |
+\- {
+\-   "foo": {
+\-     "bar": 100,
+\-     "baz": 200,
+\-   }
+\- }
+\- +++
+\- jt \. ^ \. ^ %
 foo     bar     100
 foo     baz     200
 .
@@ -735,21 +608,12 @@ foo     baz     200
 .
 .nf
 
-cat <<+++ |
-{"foo": 100, "bar": 200}
-{"foo": 200, "bar": 300}
-{"foo": 300, "bar": 400}
-+++
-jt [ foo % ] bar %
-.
-.fi
-.
-.IP "" 0
-.
-.IP "" 4
-.
-.nf
-
+$ cat <<+++ |
+\- {"foo": 100, "bar": 200}
+\- {"foo": 200, "bar": 300}
+\- {"foo": 300, "bar": 400}
+\- +++
+\- jt [ foo % ] bar %
 100     200
 200     300
 300     400
@@ -765,23 +629,14 @@ Whitespace is optional:
 .
 .nf
 
-cat <<+++ |
-{"foo": 100,"bar": 200}{"foo":200,"bar":300}
-{
-  "foo": 300,
-  "bar": 400
-}
-+++
-jt [ foo % ] bar %
-.
-.fi
-.
-.IP "" 0
-.
-.IP "" 4
-.
-.nf
-
+$ cat <<+++ |
+\- {"foo": 100,"bar": 200}{"foo":200,"bar":300}
+\- {
+\-   "foo": 300,
+\-   "bar": 400
+\- }
+\- +++
+\- jt [ foo % ] bar %
 100     200
 200     300
 300     400
@@ -797,21 +652,12 @@ Within a JSON stream the \fB^\fR command prints the current stream index:
 .
 .nf
 
-cat <<+++ |
-{"foo": 100, "bar": 200}
-{"foo": 200, "bar": 300}
-{"foo": 300, "bar": 400}
-+++
-jt ^ [ foo % ] bar %
-.
-.fi
-.
-.IP "" 0
-.
-.IP "" 4
-.
-.nf
-
+$ cat <<+++ |
+\- {"foo": 100, "bar": 200}
+\- {"foo": 200, "bar": 300}
+\- {"foo": 300, "bar": 400}
+\- +++
+\- jt ^ [ foo % ] bar %
 0       100     200
 1       200     300
 2       300     400
@@ -827,24 +673,15 @@ Note that one entity in the stream may result in more than one output record whe
 .
 .nf
 
-cat <<+++ |
-{"foo":10,"bar":[100,200]}
-{"foo":20,"bar":[300,400]}
-+++
-jt [ foo % ] bar %
-.
-.fi
-.
-.IP "" 0
-.
-.IP "" 4
-.
-.nf
-
-10      100
-10      200
-20      300
-20      400
+$ cat <<+++ |
+\- {"foo":10,"bar":[100,200]}
+\- {"foo":20,"bar":[300,400]}
+\- +++
+\- jt ^ [ foo % ] bar %
+0       10      100
+0       10      200
+1       20      300
+1       20      400
 .
 .fi
 .
@@ -857,21 +694,12 @@ The \fB+\fR command parses JSON embedded in strings:
 .
 .nf
 
-cat <<+++ |
-{"foo":"{\e"bar\e":100}","baz":200}
-{"foo":"{\e"bar\e":200}","baz":300}
-{"foo":"{\e"bar\e":300}","baz":400}
-+++
-jt [ foo + bar % ] baz %
-.
-.fi
-.
-.IP "" 0
-.
-.IP "" 4
-.
-.nf
-
+$ cat <<+++ |
+\- {"foo":"{\e"bar\e":100}","baz":200}
+\- {"foo":"{\e"bar\e":200}","baz":300}
+\- {"foo":"{\e"bar\e":300}","baz":400}
+\- +++
+\- jt [ foo + bar % ] baz %
 100     200
 200     300
 300     400
@@ -887,21 +715,12 @@ Note that \fB+\fR pushes the resulting JSON entity onto the data stack \(em it d
 .
 .nf
 
-cat <<+++ |
-{"foo":"{\e"bar\e":100}","baz":200}
-{"foo":"{\e"bar\e":200}","baz":300}
-{"foo":"{\e"bar\e":300}","baz":400}
-+++
-jt [ foo + bar % ] %
-.
-.fi
-.
-.IP "" 0
-.
-.IP "" 4
-.
-.nf
-
+$ cat <<+++ |
+\- {"foo":"{\e"bar\e":100}","baz":200}
+\- {"foo":"{\e"bar\e":200}","baz":300}
+\- {"foo":"{\e"bar\e":300}","baz":400}
+\- +++
+\- jt [ foo + bar % ] %
 100     {"foo":"{\e"bar\e":100}","baz":200}
 200     {"foo":"{\e"bar\e":200}","baz":300}
 300     {"foo":"{\e"bar\e":300}","baz":400}
@@ -917,21 +736,12 @@ Notice the empty column \(em some objects don\'t have the \fIbar\fR key:
 .
 .nf
 
-cat <<+++ |
-{"foo":100,"bar":1000}
-{"foo":200}
-{"foo":300,"bar":3000}
-+++
-jt [ foo % ] bar %
-.
-.fi
-.
-.IP "" 0
-.
-.IP "" 4
-.
-.nf
-
+$ cat <<+++ |
+\- {"foo":100,"bar":1000}
+\- {"foo":200}
+\- {"foo":300,"bar":3000}
+\- +++
+\- jt [ foo % ] bar %
 100     1000
 200
 300     3000
@@ -947,21 +757,12 @@ Enable inner join mode with the \fB\-j\fR flag\. This removes output rows when a
 .
 .nf
 
-cat <<+++ |
-{"foo":100,"bar":1000}
-{"foo":200}
-{"foo":300,"bar":3000}
-+++
-jt \-j [ foo % ] bar %
-.
-.fi
-.
-.IP "" 0
-.
-.IP "" 4
-.
-.nf
-
+$ cat <<+++ |
+\- {"foo":100,"bar":1000}
+\- {"foo":200}
+\- {"foo":300,"bar":3000}
+\- +++
+\- jt \-j [ foo % ] bar %
 100     1000
 300     3000
 .
@@ -976,21 +777,12 @@ Note that this does not remove rows when the key exists and the value is empty:
 .
 .nf
 
-cat <<+++ |
-{"foo":100,"bar":1000}
-{"foo":200,"bar":""}
-{"foo":300,"bar":3000}
-+++
-jt \-j [ foo % ] bar %
-.
-.fi
-.
-.IP "" 0
-.
-.IP "" 4
-.
-.nf
-
+$ cat <<+++ |
+\- {"foo":100,"bar":1000}
+\- {"foo":200,"bar":""}
+\- {"foo":300,"bar":3000}
+\- +++
+\- jt \-j [ foo % ] bar %
 100     1000
 200
 300     3000
@@ -1006,24 +798,15 @@ Sometimes the implicit iteration over arrays is awkward:
 .
 .nf
 
-cat <<+++ |
-{
-  "foo": [
-    {"bar":100},
-    {"bar":200}
-  ]
-}
-+++
-jt \. ^ \. ^ %
-.
-.fi
-.
-.IP "" 0
-.
-.IP "" 4
-.
-.nf
-
+$ cat <<+++ |
+\- {
+\-   "foo": [
+\-     {"bar":100},
+\-     {"bar":200}
+\-   ]
+\- }
+\- +++
+\- jt \. ^ \. ^ %
 0       bar     100
 1       bar     200
 .
@@ -1032,65 +815,75 @@ jt \. ^ \. ^ %
 .IP "" 0
 .
 .P
-Should the first \fB^\fR be printing the array index (which it does, in this case) or the object key (i\.e\. \fIfoo\fR)? Explicit iteration with the \fB\-a\fR flag eliminates the ambiguity:
+Should the first \fB^\fR be printing the array index of the implicit iteration (which it does, in this case) or the object key (i\.e\. \fIfoo\fR) of the explicit iteration of the \fB\.\fR command?
+.
+.P
+Another awkward case is printing arrays:
 .
 .IP "" 4
 .
 .nf
 
-cat <<+++ |
-{
-  "foo": [
-    {"bar":100},
-    {"bar":200}
-  ]
-}
-+++
-jt \-a \. ^ \. ^ %
-.
-.fi
-.
-.IP "" 0
-.
-.IP "" 4
-.
-.nf
-
-foo     0       {"bar":100}
-foo     1       {"bar":200}
+$ cat <<+++ |
+\- {
+\-   "foo": [
+\-     {"bar":100},
+\-     {"bar":200}
+\-   ]
+\- }
+\- +++
+\- jt foo %
+{"bar":100}
+{"bar":200}
 .
 .fi
 .
 .IP "" 0
 .
 .P
-Notice that \fBjt\fR does not automatically iterate over the array: the first \fB\.\fR command iterates over the root object, and the second \fB\.\fR iterates explicitly over the array, so the final \fB%\fR prints the items in the array\.
+The array can not be printed with the \fB%\fR command because it is being iterated over implicitly\. Instead, the items in the array are printed, which may not be the desired behavior\.
 .
 .P
-With explicit iteration enabled:
+The \fB\-a\fR flag eliminates the ambiguity by enabling explicit iteration\. In this mode the \fB\.\fR command must be used to iterate over both objects and arrays \(em arrays are not automatically iterated over\.
+.
+.P
+Now the array can be printed:
 .
 .IP "" 4
 .
 .nf
 
-cat <<+++ |
-{
-  "foo": [
-    {"bar":100},
-    {"bar":200}
-  ]
-}
-+++
-jt \-a \. \. ^ \. ^ %
+$ cat <<+++ |
+\- {
+\-   "foo": [
+\-     {"bar":100},
+\-     {"bar":200}
+\-   ]
+\- }
+\- +++
+\- jt \-a foo %
+[{"bar":100},{"bar":200}]
 .
 .fi
 .
 .IP "" 0
 .
+.P
+Or the first \fB^\fR can print the array index, as before:
+.
 .IP "" 4
 .
 .nf
 
+$ cat <<+++ |
+\- {
+\-   "foo": [
+\-     {"bar":100},
+\-     {"bar":200}
+\-   ]
+\- }
+\- +++
+\- jt \-a \. \. ^ \. ^ %
 0       bar     100
 1       bar     200
 .
@@ -1099,30 +892,21 @@ jt \-a \. \. ^ \. ^ %
 .IP "" 0
 .
 .P
-the first \fB^\fR prints the array index and:
+Or it can print the object key:
 .
 .IP "" 4
 .
 .nf
 
-cat <<+++ |
-{
-  "foo": [
-    {"bar":100},
-    {"bar":200}
-  ]
-}
-+++
-jt \-a \. ^ \. \. ^ %
-.
-.fi
-.
-.IP "" 0
-.
-.IP "" 4
-.
-.nf
-
+$ cat <<+++ |
+\- {
+\-   "foo": [
+\-     {"bar":100},
+\-     {"bar":200}
+\-   ]
+\- }
+\- +++
+\- jt \-a \. ^ \. \. ^ %
 foo     bar     100
 foo     bar     200
 .
@@ -1131,39 +915,27 @@ foo     bar     200
 .IP "" 0
 .
 .P
-the first \fB^\fR prints the object key, and
+Or, with the addition of one more \fB^\fR command, it can print both:
 .
 .IP "" 4
 .
 .nf
 
-cat <<+++ |
-{
-  "foo": [
-    {"bar":100},
-    {"bar":200}
-  ]
-}
-+++
-jt \-a \. ^ \. ^ \. ^ %
-.
-.fi
-.
-.IP "" 0
-.
-.IP "" 4
-.
-.nf
-
+$ cat <<+++ |
+\- {
+\-   "foo": [
+\-     {"bar":100},
+\-     {"bar":200}
+\-   ]
+\- }
+\- +++
+\- jt \-a \. ^ \. ^ \. ^ %
 foo     0       bar     100
 foo     1       bar     200
 .
 .fi
 .
 .IP "" 0
-.
-.P
-adding a third \fB^\fR command prints both\.
 .
 .SH "COPYRIGHT"
 Copyright © 2017 Micha Niskin \fB<micha\.niskin@gmail\.com>\fR, distributed under the Eclipse Public License, version 1\.0\. This is free software: you are free to change and redistribute it\. There is NO WARRANTY, to the extent permitted by law\.

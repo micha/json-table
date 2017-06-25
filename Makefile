@@ -1,7 +1,7 @@
 .PHONY: all clean docs install dist test
 
 OS      = $(shell uname -s)
-CFLAGS += -D_GNU_SOURCE=1 -O3 -Wall -Werror -pedantic-errors -std=c99
+CFLAGS += -D_GNU_SOURCE=1 -O3 -Wall -Werror -Winline -pedantic-errors -std=c99
 ifneq (${OS}, Darwin)
 LDFLAGS = -static
 endif

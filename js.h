@@ -57,6 +57,10 @@ typedef struct {
 
 jstok_t *js_tok(jsparser_t *p, size_t t);
 
+char *js_buf(jsparser_t *p, size_t t);
+
+size_t js_len(jsparser_t *p, size_t t);
+
 // predicates
 
 int js_is_string(jstok_t *tok);
@@ -93,8 +97,6 @@ void js_restore(jsparser_t *p, jsstate_t *s);
 
 size_t js_obj_get(jsparser_t *p, size_t obj, const char *key);
 
-size_t js_obj_get_fuzzy(jsparser_t *p, size_t obj, const char *key);
-
 size_t js_array_get(jsparser_t *p, size_t ary, size_t idx);
 
 // create new nodes
@@ -103,10 +105,10 @@ size_t js_create_index(jsparser_t *p, size_t idx);
 
 // printing, unescaping
 
-jserr_t js_print(jsparser_t *p, size_t t, Buffer *b, int json);
+jserr_t js_print(jsparser_t *p, size_t t, Buffer *b, int json, int csv);
 
 jserr_t js_print_info(jsparser_t *p, size_t t, Buffer *buf);
 
-char *js_unescape_string(char *in);
+void js_unescape_string(Buffer *b, char *in, size_t len, int csv);
 
 #endif

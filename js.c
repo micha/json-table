@@ -12,6 +12,14 @@ inline jstok_t *js_tok(jsparser_t *p, size_t t) {
   return p->toks + t;
 }
 
+inline char *js_buf(jsparser_t *p, size_t t) {
+  return (p->js)->buf + js_tok(p, t)->start;
+}
+
+inline size_t js_len(jsparser_t *p, size_t t) {
+  return js_tok(p, t)->end - js_tok(p, t)->start;
+}
+
 static inline const char *js(jsparser_t *p) {
   return (p->js)->buf + p->pos;
 }
@@ -297,18 +305,6 @@ size_t js_obj_get(jsparser_t *p, size_t obj, const char *key) {
   return 0;
 }
 
-size_t js_obj_get_fuzzy(jsparser_t *p, size_t obj, const char *key) {
-  size_t v, len, keylen = strlen(key);
-  jstok_t *tmp;
-  for(v = js_tok(p, obj)->first_child; v; v = js_tok(p, v)->next_sibling) {
-    tmp = js_tok(p, v);
-    len = tmp->end - tmp->start;
-    if (len >= keylen && !strncasecmp(key, (p->js)->buf + tmp->start, keylen))
-      return js_tok(p, v)->first_child;
-  }
-  return 0;
-}
-
 size_t js_array_get(jsparser_t *p, size_t ary, size_t idx) {
   size_t i, v;
   if (idx == SIZE_MAX) return 0;
@@ -322,7 +318,7 @@ size_t js_array_get(jsparser_t *p, size_t ary, size_t idx) {
  * JSON printer
  *****************************************************************************/
 
-jserr_t js_print(jsparser_t *p, size_t t, Buffer *b, int json) {
+jserr_t js_print(jsparser_t *p, size_t t, Buffer *b, int json, int csv) {
   jstok_t *tok = js_tok(p, t);
   char digitbuf[10];
   size_t v;
@@ -331,35 +327,46 @@ jserr_t js_print(jsparser_t *p, size_t t, Buffer *b, int json) {
 
   switch (tok->type) {
     case JS_ARRAY:
-      buf_append(b, "[", 1);
+      buf_write(b, '[');
       v = tok->first_child;
       while (v) {
         if (v != tok->first_child)
-          buf_append(b, ",", 1);
-        js_print(p, v, b, json);
+          buf_write(b, ',');
+        js_print(p, v, b, json, csv);
         v = js_tok(p, v)->next_sibling;
       }
-      buf_append(b, "]", 1);
+      buf_write(b, ']');
       break;
     case JS_OBJECT:
-      buf_append(b, "{", 1);
+      buf_write(b, '{');
       v = tok->first_child;
       while (v) {
         if (v != tok->first_child)
-          buf_append(b, ",", 1);
-        js_print(p, v, b, json);
+          buf_write(b, ',');
+        js_print(p, v, b, json, csv);
         v = js_tok(p, v)->next_sibling;
       }
-      buf_append(b, "}", 1);
+      buf_write(b, '}');
       break;
     case JS_PAIR:
       if (!json) {
-        buf_append(b, (p->js)->buf + tok->start, tok->end - tok->start);
+        if (csv) {
+          js_unescape_string(b, js_buf(p, t), js_len(p, t), csv);
+        } else {
+          buf_append(b, js_buf(p, t), js_len(p, t));
+        }
       } else {
-        buf_append(b, "\"", 1);
-        buf_append(b, (p->js)->buf + tok->start, tok->end - tok->start);
-        buf_append(b, "\":", 2);
-        js_print(p, tok->first_child, b, json);
+        buf_write(b, '\"');
+        if (csv) {
+          buf_write(b, '\"');
+          buf_append_csv(b, js_buf(p, t), js_len(p, t));
+          buf_write(b, '\"');
+        } else {
+          buf_append(b, js_buf(p, t), js_len(p, t));
+        }
+        buf_write(b, '\"');
+        buf_write(b, ':');
+        js_print(p, tok->first_child, b, json, csv);
       }
       break;
     case JS_ITEM:
@@ -367,13 +374,27 @@ jserr_t js_print(jsparser_t *p, size_t t, Buffer *b, int json) {
         snprintf(digitbuf, 10, "%zu", tok->idx);
         buf_append(b, digitbuf, strlen(digitbuf));
       } else {
-        js_print(p, tok->first_child, b, json);
+        js_print(p, tok->first_child, b, json, csv);
       }
       break;
     case JS_STRING:
-      if (json) buf_append(b, "\"", 1);
-      buf_append(b, (p->js)->buf + tok->start, tok->end - tok->start);
-      if (json) buf_append(b, "\"", 1);
+      if (json) {
+        buf_write(b, '\"');
+        if (csv) buf_write(b, '\"');
+      }
+      if (csv) {
+        if (json) {
+          buf_append_csv(b, js_buf(p, t), js_len(p, t));
+        } else {
+          js_unescape_string(b, js_buf(p, t), js_len(p, t), csv);
+        }
+      } else {
+        buf_append(b, (p->js)->buf + tok->start, tok->end - tok->start);
+      }
+      if (json) {
+        buf_write(b, '\"');
+        if (csv) buf_write(b, '\"');
+      }
       break;
     case JS_NULL:
     case JS_TRUE:
@@ -398,7 +419,7 @@ jserr_t js_print_info(jsparser_t *p, size_t t, Buffer *b) {
       while (v) {
         tmp = js_tok(p, v);
         buf_append(b, (p->js)->buf + tmp->start, tmp->end - tmp->start);
-        if ((v = js_tok(p, v)->next_sibling)) buf_append(b, "\n", 1);
+        if ((v = js_tok(p, v)->next_sibling)) buf_write(b, '\n');
       }
       break;
     case JS_ARRAY:
@@ -448,42 +469,52 @@ static unsigned long js_read_code_point(char **s) {
 
 static unsigned long utf_tag[4] = { 0x00, 0xc0, 0xe0, 0xf0 };
 
-static void js_encode_u_escaped(char **in, char **out) {
+static void js_encode_u_escaped(Buffer *b, char **in, int csv) {
+  char buf[4];
   unsigned long p = js_read_code_point(in);
   int width = (p < 0x80) ? 1 : (p < 0x800) ? 2 : (p < 0x10000) ? 3 : 4;
-  *out += width;
+
   switch (width) {
-    case 4: *--(*out) = ((p | 0x80) & 0xbf); p >>= 6;
-    case 3: *--(*out) = ((p | 0x80) & 0xbf); p >>= 6;
-    case 2: *--(*out) = ((p | 0x80) & 0xbf); p >>= 6;
-    case 1: *--(*out) =  (p | utf_tag[width - 1]);
+    case 4: buf[3] = ((p | 0x80) & 0xbf); p >>= 6;
+    case 3: buf[2] = ((p | 0x80) & 0xbf); p >>= 6;
+    case 2: buf[1] = ((p | 0x80) & 0xbf); p >>= 6;
+    case 1: buf[0] =  (p | utf_tag[width - 1]);
   }
-  *out += width;
+
+  if (csv && width == 1 && buf[0] == '\"') {
+    buf[1] = '\"';
+    width++;
+  }
+
+  buf_append_unchecked(b, buf, width);
 }
 
-char *js_unescape_string(char *in) {
-  char *inp = in, *outp, *out;
-  outp = out = jmalloc(strlen(in) + 1);
+void js_unescape_string(Buffer *b, char *in, size_t len, int csv) {
+  char *inp = in, *endp = in + len;
 
-  while (*inp != '\0') {
+  buf_check(b, len);
+
+  while (inp < endp && *inp != '\0') {
+    if (*inp == '\"' || (0 <= *inp && *inp < 32))
+      die("can't parse JSON");
+
     if (*inp != '\\') {
-      *(outp++) = *(inp++);
+      buf_write_unchecked(b, *(inp++));
     } else {
+      if (csv && *(inp + 1) == '\"')
+        buf_write_unchecked(b, '\"');
       switch(*(++inp)) {
-        case 'b': *(outp++) = '\b'; inp++; break;
-        case 'f': *(outp++) = '\f'; inp++; break;
-        case 'n': *(outp++) = '\n'; inp++; break;
-        case 'r': *(outp++) = '\r'; inp++; break;
-        case 't': *(outp++) = '\t'; inp++; break;
-        case 'u': inp++; js_encode_u_escaped(&inp, &outp); break;
-        default:  *(outp++) = *(inp++);
+        case 'b': buf_write_unchecked(b, '\b'); inp++; break;
+        case 'f': buf_write_unchecked(b, '\f'); inp++; break;
+        case 'n': buf_write_unchecked(b, '\n'); inp++; break;
+        case 'r': buf_write_unchecked(b, '\r'); inp++; break;
+        case 't': buf_write_unchecked(b, '\t'); inp++; break;
+        case 'u': inp++; js_encode_u_escaped(b, &inp, csv); break;
+        case '\"': case '\\': case '/': buf_write_unchecked(b, *(inp++)); break;
+        default: die("can't parse JSON");
       }
     }
   }
-
-  *outp = '\0';
-
-  return out;
 }
 
 /*

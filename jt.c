@@ -33,7 +33,6 @@ typedef struct {
 int run(jsparser_t *p, int wordc, word_t *wordv) {
   size_t d = stack_head(DAT), tmp, itr, root;
   int e = 0, cols = 0;
-  char *unesc;
 
   if (wordc <= 0) return 0;
 
@@ -74,9 +73,7 @@ int run(jsparser_t *p, int wordc, word_t *wordv) {
         if (js_tok(p, d)->parsed) {
           stack_push(DAT, js_tok(p, d)->parsed);
         } else if (js_is_string(js_tok(p, d))) {
-          unesc = js_unescape_string(((p->js)->buf) + js_tok(p, d)->start);
-          buf_append(p->js, unesc, strlen(unesc));
-          free(unesc);
+          js_unescape_string(p->js, js_buf(p, d), js_len(p, d), 0);
           if (! js_parse_one(p, &root)) {
             js_tok(p, d)->parsed = root;
             stack_push(DAT, root);
@@ -105,7 +102,7 @@ int run(jsparser_t *p, int wordc, word_t *wordv) {
         break;
       case '@':
         js_print_info(p, d, OUTBUF);
-        printf("%s\n", OUTBUF->buf);
+        buf_println(OUTBUF);
         exit(0);
       default:
         die("unexpected command");
@@ -161,16 +158,29 @@ void parse_commands(int argc, char *argv[], word_t *wordv) {
   }
 }
 
+void unquote_unescape(Buffer *b, char *s, int csv) {
+  int len = strlen(s), quoted = (len > 2 && s[0] == '\"' && s[len - 1] == '\"');
+
+  if (csv) buf_write(b, '\"');
+  js_unescape_string(b, quoted ? s+1 : s, quoted ? len-2 : len, csv);
+  if (csv) buf_write(b, '\"');
+}
+
 int main(int argc, char *argv[]) {
   size_t root = 0, item, idx = 0, wordc;
   word_t *wordv;
   jsparser_t *p;
   jserr_t err;
-  int opt, cols, i;
+  int opt, cols, i, opt_csv = 0;
   jsstate_t saved_state;
 
-  while ((opt = getopt(argc, argv, "+hVajsu:")) != -1) {
+  buf_alloc(&OUTBUF);
+
+  while ((opt = getopt(argc, argv, "+hVacjsu:")) != -1) {
     switch (opt) {
+      case 'c':
+        opt_csv = 1;
+        break;
       case 'h':
         usage(0);
         break;
@@ -187,7 +197,8 @@ int main(int argc, char *argv[]) {
         /* for compatibility -- this option is now redundant */
         break;
       case 'u':
-        printf("%s", js_unescape_string((char*) strdup(optarg)));
+        unquote_unescape(OUTBUF, optarg, opt_csv);
+        buf_println(OUTBUF);
         exit(0);
       default:
         fprintf(stderr, "\n");
@@ -207,8 +218,6 @@ int main(int argc, char *argv[]) {
   stack_alloc(&ITR, "iterator", STACKSIZE);
   stack_alloc(&IDX, "index",    STACKSIZE);
 
-  buf_alloc(&OUTBUF);
-
   js_alloc(&p, stdin, 128);
 
   while ((err = js_parse_one(p, &root)) != JS_EDONE) {
@@ -226,10 +235,15 @@ int main(int argc, char *argv[]) {
 
       if (cols > 0) {
         for (i = 0; i <= OUT->head; i++) {
-          if ((item = (OUT->items)[i])) js_print(p, item, OUTBUF, 0);
-          if (i < OUT->head) buf_append(OUTBUF, "\t", 1);
+          if ((item = (OUT->items)[i])) {
+            if (opt_csv) buf_write(OUTBUF, '\"');
+            js_print(p, item, OUTBUF, 0, opt_csv);
+            if (opt_csv) buf_write(OUTBUF, '\"');
+          }
+          if (i < OUT->head)
+            buf_write(OUTBUF, opt_csv ? ',' : '\t');
         }
-        printf("%s\n", OUTBUF->buf);
+        buf_println(OUTBUF);
       }
 
       stack_pop_to(DAT, 0);

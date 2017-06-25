@@ -9,9 +9,8 @@ jt(1) -- transform JSON data to tabular format
 
 ## DESCRIPTION
 
-**Jt** extracts information from UTF-8 encoded JSON forms read from <stdin> and
-writes the results as tab-delimited, newline-separated records to <stdout> for
-processing with common Unix text processing utilities in shell pipelines.
+**Jt** reads UTF-8 encoded JSON forms from <stdin> and writes tab-delimited,
+newline-separated records to <stdout>.
 
 ## OPTIONS
 
@@ -25,14 +24,18 @@ processing with common Unix text processing utilities in shell pipelines.
     Explicit iteration mode: require the `.` command to iterate over arrays
     instead of iterating automatically.
 
+  * `-c`:
+    CSV output mode: write records as comma-separated values.
+
   * `-j`:
     Inner join mode: discard rows with missing columns.
 
   * `-s`:
-    Included for compatibility with earlier versions.
+    A no-op, included for compatibility with earlier versions.
 
   * `-u` <string>:
-    Unescape JSON <string>, print it, and exit.
+    Unescape JSON <string>, print it, and exit. Double-quotes around <string>
+    are optional.
 
 ## OPERATION
 
@@ -162,7 +165,29 @@ If unescaped values are desired the `-u` option can be used:
 
 ### Collections
 
-Objects and arrays are printed as JSON with whitespace removed.
+Objects and arrays are printed as JSON with whitespace removed. Note that it
+is only possible to print arrays when the `-a` option is specified (see the
+**Iteration (Arrays)** and **Explicit Iteration** sections below).
+
+### CSV
+
+The `-c` flag enables CSV output conforming to RFC 4180. This format supports
+strings containing tabs, newlines, etc.:
+
+    $ cat <<+++ |
+    - {
+    -   "foo": "one\ttwo",
+    -   "bar": "three\nfour",
+    -   "baz": "music \"\u266A\""
+    - }
+    - +++
+    - jt -c [ foo % ] [ bar % ] baz %
+    "one    two","three
+    four","music ""♪"""
+
+## EXIT STATUS
+
+**Jt** will exit with a status of 0 on success, 1 on error.
 
 ## EXAMPLES
 
@@ -172,13 +197,11 @@ some simple exploration and extraction of data from JSON and JSON streams.
 Remember the `bash` heredoc syntax with pipelines:
 
 ```bash
-cat <<+++ |
-foo
-bar
-+++
-sed s/^/the/ | paste -sd,
-```
-```
+$ cat <<+++ |
+- foo
+- bar
+- +++
+- sed s/^/the/ | paste -sd,
 thefoo,thebar
 ```
 
@@ -188,16 +211,14 @@ The `@` command prints information about the item at the top of the data stack.
 When the item is an object `@` prints its keys:
 
 ```bash
-cat <<+++ |
-{
-  "foo": 100,
-  "bar": 200,
-  "baz": 300
-}
-+++
-jt @
-```
-```
+$ cat <<+++ |
+- {
+-   "foo": 100,
+-   "bar": 200,
+-   "baz": 300
+- }
+- +++
+- jt @
 foo
 bar
 baz
@@ -207,21 +228,19 @@ When the top item is an array `@` prints information about the first item in
 the array:
 
 ```bash
-cat <<+++ |
-[
-  {
-    "foo": 100,
-    "bar": 200
-  },
-  {
-    "baz": 300,
-    "baf": 400
-  }
-]
-+++
-jt @
-```
-```
+$ cat <<+++ |
+- [
+-   {
+-     "foo": 100,
+-     "bar": 200
+-   },
+-   {
+-     "baz": 300,
+-     "baf": 400
+-   }
+- ]
+- +++
+- jt @
 foo
 bar
 ```
@@ -229,12 +248,10 @@ bar
 Otherwise, `@` prints the type of the item:
 
 ```bash
-cat <<+++ |
-"hello world"
-+++
-jt @
-```
-```
+$ cat <<+++ |
+- "hello world"
+- +++
+- jt @
 [string]
 ```
 
@@ -244,36 +261,32 @@ Property names are also commands. Use `foo` here as a command to drill down
 into the <foo> property and then use `@` to print its keys:
 
 ```bash
-cat <<+++ |
-{
-  "foo": {
-    "bar": 100,
-    "baz": 200
-  }
-}
-+++
-jt foo @
-```
-```
+$ cat <<+++ |
+- {
+-   "foo": {
+-     "bar": 100,
+-     "baz": 200
+-   }
+- }
+- +++
+- jt foo @
 bar
 baz
 ```
 
-When a property name conflicts with a **jt** command you must wrap the property
-name with square brackets to drill down:
+A property name that conflicts with a **jt** command may be wrapped with square
+brackets to drill down:
 
 ```bash
-cat <<+++ |
-{
-  "@": {
-    "bar": 100,
-    "baz": 200
-  }
-}
-+++
-jt [@] @
-```
-```
+$ cat <<+++ |
+- {
+-   "@": {
+-     "bar": 100,
+-     "baz": 200
+-   }
+- }
+- +++
+- jt [@] @
 bar
 baz
 ```
@@ -285,31 +298,27 @@ the top item is a collection it is printed as JSON (insiginificant whitespace
 removed):
 
 ```bash
-cat <<+++ |
-{
-  "foo": 100,
-  "bar": 200
-}
-+++
-jt %
-```
-```
+$ cat <<+++ |
+- {
+-   "foo": 100,
+-   "bar": 200
+- }
+- +++
+- jt %
 {"foo":100,"bar":200}
 ```
 
 Drill down and print:
 
 ```bash
-cat <<+++ |
-{
-  "foo": {
-    "bar": 100
-  }
-}
-+++
-jt foo bar %
-```
-```
+$ cat <<+++ |
+- {
+-   "foo": {
+-     "bar": 100
+-   }
+- }
+- +++
+- jt foo bar %
 100
 ```
 
@@ -317,53 +326,48 @@ The `%` command can be used multiple times. The printed values will be delimited
 by tabs:
 
 ```bash
-cat <<+++ |
-{
-  "foo": {
-    "bar": 100
-  }
-}
-+++
-jt % foo % bar %
-```
-```
+$ cat <<+++ |
+- {
+-   "foo": {
+-     "bar": 100
+-   }
+- }
+- +++
+- jt % foo % bar %
 {"foo":{"bar":100}}     {"bar":100}     100
 ```
 
 ### Save / Restore
 
-The `[` and `]` commands provide a sort of `GOSUB` facility &mdash; the data
-stack is saved by `[` and restored by `]`. This can be used to extract values
-from different paths in the JSON as a single record:
+The `[` and `]` commands provide a sort of `GOSUB` facility. Use `[` to save
+the data stack's state on the gosub stack. Then drill down and print a value.
+The `]` command pops the gosub stack and restores the data stack to that state.
+Now it is possible to drill down into a different path to print another value:
 
 ```bash
-cat <<+++ |
-{
-  "foo": 100,
-  "bar": 200
-}
-+++
-jt [ foo % ] bar %
-```
-```
+$ cat <<+++ |
+- {
+-   "foo": 100,
+-   "bar": 200
+- }
+- +++
+- jt [ foo % ] bar %
 100     200
 ```
 
 The `[` and `]` commands can be nested:
 
 ```bash
-cat <<+++ |
-{
-  "foo": {
-    "bar": 100,
-    "baz": 200
-  },
-  "baf": "quux"
-}
-+++
-jt [ foo [ bar % ] [ baz % ] ] baf %
-```
-```
+$ cat <<+++ |
+- {
+-   "foo": {
+-     "bar": 100,
+-     "baz": 200
+-   },
+-   "baf": "quux"
+- }
+- +++
+- jt [ foo [ bar % ] [ baz % ] ] baf %
 100     200     quux
 ```
 
@@ -374,19 +378,17 @@ jt [ foo [ bar % ] [ baz % ] ] baf %
 per iteration, records separated by newlines:
 
 ```bash
-cat <<+++ |
-{
-  "foo": 100,
-  "bar": [
-    {"baz": 200},
-    {"baz": 300},
-    {"baz": 400}
-  ]
-}
-+++
-jt [ foo % ] bar baz %
-```
-```
+$ cat <<+++ |
+- {
+-   "foo": 100,
+-   "bar": [
+-     {"baz": 200},
+-     {"baz": 300},
+-     {"baz": 400}
+-   ]
+- }
+- +++
+- jt [ foo % ] bar baz %
 100     200
 100     300
 100     400
@@ -395,19 +397,17 @@ jt [ foo % ] bar baz %
 The `^` command includes the array index as a column in the result:
 
 ```bash
-cat <<+++ |
-{
-  "foo": 100,
-  "bar": [
-    {"baz": 200},
-    {"baz": 300},
-    {"baz": 400}
-  ]
-}
-+++
-jt [ foo % ] bar ^ baz %
-```
-```
+$ cat <<+++ |
+- {
+-   "foo": 100,
+-   "bar": [
+-     {"baz": 200},
+-     {"baz": 300},
+-     {"baz": 400}
+-   ]
+- }
+- +++
+- jt [ foo % ] bar ^ baz %
 100     0       200
 100     1       300
 100     2       400
@@ -417,17 +417,15 @@ Note that `^` is scoped &mdash; it prints the index of the innermost enclosing
 loop:
 
 ```bash
-cat <<+++ |
-{
-  "foo": [
-    {"bar": [100, 200]},
-    {"bar": [300, 400]}
-  ]
-}
-+++
-jt foo ^ bar ^ %
-```
-```
+$ cat <<+++ |
+- {
+-   "foo": [
+-     {"bar": [100, 200]},
+-     {"bar": [300, 400]}
+-   ]
+- }
+- +++
+- jt foo ^ bar ^ %
 0       0       100
 0       1       200
 1       0       300
@@ -439,16 +437,14 @@ jt foo ^ bar ^ %
 The `.` command iterates over the values of an object:
 
 ```bash
-cat <<+++ |
-{
-  "foo": 100,
-  "bar": 200,
-  "baz": 300
-}
-+++
-jt . %
-```
-```
+$ cat <<+++ |
+- {
+-   "foo": 100,
+-   "bar": 200,
+-   "baz": 300
+- }
+- +++
+- jt . %
 100
 200
 300
@@ -458,38 +454,31 @@ When iterating over an object the `^` command prints the name of the current
 property:
 
 ```bash
-cat <<+++ |
-{
-  "foo": 100,
-  "bar": {
-    "baz": 200,
-    "baf": 300,
-    "qux": 400
-  }
-}
-+++
-jt [ foo % ] bar . ^ %
-```
-```
-100     baz     200
-100     baf     300
-100     qux     400
+$ cat <<+++ |
+- {
+-   "foo": 100,
+-   "bar": 200,
+-   "baz": 300
+- }
+- +++
+- jt . ^ %
+foo     100
+bar     200
+baz     300
 ```
 
 The scope of `^` is similar when iterating over objects:
 
 ```bash
-cat <<+++ |
-{
-  "foo": {
-    "bar": 100,
-    "baz": 200
-  }
-}
-+++
-jt . ^ . ^ %
-```
-```
+$ cat <<+++ |
+- {
+-   "foo": {
+-     "bar": 100,
+-     "baz": 200,
+-   }
+- }
+- +++
+- jt . ^ . ^ %
 foo     bar     100
 foo     baz     200
 ```
@@ -500,14 +489,12 @@ foo     baz     200
 delimited by whitespace):
 
 ```bash
-cat <<+++ |
-{"foo": 100, "bar": 200}
-{"foo": 200, "bar": 300}
-{"foo": 300, "bar": 400}
-+++
-jt [ foo % ] bar %
-```
-```
+$ cat <<+++ |
+- {"foo": 100, "bar": 200}
+- {"foo": 200, "bar": 300}
+- {"foo": 300, "bar": 400}
+- +++
+- jt [ foo % ] bar %
 100     200
 200     300
 300     400
@@ -516,16 +503,14 @@ jt [ foo % ] bar %
 Whitespace is optional:
 
 ```bash
-cat <<+++ |
-{"foo": 100,"bar": 200}{"foo":200,"bar":300}
-{
-  "foo": 300,
-  "bar": 400
-}
-+++
-jt [ foo % ] bar %
-```
-```
+$ cat <<+++ |
+- {"foo": 100,"bar": 200}{"foo":200,"bar":300}
+- {
+-   "foo": 300,
+-   "bar": 400
+- }
+- +++
+- jt [ foo % ] bar %
 100     200
 200     300
 300     400
@@ -534,14 +519,12 @@ jt [ foo % ] bar %
 Within a JSON stream the `^` command prints the current stream index:
 
 ```bash
-cat <<+++ |
-{"foo": 100, "bar": 200}
-{"foo": 200, "bar": 300}
-{"foo": 300, "bar": 400}
-+++
-jt ^ [ foo % ] bar %
-```
-```
+$ cat <<+++ |
+- {"foo": 100, "bar": 200}
+- {"foo": 200, "bar": 300}
+- {"foo": 300, "bar": 400}
+- +++
+- jt ^ [ foo % ] bar %
 0       100     200
 1       200     300
 2       300     400
@@ -551,17 +534,15 @@ Note that one entity in the stream may result in more than one output record
 when iteration is involved:
 
 ```bash
-cat <<+++ |
-{"foo":10,"bar":[100,200]}
-{"foo":20,"bar":[300,400]}
-+++
-jt [ foo % ] bar %
-```
-```
-10      100
-10      200
-20      300
-20      400
+$ cat <<+++ |
+- {"foo":10,"bar":[100,200]}
+- {"foo":20,"bar":[300,400]}
+- +++
+- jt ^ [ foo % ] bar %
+0       10      100
+0       10      200
+1       20      300
+1       20      400
 ```
 
 ### Nested JSON
@@ -569,14 +550,12 @@ jt [ foo % ] bar %
 The `+` command parses JSON embedded in strings:
 
 ```bash
-cat <<+++ |
-{"foo":"{\"bar\":100}","baz":200}
-{"foo":"{\"bar\":200}","baz":300}
-{"foo":"{\"bar\":300}","baz":400}
-+++
-jt [ foo + bar % ] baz %
-```
-```
+$ cat <<+++ |
+- {"foo":"{\"bar\":100}","baz":200}
+- {"foo":"{\"bar\":200}","baz":300}
+- {"foo":"{\"bar\":300}","baz":400}
+- +++
+- jt [ foo + bar % ] baz %
 100     200
 200     300
 300     400
@@ -586,14 +565,12 @@ Note that `+` pushes the resulting JSON entity onto the data stack &mdash; it
 does not modify the original JSON:
 
 ```bash
-cat <<+++ |
-{"foo":"{\"bar\":100}","baz":200}
-{"foo":"{\"bar\":200}","baz":300}
-{"foo":"{\"bar\":300}","baz":400}
-+++
-jt [ foo + bar % ] %
-```
-```
+$ cat <<+++ |
+- {"foo":"{\"bar\":100}","baz":200}
+- {"foo":"{\"bar\":200}","baz":300}
+- {"foo":"{\"bar\":300}","baz":400}
+- +++
+- jt [ foo + bar % ] %
 100     {"foo":"{\"bar\":100}","baz":200}
 200     {"foo":"{\"bar\":200}","baz":300}
 300     {"foo":"{\"bar\":300}","baz":400}
@@ -604,14 +581,12 @@ jt [ foo + bar % ] %
 Notice the empty column &mdash; some objects don't have the <bar> key:
 
 ```bash
-cat <<+++ |
-{"foo":100,"bar":1000}
-{"foo":200}
-{"foo":300,"bar":3000}
-+++
-jt [ foo % ] bar %
-```
-```
+$ cat <<+++ |
+- {"foo":100,"bar":1000}
+- {"foo":200}
+- {"foo":300,"bar":3000}
+- +++
+- jt [ foo % ] bar %
 100     1000
 200
 300     3000
@@ -621,14 +596,12 @@ Enable inner join mode with the `-j` flag. This removes output rows when a key
 in the traversal path doesn't exist:
 
 ```bash
-cat <<+++ |
-{"foo":100,"bar":1000}
-{"foo":200}
-{"foo":300,"bar":3000}
-+++
-jt -j [ foo % ] bar %
-```
-```
+$ cat <<+++ |
+- {"foo":100,"bar":1000}
+- {"foo":200}
+- {"foo":300,"bar":3000}
+- +++
+- jt -j [ foo % ] bar %
 100     1000
 300     3000
 ```
@@ -636,14 +609,12 @@ jt -j [ foo % ] bar %
 Note that this does not remove rows when the key exists and the value is empty:
 
 ```bash
-cat <<+++ |
-{"foo":100,"bar":1000}
-{"foo":200,"bar":""}
-{"foo":300,"bar":3000}
-+++
-jt -j [ foo % ] bar %
-```
-```
+$ cat <<+++ |
+- {"foo":100,"bar":1000}
+- {"foo":200,"bar":""}
+- {"foo":300,"bar":3000}
+- +++
+- jt -j [ foo % ] bar %
 100     1000
 200
 300     3000
@@ -654,100 +625,109 @@ jt -j [ foo % ] bar %
 Sometimes the implicit iteration over arrays is awkward:
 
 ```bash
-cat <<+++ |
-{
-  "foo": [
-    {"bar":100},
-    {"bar":200}
-  ]
-}
-+++
-jt . ^ . ^ %
-```
-```
+$ cat <<+++ |
+- {
+-   "foo": [
+-     {"bar":100},
+-     {"bar":200}
+-   ]
+- }
+- +++
+- jt . ^ . ^ %
 0       bar     100
 1       bar     200
 ```
 
-Should the first `^` be printing the array index (which it does, in this case)
-or the object key (i.e. <foo>)? Explicit iteration with the `-a` flag eliminates
-the ambiguity:
+Should the first `^` be printing the array index of the implicit iteration
+(which it does, in this case) or the object key (i.e. <foo>) of the explicit
+iteration of the `.` command?
+
+Another awkward case is printing arrays:
 
 ```bash
-cat <<+++ |
-{
-  "foo": [
-    {"bar":100},
-    {"bar":200}
-  ]
-}
-+++
-jt -a . ^ . ^ %
-```
-```
-foo     0       {"bar":100}
-foo     1       {"bar":200}
+$ cat <<+++ |
+- {
+-   "foo": [
+-     {"bar":100},
+-     {"bar":200}
+-   ]
+- }
+- +++
+- jt foo %
+{"bar":100}
+{"bar":200}
 ```
 
-Notice that **jt** does not automatically iterate over the array: the first `.`
-command iterates over the root object, and the second `.` iterates explicitly
-over the array, so the final `%` prints the items in the array.
+The array can not be printed with the `%` command because it is being iterated
+over implicitly. Instead, the items in the array are printed, which may not be
+the desired behavior.
 
-With explicit iteration enabled:
+The `-a` flag eliminates the ambiguity by enabling explicit iteration. In this
+mode the `.` command must be used to iterate over both objects and arrays &mdash;
+arrays are not automatically iterated over.
+
+Now the array can be printed:
 
 ```bash
-cat <<+++ |
-{
-  "foo": [
-    {"bar":100},
-    {"bar":200}
-  ]
-}
-+++
-jt -a . . ^ . ^ %
+$ cat <<+++ |
+- {
+-   "foo": [
+-     {"bar":100},
+-     {"bar":200}
+-   ]
+- }
+- +++
+- jt -a foo %
+[{"bar":100},{"bar":200}]
 ```
-```
+
+Or the first `^` can print the array index, as before:
+
+```bash
+$ cat <<+++ |
+- {
+-   "foo": [
+-     {"bar":100},
+-     {"bar":200}
+-   ]
+- }
+- +++
+- jt -a . . ^ . ^ %
 0       bar     100
 1       bar     200
 ```
 
-the first `^` prints the array index and:
+Or it can print the object key:
 
 ```bash
-cat <<+++ |
-{
-  "foo": [
-    {"bar":100},
-    {"bar":200}
-  ]
-}
-+++
-jt -a . ^ . . ^ %
-```
-```
+$ cat <<+++ |
+- {
+-   "foo": [
+-     {"bar":100},
+-     {"bar":200}
+-   ]
+- }
+- +++
+- jt -a . ^ . . ^ %
 foo     bar     100
 foo     bar     200
 ```
 
-the first `^` prints the object key, and
+Or, with the addition of one more `^` command, it can print both:
 
 ```bash
-cat <<+++ |
-{
-  "foo": [
-    {"bar":100},
-    {"bar":200}
-  ]
-}
-+++
-jt -a . ^ . ^ . ^ %
-```
-```
+$ cat <<+++ |
+- {
+-   "foo": [
+-     {"bar":100},
+-     {"bar":200}
+-   ]
+- }
+- +++
+- jt -a . ^ . ^ . ^ %
 foo     0       bar     100
 foo     1       bar     200
 ```
-
-adding a third `^` command prints both.
 
 ## COPYRIGHT
 
