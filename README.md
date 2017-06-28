@@ -61,14 +61,14 @@ can process the values in the shell. For example, to compute the sum of the
 amounts for account 123:
 
 ```bash
-cat <<EOT |
+jt [ account % ] amount % <<EOT |
 {"account":123,"amount":1.00}
 {"account":789,"amount":2.00}
 {"account":123,"amount":4.00}
 {"account":123,"amount":4.00}
 {"account":456,"amount":5.00}
 EOT
-jt [ account % ] amount % | awk -F\\t '$1 == 123 {print $2}' | paste -sd+ |bc
+awk -F\\t '$1 == 123 {print $2}' | paste -sd+ |bc
 ```
 ```
 9.00
@@ -77,14 +77,14 @@ jt [ account % ] amount % | awk -F\\t '$1 == 123 {print $2}' | paste -sd+ |bc
 Or to compute the amount frequencies for the account:
 
 ```bash
-cat <<EOT |
+jt [ account % ] amount % <<EOT |
 {"account":123,"amount":1.00}
 {"account":789,"amount":2.00}
 {"account":123,"amount":4.00}
 {"account":123,"amount":4.00}
 {"account":456,"amount":5.00}
 EOT
-jt [ account % ] amount % | awk -F\\t '$1 == 123 {print $2}' | sort | uniq -c
+awk -F\\t '$1 == 123 {print $2}' | sort | uniq -c
 ```
 ```
       1 1.00
@@ -130,7 +130,7 @@ The resulting TSV data can be piped to **awk**, for example, to get just the
 instances in `test1` that are in service:
 
 ```bash
-cat <<EOT |
+jt asgs [ name % ] instances [ id % ] [ az % ] [ state % ] <<EOT |
 {
   "asgs": [
     {
@@ -151,7 +151,6 @@ cat <<EOT |
   ]
 }
 EOT
-jt asgs [ name % ] instances [ id % ] [ az % ] [ state % ] |
 awk -F\\t '$1 == "test1" && $4 == "InService" {print}'
 ```
 ```
