@@ -21,8 +21,6 @@ Stack *SUB;
 Stack *ITR;
 Stack *IDX;
 
-FILE *devnull = NULL;
-
 typedef struct {
   char cmd;
   char *text;
@@ -35,7 +33,6 @@ typedef struct {
 int run(jsparser_t *p, int wordc, word_t *wordv) {
   size_t d = stack_head(DAT), tmp, itr, root;
   int e = 0, cols = 0;
-  FILE *in;
 
   if (wordc <= 0) return 0;
 
@@ -77,19 +74,10 @@ int run(jsparser_t *p, int wordc, word_t *wordv) {
           stack_push(DAT, js_tok(p, d)->parsed);
         } else if (js_is_string(js_tok(p, d))) {
           js_unescape_string(p->js, js_buf(p, d), js_len(p, d), 0);
-          // Save the parser's input stream and set it to read from /dev/null.
-          // This is done because the parser may try to read more bytes than it
-          // strictly needs for parsing. We read those from /dev/null to avoid
-          // interleaving nested JSON with input JSON from stdin at the end of
-          // the parser's input buffer.
-          in = p->in;
-          p->in = devnull;
           if (! js_parse_one(p, &root)) {
             js_tok(p, d)->parsed = root;
             stack_push(DAT, root);
           }
-          // Restore the parser's input stream.
-          p->in = in;
         }
         break;
       case '[':
@@ -186,6 +174,7 @@ int main(int argc, char *argv[]) {
   jserr_t err;
   int opt, cols, i, opt_csv = 0;
   size_t bpos = 0, ppos = 0;
+  FILE *devnull;
 
   if (! (devnull = fopen("/dev/null", "r")))
     die_err("can't open /dev/null");
@@ -279,6 +268,13 @@ int main(int argc, char *argv[]) {
     //                    bp
     //                    pp
     //
+    // Additionally, we set the parser's input stream to /dev/null to prevent
+    // it from reading any bytes from stdin into the scratch space at the end
+    // of the input buffer that we're using for the nested JSON. A situation
+    // like this would be difficult to manage:
+    //
+    //    [XXXXXXYYYYZZZZZYYYZZZZYY----]
+    //
     // When all the commands have finished executing for the current JSON
     // object (i.e. the XXXXXX bytes) we must restore the input buffer pointers
     // to their original states:
@@ -293,6 +289,7 @@ int main(int argc, char *argv[]) {
     bpos = (p->js)->pos;
     ppos = p->pos;
     p->pos = bpos;
+    p->in = devnull;
 
     stack_push(IDX, item);
     stack_push(DAT, root);
@@ -322,6 +319,7 @@ int main(int argc, char *argv[]) {
     // Restore parser to the saved state.
     (p->js)->pos = bpos;
     p->pos = ppos;
+    p->in = stdin;
 
     js_reset(p);
     stack_pop_to(DAT, -1);
