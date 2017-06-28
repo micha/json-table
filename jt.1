@@ -198,14 +198,13 @@ The \fB\-c\fR flag enables CSV output conforming to RFC 4180\. This format suppo
 .
 .nf
 
-$ cat <<+++ |
+$ jt \-c [ foo % ] [ bar % ] baz % <<EOT
 \- {
 \-   "foo": "one\ettwo",
 \-   "bar": "three\enfour",
 \-   "baz": "music \e"\eu266A\e""
 \- }
-\- +++
-\- jt \-c [ foo % ] [ bar % ] baz %
+\- EOT
 "one    two","three
 four","music ""♪"""
 .
@@ -219,24 +218,6 @@ four","music ""♪"""
 .SH "EXAMPLES"
 Below are a number of examples demonstrating how to use \fBjt\fR commands to do some simple exploration and extraction of data from JSON and JSON streams\.
 .
-.P
-Remember the \fBbash\fR heredoc syntax with pipelines:
-.
-.IP "" 4
-.
-.nf
-
-$ cat <<+++ |
-\- foo
-\- bar
-\- +++
-\- sed s/^/the/ | paste \-sd,
-thefoo,thebar
-.
-.fi
-.
-.IP "" 0
-.
 .SS "Explore"
 The \fB@\fR command prints information about the item at the top of the data stack\. When the item is an object \fB@\fR prints its keys:
 .
@@ -244,14 +225,13 @@ The \fB@\fR command prints information about the item at the top of the data sta
 .
 .nf
 
-$ cat <<+++ |
+$ jt @ <<EOT
 \- {
 \-   "foo": 100,
 \-   "bar": 200,
 \-   "baz": 300
 \- }
-\- +++
-\- jt @
+\- EOT
 foo
 bar
 baz
@@ -267,19 +247,12 @@ When the top item is an array \fB@\fR prints information about the first item in
 .
 .nf
 
-$ cat <<+++ |
+$ jt @ <<EOT
 \- [
-\-   {
-\-     "foo": 100,
-\-     "bar": 200
-\-   },
-\-   {
-\-     "baz": 300,
-\-     "baf": 400
-\-   }
+\-   {"foo": 100, "bar": 200},
+\-   {"baz": 300, "baf": 400}
 \- ]
-\- +++
-\- jt @
+\- EOT
 foo
 bar
 .
@@ -294,10 +267,7 @@ Otherwise, \fB@\fR prints the type of the item:
 .
 .nf
 
-$ cat <<+++ |
-\- "hello world"
-\- +++
-\- jt @
+$ echo \'"hello world"\' | jt @
 [string]
 .
 .fi
@@ -311,15 +281,14 @@ Property names are also commands\. Use \fBfoo\fR here as a command to drill down
 .
 .nf
 
-$ cat <<+++ |
+$ jt foo @ <<EOT
 \- {
 \-   "foo": {
 \-     "bar": 100,
 \-     "baz": 200
 \-   }
 \- }
-\- +++
-\- jt foo @
+\- EOT
 bar
 baz
 .
@@ -334,15 +303,14 @@ A property name that conflicts with a \fBjt\fR command may be wrapped with squar
 .
 .nf
 
-$ cat <<+++ |
+$ jt [@] @ <<EOT
 \- {
 \-   "@": {
 \-     "bar": 100,
 \-     "baz": 200
 \-   }
 \- }
-\- +++
-\- jt [@] @
+\- EOT
 bar
 baz
 .
@@ -357,13 +325,12 @@ The \fB%\fR command prints the item at the top of the data stack\. Note that whe
 .
 .nf
 
-$ cat <<+++ |
+$ jt % <<EOT
 \- {
 \-   "foo": 100,
 \-   "bar": 200
 \- }
-\- +++
-\- jt %
+\- EOT
 {"foo":100,"bar":200}
 .
 .fi
@@ -377,14 +344,13 @@ Drill down and print:
 .
 .nf
 
-$ cat <<+++ |
+$ jt foo bar % <<EOT
 \- {
 \-   "foo": {
 \-     "bar": 100
 \-   }
 \- }
-\- +++
-\- jt foo bar %
+\- EOT
 100
 .
 .fi
@@ -398,14 +364,13 @@ The \fB%\fR command can be used multiple times\. The printed values will be deli
 .
 .nf
 
-$ cat <<+++ |
+$ jt % foo % bar % <<EOT
 \- {
 \-   "foo": {
 \-     "bar": 100
 \-   }
 \- }
-\- +++
-\- jt % foo % bar %
+\- EOT
 {"foo":{"bar":100}}     {"bar":100}     100
 .
 .fi
@@ -419,13 +384,12 @@ The \fB[\fR and \fB]\fR commands provide a sort of \fBGOSUB\fR facility\. Use \f
 .
 .nf
 
-$ cat <<+++ |
+$ jt [ foo % ] bar % <<EOT
 \- {
 \-   "foo": 100,
 \-   "bar": 200
 \- }
-\- +++
-\- jt [ foo % ] bar %
+\- EOT
 100     200
 .
 .fi
@@ -439,7 +403,7 @@ The \fB[\fR and \fB]\fR commands can be nested:
 .
 .nf
 
-$ cat <<+++ |
+$ jt [ foo [ bar % ] [ baz % ] ] baf % <<EOT
 \- {
 \-   "foo": {
 \-     "bar": 100,
@@ -447,8 +411,7 @@ $ cat <<+++ |
 \-   },
 \-   "baf": "quux"
 \- }
-\- +++
-\- jt [ foo [ bar % ] [ baz % ] ] baf %
+\- EOT
 100     200     quux
 .
 .fi
@@ -462,7 +425,7 @@ $ cat <<+++ |
 .
 .nf
 
-$ cat <<+++ |
+$ jt [ foo % ] bar baz % <<EOT
 \- {
 \-   "foo": 100,
 \-   "bar": [
@@ -471,8 +434,7 @@ $ cat <<+++ |
 \-     {"baz": 400}
 \-   ]
 \- }
-\- +++
-\- jt [ foo % ] bar baz %
+\- EOT
 100     200
 100     300
 100     400
@@ -488,7 +450,7 @@ The \fB^\fR command includes the array index as a column in the result:
 .
 .nf
 
-$ cat <<+++ |
+$ jt [ foo % ] bar ^ baz % <<EOT
 \- {
 \-   "foo": 100,
 \-   "bar": [
@@ -497,8 +459,7 @@ $ cat <<+++ |
 \-     {"baz": 400}
 \-   ]
 \- }
-\- +++
-\- jt [ foo % ] bar ^ baz %
+\- EOT
 100     0       200
 100     1       300
 100     2       400
@@ -514,15 +475,14 @@ Note that \fB^\fR is scoped \(em it prints the index of the innermost enclosing 
 .
 .nf
 
-$ cat <<+++ |
+$ jt foo ^ bar ^ % <<EOT
 \- {
 \-   "foo": [
 \-     {"bar": [100, 200]},
 \-     {"bar": [300, 400]}
 \-   ]
 \- }
-\- +++
-\- jt foo ^ bar ^ %
+\- EOT
 0       0       100
 0       1       200
 1       0       300
@@ -539,14 +499,13 @@ The \fB\.\fR command iterates over the values of an object:
 .
 .nf
 
-$ cat <<+++ |
+$ jt \. % <<EOT
 \- {
 \-   "foo": 100,
 \-   "bar": 200,
 \-   "baz": 300
 \- }
-\- +++
-\- jt \. %
+\- EOT
 100
 200
 300
@@ -562,14 +521,13 @@ When iterating over an object the \fB^\fR command prints the name of the current
 .
 .nf
 
-$ cat <<+++ |
+$ jt \. ^ % <<EOT
 \- {
 \-   "foo": 100,
 \-   "bar": 200,
 \-   "baz": 300
 \- }
-\- +++
-\- jt \. ^ %
+\- EOT
 foo     100
 bar     200
 baz     300
@@ -585,15 +543,14 @@ The scope of \fB^\fR is similar when iterating over objects:
 .
 .nf
 
-$ cat <<+++ |
+$ jt \. ^ \. ^ % <<EOT
 \- {
 \-   "foo": {
 \-     "bar": 100,
 \-     "baz": 200,
 \-   }
 \- }
-\- +++
-\- jt \. ^ \. ^ %
+\- EOT
 foo     bar     100
 foo     baz     200
 .
@@ -608,12 +565,11 @@ foo     baz     200
 .
 .nf
 
-$ cat <<+++ |
+$ jt [ foo % ] bar % <<EOT
 \- {"foo": 100, "bar": 200}
 \- {"foo": 200, "bar": 300}
 \- {"foo": 300, "bar": 400}
-\- +++
-\- jt [ foo % ] bar %
+\- EOT
 100     200
 200     300
 300     400
@@ -623,65 +579,20 @@ $ cat <<+++ |
 .IP "" 0
 .
 .P
-Whitespace is optional:
+The \fB^\fR command prints the current stream index:
 .
 .IP "" 4
 .
 .nf
 
-$ cat <<+++ |
-\- {"foo": 100,"bar": 200}{"foo":200,"bar":300}
-\- {
-\-   "foo": 300,
-\-   "bar": 400
-\- }
-\- +++
-\- jt [ foo % ] bar %
-100     200
-200     300
-300     400
-.
-.fi
-.
-.IP "" 0
-.
-.P
-Within a JSON stream the \fB^\fR command prints the current stream index:
-.
-.IP "" 4
-.
-.nf
-
-$ cat <<+++ |
+$ jt ^ [ foo % ] bar % <<EOT
 \- {"foo": 100, "bar": 200}
 \- {"foo": 200, "bar": 300}
 \- {"foo": 300, "bar": 400}
-\- +++
-\- jt ^ [ foo % ] bar %
+\- EOT
 0       100     200
 1       200     300
 2       300     400
-.
-.fi
-.
-.IP "" 0
-.
-.P
-Note that one entity in the stream may result in more than one output record when iteration is involved:
-.
-.IP "" 4
-.
-.nf
-
-$ cat <<+++ |
-\- {"foo":10,"bar":[100,200]}
-\- {"foo":20,"bar":[300,400]}
-\- +++
-\- jt ^ [ foo % ] bar %
-0       10      100
-0       10      200
-1       20      300
-1       20      400
 .
 .fi
 .
@@ -694,12 +605,11 @@ The \fB+\fR command parses JSON embedded in strings:
 .
 .nf
 
-$ cat <<+++ |
+$ jt [ foo + bar % ] baz % <<EOT
 \- {"foo":"{\e"bar\e":100}","baz":200}
 \- {"foo":"{\e"bar\e":200}","baz":300}
 \- {"foo":"{\e"bar\e":300}","baz":400}
-\- +++
-\- jt [ foo + bar % ] baz %
+\- EOT
 100     200
 200     300
 300     400
@@ -709,18 +619,17 @@ $ cat <<+++ |
 .IP "" 0
 .
 .P
-Note that \fB+\fR pushes the resulting JSON entity onto the data stack \(em it does not modify the original JSON:
+Note that \fB+\fR does not modify the original JSON:
 .
 .IP "" 4
 .
 .nf
 
-$ cat <<+++ |
+$ jt [ foo + bar % ] % <<EOT
 \- {"foo":"{\e"bar\e":100}","baz":200}
 \- {"foo":"{\e"bar\e":200}","baz":300}
 \- {"foo":"{\e"bar\e":300}","baz":400}
-\- +++
-\- jt [ foo + bar % ] %
+\- EOT
 100     {"foo":"{\e"bar\e":100}","baz":200}
 200     {"foo":"{\e"bar\e":200}","baz":300}
 300     {"foo":"{\e"bar\e":300}","baz":400}
@@ -736,12 +645,11 @@ Notice the empty column \(em some objects don\'t have the \fIbar\fR key:
 .
 .nf
 
-$ cat <<+++ |
+$ jt [ foo % ] bar % <<EOT
 \- {"foo":100,"bar":1000}
 \- {"foo":200}
 \- {"foo":300,"bar":3000}
-\- +++
-\- jt [ foo % ] bar %
+\- EOT
 100     1000
 200
 300     3000
@@ -757,12 +665,11 @@ Enable inner join mode with the \fB\-j\fR flag\. This removes output rows when a
 .
 .nf
 
-$ cat <<+++ |
+$ jt \-j [ foo % ] bar % <<EOT
 \- {"foo":100,"bar":1000}
 \- {"foo":200}
 \- {"foo":300,"bar":3000}
-\- +++
-\- jt \-j [ foo % ] bar %
+\- EOT
 100     1000
 300     3000
 .
@@ -777,12 +684,11 @@ Note that this does not remove rows when the key exists and the value is empty:
 .
 .nf
 
-$ cat <<+++ |
+$ jt \-j [ foo % ] bar % <<EOT
 \- {"foo":100,"bar":1000}
 \- {"foo":200,"bar":""}
 \- {"foo":300,"bar":3000}
-\- +++
-\- jt \-j [ foo % ] bar %
+\- EOT
 100     1000
 200
 300     3000
@@ -798,15 +704,14 @@ Sometimes the implicit iteration over arrays is awkward:
 .
 .nf
 
-$ cat <<+++ |
+$ jt \. ^ \. ^ % <<EOT
 \- {
 \-   "foo": [
 \-     {"bar":100},
 \-     {"bar":200}
 \-   ]
 \- }
-\- +++
-\- jt \. ^ \. ^ %
+\- EOT
 0       bar     100
 1       bar     200
 .
@@ -824,15 +729,14 @@ Another awkward case is printing arrays:
 .
 .nf
 
-$ cat <<+++ |
+$ jt foo % <<EOT
 \- {
 \-   "foo": [
 \-     {"bar":100},
 \-     {"bar":200}
 \-   ]
 \- }
-\- +++
-\- jt foo %
+\- EOT
 {"bar":100}
 {"bar":200}
 .
@@ -853,15 +757,14 @@ Now the array can be printed:
 .
 .nf
 
-$ cat <<+++ |
+$ jt \-a foo % <<EOT
 \- {
 \-   "foo": [
 \-     {"bar":100},
 \-     {"bar":200}
 \-   ]
 \- }
-\- +++
-\- jt \-a foo %
+\- EOT
 [{"bar":100},{"bar":200}]
 .
 .fi
@@ -875,15 +778,14 @@ Or the first \fB^\fR can print the array index, as before:
 .
 .nf
 
-$ cat <<+++ |
+$ jt \-a \. \. ^ \. ^ % <<EOT
 \- {
 \-   "foo": [
 \-     {"bar":100},
 \-     {"bar":200}
 \-   ]
 \- }
-\- +++
-\- jt \-a \. \. ^ \. ^ %
+\- EOT
 0       bar     100
 1       bar     200
 .
@@ -898,15 +800,14 @@ Or it can print the object key:
 .
 .nf
 
-$ cat <<+++ |
+$ jt \-a \. ^ \. \. ^ % <<EOT
 \- {
 \-   "foo": [
 \-     {"bar":100},
 \-     {"bar":200}
 \-   ]
 \- }
-\- +++
-\- jt \-a \. ^ \. \. ^ %
+\- EOT
 foo     bar     100
 foo     bar     200
 .
@@ -921,15 +822,14 @@ Or, with the addition of one more \fB^\fR command, it can print both:
 .
 .nf
 
-$ cat <<+++ |
+$ jt \-a \. ^ \. ^ \. ^ % <<EOT
 \- {
 \-   "foo": [
 \-     {"bar":100},
 \-     {"bar":200}
 \-   ]
 \- }
-\- +++
-\- jt \-a \. ^ \. ^ \. ^ %
+\- EOT
 foo     0       bar     100
 foo     1       bar     200
 .

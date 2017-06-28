@@ -175,14 +175,13 @@ is only possible to print arrays when the `-a` option is specified (see the
 The `-c` flag enables CSV output conforming to RFC 4180. This format supports
 strings containing tabs, newlines, etc.:
 
-    $ cat <<+++ |
+    $ jt -c [ foo % ] [ bar % ] baz % <<EOT
     - {
     -   "foo": "one\ttwo",
     -   "bar": "three\nfour",
     -   "baz": "music \"\u266A\""
     - }
-    - +++
-    - jt -c [ foo % ] [ bar % ] baz %
+    - EOT
     "one    two","three
     four","music ""♪"""
 
@@ -195,31 +194,19 @@ strings containing tabs, newlines, etc.:
 Below are a number of examples demonstrating how to use **jt** commands to do
 some simple exploration and extraction of data from JSON and JSON streams.
 
-Remember the `bash` heredoc syntax with pipelines:
-
-```bash
-$ cat <<+++ |
-- foo
-- bar
-- +++
-- sed s/^/the/ | paste -sd,
-thefoo,thebar
-```
-
 ### Explore
 
 The `@` command prints information about the item at the top of the data stack.
 When the item is an object `@` prints its keys:
 
 ```bash
-$ cat <<+++ |
+$ jt @ <<EOT
 - {
 -   "foo": 100,
 -   "bar": 200,
 -   "baz": 300
 - }
-- +++
-- jt @
+- EOT
 foo
 bar
 baz
@@ -229,19 +216,12 @@ When the top item is an array `@` prints information about the first item in
 the array:
 
 ```bash
-$ cat <<+++ |
+$ jt @ <<EOT
 - [
--   {
--     "foo": 100,
--     "bar": 200
--   },
--   {
--     "baz": 300,
--     "baf": 400
--   }
+-   {"foo": 100, "bar": 200},
+-   {"baz": 300, "baf": 400}
 - ]
-- +++
-- jt @
+- EOT
 foo
 bar
 ```
@@ -249,10 +229,7 @@ bar
 Otherwise, `@` prints the type of the item:
 
 ```bash
-$ cat <<+++ |
-- "hello world"
-- +++
-- jt @
+$ echo '"hello world"' | jt @
 [string]
 ```
 
@@ -262,15 +239,14 @@ Property names are also commands. Use `foo` here as a command to drill down
 into the <foo> property and then use `@` to print its keys:
 
 ```bash
-$ cat <<+++ |
+$ jt foo @ <<EOT
 - {
 -   "foo": {
 -     "bar": 100,
 -     "baz": 200
 -   }
 - }
-- +++
-- jt foo @
+- EOT
 bar
 baz
 ```
@@ -279,15 +255,14 @@ A property name that conflicts with a **jt** command may be wrapped with square
 brackets to drill down:
 
 ```bash
-$ cat <<+++ |
+$ jt [@] @ <<EOT
 - {
 -   "@": {
 -     "bar": 100,
 -     "baz": 200
 -   }
 - }
-- +++
-- jt [@] @
+- EOT
 bar
 baz
 ```
@@ -299,27 +274,25 @@ the top item is a collection it is printed as JSON (insiginificant whitespace
 removed):
 
 ```bash
-$ cat <<+++ |
+$ jt % <<EOT
 - {
 -   "foo": 100,
 -   "bar": 200
 - }
-- +++
-- jt %
+- EOT
 {"foo":100,"bar":200}
 ```
 
 Drill down and print:
 
 ```bash
-$ cat <<+++ |
+$ jt foo bar % <<EOT
 - {
 -   "foo": {
 -     "bar": 100
 -   }
 - }
-- +++
-- jt foo bar %
+- EOT
 100
 ```
 
@@ -327,14 +300,13 @@ The `%` command can be used multiple times. The printed values will be delimited
 by tabs:
 
 ```bash
-$ cat <<+++ |
+$ jt % foo % bar % <<EOT
 - {
 -   "foo": {
 -     "bar": 100
 -   }
 - }
-- +++
-- jt % foo % bar %
+- EOT
 {"foo":{"bar":100}}     {"bar":100}     100
 ```
 
@@ -346,20 +318,19 @@ The `]` command pops the gosub stack and restores the data stack to that state.
 Now it is possible to drill down into a different path to print another value:
 
 ```bash
-$ cat <<+++ |
+$ jt [ foo % ] bar % <<EOT
 - {
 -   "foo": 100,
 -   "bar": 200
 - }
-- +++
-- jt [ foo % ] bar %
+- EOT
 100     200
 ```
 
 The `[` and `]` commands can be nested:
 
 ```bash
-$ cat <<+++ |
+$ jt [ foo [ bar % ] [ baz % ] ] baf % <<EOT
 - {
 -   "foo": {
 -     "bar": 100,
@@ -367,8 +338,7 @@ $ cat <<+++ |
 -   },
 -   "baf": "quux"
 - }
-- +++
-- jt [ foo [ bar % ] [ baz % ] ] baf %
+- EOT
 100     200     quux
 ```
 
@@ -379,7 +349,7 @@ $ cat <<+++ |
 per iteration, records separated by newlines:
 
 ```bash
-$ cat <<+++ |
+$ jt [ foo % ] bar baz % <<EOT
 - {
 -   "foo": 100,
 -   "bar": [
@@ -388,8 +358,7 @@ $ cat <<+++ |
 -     {"baz": 400}
 -   ]
 - }
-- +++
-- jt [ foo % ] bar baz %
+- EOT
 100     200
 100     300
 100     400
@@ -398,7 +367,7 @@ $ cat <<+++ |
 The `^` command includes the array index as a column in the result:
 
 ```bash
-$ cat <<+++ |
+$ jt [ foo % ] bar ^ baz % <<EOT
 - {
 -   "foo": 100,
 -   "bar": [
@@ -407,8 +376,7 @@ $ cat <<+++ |
 -     {"baz": 400}
 -   ]
 - }
-- +++
-- jt [ foo % ] bar ^ baz %
+- EOT
 100     0       200
 100     1       300
 100     2       400
@@ -418,15 +386,14 @@ Note that `^` is scoped &mdash; it prints the index of the innermost enclosing
 loop:
 
 ```bash
-$ cat <<+++ |
+$ jt foo ^ bar ^ % <<EOT
 - {
 -   "foo": [
 -     {"bar": [100, 200]},
 -     {"bar": [300, 400]}
 -   ]
 - }
-- +++
-- jt foo ^ bar ^ %
+- EOT
 0       0       100
 0       1       200
 1       0       300
@@ -438,14 +405,13 @@ $ cat <<+++ |
 The `.` command iterates over the values of an object:
 
 ```bash
-$ cat <<+++ |
+$ jt . % <<EOT
 - {
 -   "foo": 100,
 -   "bar": 200,
 -   "baz": 300
 - }
-- +++
-- jt . %
+- EOT
 100
 200
 300
@@ -455,14 +421,13 @@ When iterating over an object the `^` command prints the name of the current
 property:
 
 ```bash
-$ cat <<+++ |
+$ jt . ^ % <<EOT
 - {
 -   "foo": 100,
 -   "bar": 200,
 -   "baz": 300
 - }
-- +++
-- jt . ^ %
+- EOT
 foo     100
 bar     200
 baz     300
@@ -471,15 +436,14 @@ baz     300
 The scope of `^` is similar when iterating over objects:
 
 ```bash
-$ cat <<+++ |
+$ jt . ^ . ^ % <<EOT
 - {
 -   "foo": {
 -     "bar": 100,
 -     "baz": 200,
 -   }
 - }
-- +++
-- jt . ^ . ^ %
+- EOT
 foo     bar     100
 foo     baz     200
 ```
@@ -490,60 +454,27 @@ foo     baz     200
 delimited by whitespace):
 
 ```bash
-$ cat <<+++ |
+$ jt [ foo % ] bar % <<EOT
 - {"foo": 100, "bar": 200}
 - {"foo": 200, "bar": 300}
 - {"foo": 300, "bar": 400}
-- +++
-- jt [ foo % ] bar %
+- EOT
 100     200
 200     300
 300     400
 ```
 
-Whitespace is optional:
+The `^` command prints the current stream index:
 
 ```bash
-$ cat <<+++ |
-- {"foo": 100,"bar": 200}{"foo":200,"bar":300}
-- {
--   "foo": 300,
--   "bar": 400
-- }
-- +++
-- jt [ foo % ] bar %
-100     200
-200     300
-300     400
-```
-
-Within a JSON stream the `^` command prints the current stream index:
-
-```bash
-$ cat <<+++ |
+$ jt ^ [ foo % ] bar % <<EOT
 - {"foo": 100, "bar": 200}
 - {"foo": 200, "bar": 300}
 - {"foo": 300, "bar": 400}
-- +++
-- jt ^ [ foo % ] bar %
+- EOT
 0       100     200
 1       200     300
 2       300     400
-```
-
-Note that one entity in the stream may result in more than one output record
-when iteration is involved:
-
-```bash
-$ cat <<+++ |
-- {"foo":10,"bar":[100,200]}
-- {"foo":20,"bar":[300,400]}
-- +++
-- jt ^ [ foo % ] bar %
-0       10      100
-0       10      200
-1       20      300
-1       20      400
 ```
 
 ### Nested JSON
@@ -551,27 +482,24 @@ $ cat <<+++ |
 The `+` command parses JSON embedded in strings:
 
 ```bash
-$ cat <<+++ |
+$ jt [ foo + bar % ] baz % <<EOT
 - {"foo":"{\"bar\":100}","baz":200}
 - {"foo":"{\"bar\":200}","baz":300}
 - {"foo":"{\"bar\":300}","baz":400}
-- +++
-- jt [ foo + bar % ] baz %
+- EOT
 100     200
 200     300
 300     400
 ```
 
-Note that `+` pushes the resulting JSON entity onto the data stack &mdash; it
-does not modify the original JSON:
+Note that `+` does not modify the original JSON:
 
 ```bash
-$ cat <<+++ |
+$ jt [ foo + bar % ] % <<EOT
 - {"foo":"{\"bar\":100}","baz":200}
 - {"foo":"{\"bar\":200}","baz":300}
 - {"foo":"{\"bar\":300}","baz":400}
-- +++
-- jt [ foo + bar % ] %
+- EOT
 100     {"foo":"{\"bar\":100}","baz":200}
 200     {"foo":"{\"bar\":200}","baz":300}
 300     {"foo":"{\"bar\":300}","baz":400}
@@ -582,12 +510,11 @@ $ cat <<+++ |
 Notice the empty column &mdash; some objects don't have the <bar> key:
 
 ```bash
-$ cat <<+++ |
+$ jt [ foo % ] bar % <<EOT
 - {"foo":100,"bar":1000}
 - {"foo":200}
 - {"foo":300,"bar":3000}
-- +++
-- jt [ foo % ] bar %
+- EOT
 100     1000
 200
 300     3000
@@ -597,12 +524,11 @@ Enable inner join mode with the `-j` flag. This removes output rows when a key
 in the traversal path doesn't exist:
 
 ```bash
-$ cat <<+++ |
+$ jt -j [ foo % ] bar % <<EOT
 - {"foo":100,"bar":1000}
 - {"foo":200}
 - {"foo":300,"bar":3000}
-- +++
-- jt -j [ foo % ] bar %
+- EOT
 100     1000
 300     3000
 ```
@@ -610,12 +536,11 @@ $ cat <<+++ |
 Note that this does not remove rows when the key exists and the value is empty:
 
 ```bash
-$ cat <<+++ |
+$ jt -j [ foo % ] bar % <<EOT
 - {"foo":100,"bar":1000}
 - {"foo":200,"bar":""}
 - {"foo":300,"bar":3000}
-- +++
-- jt -j [ foo % ] bar %
+- EOT
 100     1000
 200
 300     3000
@@ -626,15 +551,14 @@ $ cat <<+++ |
 Sometimes the implicit iteration over arrays is awkward:
 
 ```bash
-$ cat <<+++ |
+$ jt . ^ . ^ % <<EOT
 - {
 -   "foo": [
 -     {"bar":100},
 -     {"bar":200}
 -   ]
 - }
-- +++
-- jt . ^ . ^ %
+- EOT
 0       bar     100
 1       bar     200
 ```
@@ -646,15 +570,14 @@ iteration of the `.` command?
 Another awkward case is printing arrays:
 
 ```bash
-$ cat <<+++ |
+$ jt foo % <<EOT
 - {
 -   "foo": [
 -     {"bar":100},
 -     {"bar":200}
 -   ]
 - }
-- +++
-- jt foo %
+- EOT
 {"bar":100}
 {"bar":200}
 ```
@@ -670,30 +593,28 @@ arrays are not automatically iterated over.
 Now the array can be printed:
 
 ```bash
-$ cat <<+++ |
+$ jt -a foo % <<EOT
 - {
 -   "foo": [
 -     {"bar":100},
 -     {"bar":200}
 -   ]
 - }
-- +++
-- jt -a foo %
+- EOT
 [{"bar":100},{"bar":200}]
 ```
 
 Or the first `^` can print the array index, as before:
 
 ```bash
-$ cat <<+++ |
+$ jt -a . . ^ . ^ % <<EOT
 - {
 -   "foo": [
 -     {"bar":100},
 -     {"bar":200}
 -   ]
 - }
-- +++
-- jt -a . . ^ . ^ %
+- EOT
 0       bar     100
 1       bar     200
 ```
@@ -701,15 +622,14 @@ $ cat <<+++ |
 Or it can print the object key:
 
 ```bash
-$ cat <<+++ |
+$ jt -a . ^ . . ^ % <<EOT
 - {
 -   "foo": [
 -     {"bar":100},
 -     {"bar":200}
 -   ]
 - }
-- +++
-- jt -a . ^ . . ^ %
+- EOT
 foo     bar     100
 foo     bar     200
 ```
@@ -717,15 +637,14 @@ foo     bar     200
 Or, with the addition of one more `^` command, it can print both:
 
 ```bash
-$ cat <<+++ |
+$ jt -a . ^ . ^ . ^ % <<EOT
 - {
 -   "foo": [
 -     {"bar":100},
 -     {"bar":200}
 -   ]
 - }
-- +++
-- jt -a . ^ . ^ . ^ %
+- EOT
 foo     0       bar     100
 foo     1       bar     200
 ```

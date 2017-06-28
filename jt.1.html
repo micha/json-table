@@ -228,14 +228,13 @@ is only possible to print arrays when the <code>-a</code> option is specified (s
 <p>The <code>-c</code> flag enables CSV output conforming to RFC 4180. This format supports
 strings containing tabs, newlines, etc.:</p>
 
-<pre><code>$ cat &lt;&lt;+++ |
+<pre><code>$ jt -c [ foo % ] [ bar % ] baz % &lt;&lt;EOT
 - {
 -   "foo": "one\ttwo",
 -   "bar": "three\nfour",
 -   "baz": "music \"\u266A\""
 - }
-- +++
-- jt -c [ foo % ] [ bar % ] baz %
+- EOT
 "one    two","three
 four","music ""♪"""
 </code></pre>
@@ -249,29 +248,18 @@ four","music ""♪"""
 <p>Below are a number of examples demonstrating how to use <strong>jt</strong> commands to do
 some simple exploration and extraction of data from JSON and JSON streams.</p>
 
-<p>Remember the <code>bash</code> heredoc syntax with pipelines:</p>
-
-<pre><code class="bash">$ cat &lt;&lt;+++ |
-- foo
-- bar
-- +++
-- sed s/^/the/ | paste -sd,
-thefoo,thebar
-</code></pre>
-
 <h3 id="Explore">Explore</h3>
 
 <p>The <code>@</code> command prints information about the item at the top of the data stack.
 When the item is an object <code>@</code> prints its keys:</p>
 
-<pre><code class="bash">$ cat &lt;&lt;+++ |
+<pre><code class="bash">$ jt @ &lt;&lt;EOT
 - {
 -   "foo": 100,
 -   "bar": 200,
 -   "baz": 300
 - }
-- +++
-- jt @
+- EOT
 foo
 bar
 baz
@@ -280,29 +268,19 @@ baz
 <p>When the top item is an array <code>@</code> prints information about the first item in
 the array:</p>
 
-<pre><code class="bash">$ cat &lt;&lt;+++ |
+<pre><code class="bash">$ jt @ &lt;&lt;EOT
 - [
--   {
--     "foo": 100,
--     "bar": 200
--   },
--   {
--     "baz": 300,
--     "baf": 400
--   }
+-   {"foo": 100, "bar": 200},
+-   {"baz": 300, "baf": 400}
 - ]
-- +++
-- jt @
+- EOT
 foo
 bar
 </code></pre>
 
 <p>Otherwise, <code>@</code> prints the type of the item:</p>
 
-<pre><code class="bash">$ cat &lt;&lt;+++ |
-- "hello world"
-- +++
-- jt @
+<pre><code class="bash">$ echo '"hello world"' | jt @
 [string]
 </code></pre>
 
@@ -311,15 +289,14 @@ bar
 <p>Property names are also commands. Use <code>foo</code> here as a command to drill down
 into the <var>foo</var> property and then use <code>@</code> to print its keys:</p>
 
-<pre><code class="bash">$ cat &lt;&lt;+++ |
+<pre><code class="bash">$ jt foo @ &lt;&lt;EOT
 - {
 -   "foo": {
 -     "bar": 100,
 -     "baz": 200
 -   }
 - }
-- +++
-- jt foo @
+- EOT
 bar
 baz
 </code></pre>
@@ -327,15 +304,14 @@ baz
 <p>A property name that conflicts with a <strong>jt</strong> command may be wrapped with square
 brackets to drill down:</p>
 
-<pre><code class="bash">$ cat &lt;&lt;+++ |
+<pre><code class="bash">$ jt [@] @ &lt;&lt;EOT
 - {
 -   "@": {
 -     "bar": 100,
 -     "baz": 200
 -   }
 - }
-- +++
-- jt [@] @
+- EOT
 bar
 baz
 </code></pre>
@@ -346,40 +322,37 @@ baz
 the top item is a collection it is printed as JSON (insiginificant whitespace
 removed):</p>
 
-<pre><code class="bash">$ cat &lt;&lt;+++ |
+<pre><code class="bash">$ jt % &lt;&lt;EOT
 - {
 -   "foo": 100,
 -   "bar": 200
 - }
-- +++
-- jt %
+- EOT
 {"foo":100,"bar":200}
 </code></pre>
 
 <p>Drill down and print:</p>
 
-<pre><code class="bash">$ cat &lt;&lt;+++ |
+<pre><code class="bash">$ jt foo bar % &lt;&lt;EOT
 - {
 -   "foo": {
 -     "bar": 100
 -   }
 - }
-- +++
-- jt foo bar %
+- EOT
 100
 </code></pre>
 
 <p>The <code>%</code> command can be used multiple times. The printed values will be delimited
 by tabs:</p>
 
-<pre><code class="bash">$ cat &lt;&lt;+++ |
+<pre><code class="bash">$ jt % foo % bar % &lt;&lt;EOT
 - {
 -   "foo": {
 -     "bar": 100
 -   }
 - }
-- +++
-- jt % foo % bar %
+- EOT
 {"foo":{"bar":100}}     {"bar":100}     100
 </code></pre>
 
@@ -390,19 +363,18 @@ the data stack's state on the gosub stack. Then drill down and print a value.
 The <code>]</code> command pops the gosub stack and restores the data stack to that state.
 Now it is possible to drill down into a different path to print another value:</p>
 
-<pre><code class="bash">$ cat &lt;&lt;+++ |
+<pre><code class="bash">$ jt [ foo % ] bar % &lt;&lt;EOT
 - {
 -   "foo": 100,
 -   "bar": 200
 - }
-- +++
-- jt [ foo % ] bar %
+- EOT
 100     200
 </code></pre>
 
 <p>The <code>[</code> and <code>]</code> commands can be nested:</p>
 
-<pre><code class="bash">$ cat &lt;&lt;+++ |
+<pre><code class="bash">$ jt [ foo [ bar % ] [ baz % ] ] baf % &lt;&lt;EOT
 - {
 -   "foo": {
 -     "bar": 100,
@@ -410,8 +382,7 @@ Now it is possible to drill down into a different path to print another value:</
 -   },
 -   "baf": "quux"
 - }
-- +++
-- jt [ foo [ bar % ] [ baz % ] ] baf %
+- EOT
 100     200     quux
 </code></pre>
 
@@ -421,7 +392,7 @@ Now it is possible to drill down into a different path to print another value:</
 &mdash; see <strong>Explicit Iteration</strong> below), producing one tab-delimited record
 per iteration, records separated by newlines:</p>
 
-<pre><code class="bash">$ cat &lt;&lt;+++ |
+<pre><code class="bash">$ jt [ foo % ] bar baz % &lt;&lt;EOT
 - {
 -   "foo": 100,
 -   "bar": [
@@ -430,8 +401,7 @@ per iteration, records separated by newlines:</p>
 -     {"baz": 400}
 -   ]
 - }
-- +++
-- jt [ foo % ] bar baz %
+- EOT
 100     200
 100     300
 100     400
@@ -439,7 +409,7 @@ per iteration, records separated by newlines:</p>
 
 <p>The <code>^</code> command includes the array index as a column in the result:</p>
 
-<pre><code class="bash">$ cat &lt;&lt;+++ |
+<pre><code class="bash">$ jt [ foo % ] bar ^ baz % &lt;&lt;EOT
 - {
 -   "foo": 100,
 -   "bar": [
@@ -448,8 +418,7 @@ per iteration, records separated by newlines:</p>
 -     {"baz": 400}
 -   ]
 - }
-- +++
-- jt [ foo % ] bar ^ baz %
+- EOT
 100     0       200
 100     1       300
 100     2       400
@@ -458,15 +427,14 @@ per iteration, records separated by newlines:</p>
 <p>Note that <code>^</code> is scoped &mdash; it prints the index of the innermost enclosing
 loop:</p>
 
-<pre><code class="bash">$ cat &lt;&lt;+++ |
+<pre><code class="bash">$ jt foo ^ bar ^ % &lt;&lt;EOT
 - {
 -   "foo": [
 -     {"bar": [100, 200]},
 -     {"bar": [300, 400]}
 -   ]
 - }
-- +++
-- jt foo ^ bar ^ %
+- EOT
 0       0       100
 0       1       200
 1       0       300
@@ -477,14 +445,13 @@ loop:</p>
 
 <p>The <code>.</code> command iterates over the values of an object:</p>
 
-<pre><code class="bash">$ cat &lt;&lt;+++ |
+<pre><code class="bash">$ jt . % &lt;&lt;EOT
 - {
 -   "foo": 100,
 -   "bar": 200,
 -   "baz": 300
 - }
-- +++
-- jt . %
+- EOT
 100
 200
 300
@@ -493,14 +460,13 @@ loop:</p>
 <p>When iterating over an object the <code>^</code> command prints the name of the current
 property:</p>
 
-<pre><code class="bash">$ cat &lt;&lt;+++ |
+<pre><code class="bash">$ jt . ^ % &lt;&lt;EOT
 - {
 -   "foo": 100,
 -   "bar": 200,
 -   "baz": 300
 - }
-- +++
-- jt . ^ %
+- EOT
 foo     100
 bar     200
 baz     300
@@ -508,15 +474,14 @@ baz     300
 
 <p>The scope of <code>^</code> is similar when iterating over objects:</p>
 
-<pre><code class="bash">$ cat &lt;&lt;+++ |
+<pre><code class="bash">$ jt . ^ . ^ % &lt;&lt;EOT
 - {
 -   "foo": {
 -     "bar": 100,
 -     "baz": 200,
 -   }
 - }
-- +++
-- jt . ^ . ^ %
+- EOT
 foo     bar     100
 foo     baz     200
 </code></pre>
@@ -526,83 +491,49 @@ foo     baz     200
 <p><strong>Jt</strong> automatically iterates over entities in a JSON stream (optionally
 delimited by whitespace):</p>
 
-<pre><code class="bash">$ cat &lt;&lt;+++ |
+<pre><code class="bash">$ jt [ foo % ] bar % &lt;&lt;EOT
 - {"foo": 100, "bar": 200}
 - {"foo": 200, "bar": 300}
 - {"foo": 300, "bar": 400}
-- +++
-- jt [ foo % ] bar %
+- EOT
 100     200
 200     300
 300     400
 </code></pre>
 
-<p>Whitespace is optional:</p>
+<p>The <code>^</code> command prints the current stream index:</p>
 
-<pre><code class="bash">$ cat &lt;&lt;+++ |
-- {"foo": 100,"bar": 200}{"foo":200,"bar":300}
-- {
--   "foo": 300,
--   "bar": 400
-- }
-- +++
-- jt [ foo % ] bar %
-100     200
-200     300
-300     400
-</code></pre>
-
-<p>Within a JSON stream the <code>^</code> command prints the current stream index:</p>
-
-<pre><code class="bash">$ cat &lt;&lt;+++ |
+<pre><code class="bash">$ jt ^ [ foo % ] bar % &lt;&lt;EOT
 - {"foo": 100, "bar": 200}
 - {"foo": 200, "bar": 300}
 - {"foo": 300, "bar": 400}
-- +++
-- jt ^ [ foo % ] bar %
+- EOT
 0       100     200
 1       200     300
 2       300     400
-</code></pre>
-
-<p>Note that one entity in the stream may result in more than one output record
-when iteration is involved:</p>
-
-<pre><code class="bash">$ cat &lt;&lt;+++ |
-- {"foo":10,"bar":[100,200]}
-- {"foo":20,"bar":[300,400]}
-- +++
-- jt ^ [ foo % ] bar %
-0       10      100
-0       10      200
-1       20      300
-1       20      400
 </code></pre>
 
 <h3 id="Nested-JSON">Nested JSON</h3>
 
 <p>The <code>+</code> command parses JSON embedded in strings:</p>
 
-<pre><code class="bash">$ cat &lt;&lt;+++ |
+<pre><code class="bash">$ jt [ foo + bar % ] baz % &lt;&lt;EOT
 - {"foo":"{\"bar\":100}","baz":200}
 - {"foo":"{\"bar\":200}","baz":300}
 - {"foo":"{\"bar\":300}","baz":400}
-- +++
-- jt [ foo + bar % ] baz %
+- EOT
 100     200
 200     300
 300     400
 </code></pre>
 
-<p>Note that <code>+</code> pushes the resulting JSON entity onto the data stack &mdash; it
-does not modify the original JSON:</p>
+<p>Note that <code>+</code> does not modify the original JSON:</p>
 
-<pre><code class="bash">$ cat &lt;&lt;+++ |
+<pre><code class="bash">$ jt [ foo + bar % ] % &lt;&lt;EOT
 - {"foo":"{\"bar\":100}","baz":200}
 - {"foo":"{\"bar\":200}","baz":300}
 - {"foo":"{\"bar\":300}","baz":400}
-- +++
-- jt [ foo + bar % ] %
+- EOT
 100     {"foo":"{\"bar\":100}","baz":200}
 200     {"foo":"{\"bar\":200}","baz":300}
 300     {"foo":"{\"bar\":300}","baz":400}
@@ -612,12 +543,11 @@ does not modify the original JSON:</p>
 
 <p>Notice the empty column &mdash; some objects don't have the <var>bar</var> key:</p>
 
-<pre><code class="bash">$ cat &lt;&lt;+++ |
+<pre><code class="bash">$ jt [ foo % ] bar % &lt;&lt;EOT
 - {"foo":100,"bar":1000}
 - {"foo":200}
 - {"foo":300,"bar":3000}
-- +++
-- jt [ foo % ] bar %
+- EOT
 100     1000
 200
 300     3000
@@ -626,24 +556,22 @@ does not modify the original JSON:</p>
 <p>Enable inner join mode with the <code>-j</code> flag. This removes output rows when a key
 in the traversal path doesn't exist:</p>
 
-<pre><code class="bash">$ cat &lt;&lt;+++ |
+<pre><code class="bash">$ jt -j [ foo % ] bar % &lt;&lt;EOT
 - {"foo":100,"bar":1000}
 - {"foo":200}
 - {"foo":300,"bar":3000}
-- +++
-- jt -j [ foo % ] bar %
+- EOT
 100     1000
 300     3000
 </code></pre>
 
 <p>Note that this does not remove rows when the key exists and the value is empty:</p>
 
-<pre><code class="bash">$ cat &lt;&lt;+++ |
+<pre><code class="bash">$ jt -j [ foo % ] bar % &lt;&lt;EOT
 - {"foo":100,"bar":1000}
 - {"foo":200,"bar":""}
 - {"foo":300,"bar":3000}
-- +++
-- jt -j [ foo % ] bar %
+- EOT
 100     1000
 200
 300     3000
@@ -653,15 +581,14 @@ in the traversal path doesn't exist:</p>
 
 <p>Sometimes the implicit iteration over arrays is awkward:</p>
 
-<pre><code class="bash">$ cat &lt;&lt;+++ |
+<pre><code class="bash">$ jt . ^ . ^ % &lt;&lt;EOT
 - {
 -   "foo": [
 -     {"bar":100},
 -     {"bar":200}
 -   ]
 - }
-- +++
-- jt . ^ . ^ %
+- EOT
 0       bar     100
 1       bar     200
 </code></pre>
@@ -672,15 +599,14 @@ iteration of the <code>.</code> command?</p>
 
 <p>Another awkward case is printing arrays:</p>
 
-<pre><code class="bash">$ cat &lt;&lt;+++ |
+<pre><code class="bash">$ jt foo % &lt;&lt;EOT
 - {
 -   "foo": [
 -     {"bar":100},
 -     {"bar":200}
 -   ]
 - }
-- +++
-- jt foo %
+- EOT
 {"bar":100}
 {"bar":200}
 </code></pre>
@@ -695,59 +621,55 @@ arrays are not automatically iterated over.</p>
 
 <p>Now the array can be printed:</p>
 
-<pre><code class="bash">$ cat &lt;&lt;+++ |
+<pre><code class="bash">$ jt -a foo % &lt;&lt;EOT
 - {
 -   "foo": [
 -     {"bar":100},
 -     {"bar":200}
 -   ]
 - }
-- +++
-- jt -a foo %
+- EOT
 [{"bar":100},{"bar":200}]
 </code></pre>
 
 <p>Or the first <code>^</code> can print the array index, as before:</p>
 
-<pre><code class="bash">$ cat &lt;&lt;+++ |
+<pre><code class="bash">$ jt -a . . ^ . ^ % &lt;&lt;EOT
 - {
 -   "foo": [
 -     {"bar":100},
 -     {"bar":200}
 -   ]
 - }
-- +++
-- jt -a . . ^ . ^ %
+- EOT
 0       bar     100
 1       bar     200
 </code></pre>
 
 <p>Or it can print the object key:</p>
 
-<pre><code class="bash">$ cat &lt;&lt;+++ |
+<pre><code class="bash">$ jt -a . ^ . . ^ % &lt;&lt;EOT
 - {
 -   "foo": [
 -     {"bar":100},
 -     {"bar":200}
 -   ]
 - }
-- +++
-- jt -a . ^ . . ^ %
+- EOT
 foo     bar     100
 foo     bar     200
 </code></pre>
 
 <p>Or, with the addition of one more <code>^</code> command, it can print both:</p>
 
-<pre><code class="bash">$ cat &lt;&lt;+++ |
+<pre><code class="bash">$ jt -a . ^ . ^ . ^ % &lt;&lt;EOT
 - {
 -   "foo": [
 -     {"bar":100},
 -     {"bar":200}
 -   ]
 - }
-- +++
-- jt -a . ^ . ^ . ^ %
+- EOT
 foo     0       bar     100
 foo     1       bar     200
 </code></pre>

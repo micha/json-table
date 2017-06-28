@@ -40,14 +40,13 @@ into a nice tab delimited, newline separated tabular format that is amenable to
 processing with shell utilities:
 
 ```bash
-cat <<+++ |
+jt [ account % ] amount % <<EOT
 {"account":123,"amount":1.00}
 {"account":789,"amount":2.00}
 {"account":123,"amount":3.00}
 {"account":123,"amount":4.00}
 {"account":456,"amount":5.00}
-+++
-jt [ account % ] amount %
+EOT
 ```
 ```
 123     1.00
@@ -62,13 +61,13 @@ can process the values in the shell. For example, to compute the sum of the
 amounts for account 123:
 
 ```bash
-cat <<+++ |
+cat <<EOT |
 {"account":123,"amount":1.00}
 {"account":789,"amount":2.00}
 {"account":123,"amount":4.00}
 {"account":123,"amount":4.00}
 {"account":456,"amount":5.00}
-+++
+EOT
 jt [ account % ] amount % | awk -F\\t '$1 == 123 {print $2}' | paste -sd+ |bc
 ```
 ```
@@ -78,13 +77,13 @@ jt [ account % ] amount % | awk -F\\t '$1 == 123 {print $2}' | paste -sd+ |bc
 Or to compute the amount frequencies for the account:
 
 ```bash
-cat <<+++ |
+cat <<EOT |
 {"account":123,"amount":1.00}
 {"account":789,"amount":2.00}
 {"account":123,"amount":4.00}
 {"account":123,"amount":4.00}
 {"account":456,"amount":5.00}
-+++
+EOT
 jt [ account % ] amount % | awk -F\\t '$1 == 123 {print $2}' | sort | uniq -c
 ```
 ```
@@ -97,7 +96,7 @@ jt [ account % ] amount % | awk -F\\t '$1 == 123 {print $2}' | sort | uniq -c
 **Jt** can also extract data from nested JSON:
 
 ```bash
-cat <<+++ |
+jt asgs [ name % ] instances [ id % ] [ az % ] [ state % ] <<EOT
 {
   "asgs": [
     {
@@ -117,8 +116,7 @@ cat <<+++ |
     }
   ]
 }
-+++
-jt asgs [ name % ] instances [ id % ] [ az % ] [ state % ]
+EOT
 ```
 ```
 test1   i-9fb75dc       us-east-1a      InService
@@ -132,7 +130,7 @@ The resulting TSV data can be piped to **awk**, for example, to get just the
 instances in `test1` that are in service:
 
 ```bash
-cat <<+++ |
+cat <<EOT |
 {
   "asgs": [
     {
@@ -152,7 +150,7 @@ cat <<+++ |
     }
   ]
 }
-+++
+EOT
 jt asgs [ name % ] instances [ id % ] [ az % ] [ state % ] |
 awk -F\\t '$1 == "test1" && $4 == "InService" {print}'
 ```
