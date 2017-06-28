@@ -8,7 +8,7 @@
 #include "util.h"
 
 #define STACKSIZE 256
-#define JT_VERSION "4.2.0"
+#define JT_VERSION "4.2.1"
 
 int left_join = 1;
 int auto_iter = 1;
@@ -20,6 +20,8 @@ Stack *OUT;
 Stack *SUB;
 Stack *ITR;
 Stack *IDX;
+
+FILE *devnull = NULL;
 
 typedef struct {
   char cmd;
@@ -33,6 +35,7 @@ typedef struct {
 int run(jsparser_t *p, int wordc, word_t *wordv) {
   size_t d = stack_head(DAT), tmp, itr, root;
   int e = 0, cols = 0;
+  FILE *in;
 
   if (wordc <= 0) return 0;
 
@@ -74,10 +77,19 @@ int run(jsparser_t *p, int wordc, word_t *wordv) {
           stack_push(DAT, js_tok(p, d)->parsed);
         } else if (js_is_string(js_tok(p, d))) {
           js_unescape_string(p->js, js_buf(p, d), js_len(p, d), 0);
+          // Save the parser's input stream and set it to read from /dev/null.
+          // This is done because the parser may try to read more bytes than it
+          // strictly needs for parsing. We read those from /dev/null to avoid
+          // interleaving nested JSON with input JSON from stdin at the end of
+          // the parser's input buffer.
+          in = p->in;
+          p->in = devnull;
           if (! js_parse_one(p, &root)) {
             js_tok(p, d)->parsed = root;
             stack_push(DAT, root);
           }
+          // Restore the parser's input stream.
+          p->in = in;
         }
         break;
       case '[':
@@ -173,7 +185,10 @@ int main(int argc, char *argv[]) {
   jsparser_t *p;
   jserr_t err;
   int opt, cols, i, opt_csv = 0;
-  jsstate_t saved_state;
+  size_t bpos = 0, ppos = 0;
+
+  if (! (devnull = fopen("/dev/null", "r")))
+    die_err("can't open /dev/null");
 
   buf_alloc(&OUTBUF);
 
@@ -224,9 +239,18 @@ int main(int argc, char *argv[]) {
   while ((err = js_parse_one(p, &root)) != JS_EDONE) {
     if (err) die("can't parse JSON");
 
+    // This index counts the JSON forms read from stdin.
     item = js_create_index(p, idx++);
 
-    js_save(p, &saved_state);
+    // Save the parser state and move the parser buffer pointer to the end of
+    // the input buffer. This is done because the input buffer may contain more
+    // JSON than has been parsed already, and we want to use the end of the
+    // buffer to write nested JSON (the + command) for parsing during command
+    // execution. Later, when we need to read more JSON from stdin the parser
+    // state is restored to the saved state.
+    bpos = (p->js)->pos;
+    ppos = p->pos;
+    p->pos = bpos;
 
     stack_push(IDX, item);
     stack_push(DAT, root);
@@ -253,7 +277,10 @@ int main(int argc, char *argv[]) {
       buf_reset(OUTBUF, 0);
     } while (stack_depth(ITR) > 0);
 
-    js_restore(p, &saved_state);
+    // Restore parser to the saved state.
+    (p->js)->pos = bpos;
+    p->pos = ppos;
+
     js_reset(p);
     stack_pop_to(DAT, -1);
     stack_pop_to(IDX, -1);
@@ -271,6 +298,7 @@ int main(int argc, char *argv[]) {
   stack_free(&IDX);
 
   free(wordv);
+  fclose(devnull);
 #endif /* JT_VALGRIND */
 
   return 0;

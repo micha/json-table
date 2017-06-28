@@ -526,12 +526,10 @@ void js_unescape_string(Buffer *b, char *in, size_t len, int csv) {
 void js_save(jsparser_t *p, jsstate_t *s) {
   s->bufpos     = (p->js)->pos;
   s->parserpos  = p->pos;
-  p->pos        = s->bufpos;
 }
 
-void js_restore(jsparser_t *p, jsstate_t *s) {
-  buf_rewind(p->js, s->bufpos);
-  p->pos = s->parserpos;
+void js_restore(jsparser_t *p, jsstate_t *s1, jsstate_t *s2) {
+  buf_splice(p->js, s1->bufpos, s2->bufpos);
 }
 
 void js_reset(jsparser_t *p) {

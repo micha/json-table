@@ -67,9 +67,12 @@ ssize_t buf_append_read(Buffer *b, FILE *in) {
   return bytes_r;
 }
 
-void buf_rewind(Buffer *b, size_t pos) {
-  b->pos = pos;
-  (b->buf)[b->pos] = '\0';
+void buf_splice(Buffer *b, size_t start, size_t end) {
+  if (end > start) {
+    if (b->pos > end)
+      memmove(b->buf + start, b->buf + end, b->pos - end);
+    b->pos -= (end - start);
+  }
 }
 
 void buf_reset(Buffer *b, size_t start) {

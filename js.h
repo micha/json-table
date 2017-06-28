@@ -91,7 +91,7 @@ void js_reset(jsparser_t *p);
 
 void js_save(jsparser_t *p, jsstate_t *s);
 
-void js_restore(jsparser_t *p, jsstate_t *s);
+void js_restore(jsparser_t *p, jsstate_t *s1, jsstate_t *s2);
 
 // accessors
 
