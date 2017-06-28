@@ -228,9 +228,6 @@ int main(int argc, char *argv[]) {
   while ((err = js_parse_one(p, &root)) != JS_EDONE) {
     if (err) die("can't parse JSON");
 
-    // This index counts the JSON forms read from stdin.
-    item = js_create_index(p, idx++);
-
     // The input buffer now looks something like this:
     //
     //    [XXXXXXYYYY--------]
@@ -290,6 +287,9 @@ int main(int argc, char *argv[]) {
     ppos = p->pos;
     p->pos = bpos;
     p->in = devnull;
+
+    // This index counts the JSON forms read from stdin.
+    item = js_create_index(p, idx++);
 
     stack_push(IDX, item);
     stack_push(DAT, root);
