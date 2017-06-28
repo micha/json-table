@@ -67,14 +67,6 @@ ssize_t buf_append_read(Buffer *b, FILE *in) {
   return bytes_r;
 }
 
-void buf_splice(Buffer *b, size_t start, size_t end) {
-  if (end > start) {
-    if (b->pos > end)
-      memmove(b->buf + start, b->buf + end, b->pos - end);
-    b->pos -= (end - start);
-  }
-}
-
 void buf_reset(Buffer *b, size_t start) {
   if (0 < start && start < b->pos)
     memmove(b->buf, b->buf + start, (b->pos -= start));

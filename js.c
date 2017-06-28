@@ -523,15 +523,6 @@ void js_unescape_string(Buffer *b, char *in, size_t len, int csv) {
 
 #define MAX_DEPTH 20
 
-void js_save(jsparser_t *p, jsstate_t *s) {
-  s->bufpos     = (p->js)->pos;
-  s->parserpos  = p->pos;
-}
-
-void js_restore(jsparser_t *p, jsstate_t *s1, jsstate_t *s2) {
-  buf_splice(p->js, s1->bufpos, s2->bufpos);
-}
-
 void js_reset(jsparser_t *p) {
   p->curtok = 1;
   buf_reset(p->js, p->pos);
