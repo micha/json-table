@@ -242,12 +242,54 @@ int main(int argc, char *argv[]) {
     // This index counts the JSON forms read from stdin.
     item = js_create_index(p, idx++);
 
-    // Save the parser state and move the parser buffer pointer to the end of
-    // the input buffer. This is done because the input buffer may contain more
-    // JSON than has been parsed already, and we want to use the end of the
-    // buffer to write nested JSON (the + command) for parsing during command
-    // execution. Later, when we need to read more JSON from stdin the parser
-    // state is restored to the saved state.
+    // The input buffer now looks something like this:
+    //
+    //    [XXXXXXYYYY--------]
+    //           ^   ^
+    //           pp  bp
+    //
+    // where the Xs are the bytes in the current JSON object just read from
+    // stdin, the Ys are more bytes read from stdin but which are not part of
+    // the current JSON object and have not yet been parsed. The pp and bp
+    // pointers point to the end of the parsed input and the end of bytes read
+    // from stdin. The minuses indicate bytes in the input buffer than have
+    // been allocated but are not being used at the moment.
+    //
+    // The + command parses nested JSON (JSON embedded in strings, xzibit style).
+    // For this to work we need space in the input buffer to write out the JSON
+    // unescaped contents of those strings. We use the end of the input buffer
+    // for this purpose, by moving pp to coincide with bp:
+    //
+    //    [XXXXXXYYYY--------]
+    //               ^
+    //               pp
+    //               bp
+    //
+    // Now if the + command needs to parse some JSON it writes the unescaped
+    // string contents to the input buffer:
+    //
+    //    [XXXXXXYYYYZZZZZ---]
+    //               ^    ^
+    //               pp   bp
+    //
+    // And then parses it:
+    //
+    //    [XXXXXXYYYYZZZZZ---]
+    //                    ^
+    //                    bp
+    //                    pp
+    //
+    // When all the commands have finished executing for the current JSON
+    // object (i.e. the XXXXXX bytes) we must restore the input buffer pointers
+    // to their original states:
+    //
+    //    [XXXXXXYYYYZZZZZ---]
+    //           ^   ^
+    //           pp  bp
+    //
+    // This way we continue parsing from where we left off, and the Zs get
+    // overwritten by bytes read from stdin (more Ys).
+
     bpos = (p->js)->pos;
     ppos = p->pos;
     p->pos = bpos;

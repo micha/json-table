@@ -41,11 +41,6 @@ typedef struct {
 } jstok_t;
 
 typedef struct {
-  size_t bufpos;
-  size_t parserpos;
-} jsstate_t;
-
-typedef struct {
   FILE *in;
   Buffer *js;
   size_t pos;
@@ -56,43 +51,30 @@ typedef struct {
 } jsparser_t;
 
 jstok_t *js_tok(jsparser_t *p, size_t t);
-
 char *js_buf(jsparser_t *p, size_t t);
-
 size_t js_len(jsparser_t *p, size_t t);
 
 // predicates
 
 int js_is_string(jstok_t *tok);
-
 int js_is_array(jstok_t *tok);
-
 int js_is_object(jstok_t *tok);
-
 int js_is_collection(jstok_t *tok);
-
 int js_is_empty(jstok_t *tok);
-
 int js_is_pair(jstok_t *tok);
-
 int js_is_item(jstok_t *tok);
 
 // parser
 
 void js_alloc(jsparser_t **p, FILE *in, size_t toks_size);
-
 void js_free(jsparser_t **p);
-
 jserr_t js_parse(jsparser_t *p, size_t t);
-
 jserr_t js_parse_one(jsparser_t *p, size_t *t);
-
 void js_reset(jsparser_t *p);
 
 // accessors
 
 size_t js_obj_get(jsparser_t *p, size_t obj, const char *key);
-
 size_t js_array_get(jsparser_t *p, size_t ary, size_t idx);
 
 // create new nodes
@@ -102,9 +84,7 @@ size_t js_create_index(jsparser_t *p, size_t idx);
 // printing, unescaping
 
 jserr_t js_print(jsparser_t *p, size_t t, Buffer *b, int json, int csv);
-
 jserr_t js_print_info(jsparser_t *p, size_t t, Buffer *buf);
-
 void js_unescape_string(Buffer *b, char *in, size_t len, int csv);
 
 #endif
