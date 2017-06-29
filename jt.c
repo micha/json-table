@@ -228,30 +228,14 @@ int main(int argc, char *argv[]) {
 
   while ((opt = getopt(argc, argv, "+hVacjsu:")) != -1) {
     switch (opt) {
-      case 'c':
-        opt_csv = 1;
-        break;
-      case 'h':
-        usage(0);
-        break;
-      case 'V':
-        version();
-        break;
-      case 'a':
-        opt_iter = 1;
-        break;
-      case 'j':
-        opt_join = 1;
-        break;
-      case 's':
-        /* for compatibility -- this option is now redundant */
-        break;
-      case 'u':
-        print_unquote_unescape(optarg);
-        buf_println(OUTBUF);
-        exit(0);
-      default:
-        exit(1);
+      case 'h': usage(0);     break;
+      case 'V': version();    break;
+      case 'a': opt_iter = 1; break;
+      case 'c': opt_csv  = 1; break;
+      case 'j': opt_join = 1; break;
+      case 's': /* for compatibility -- this option is now redundant */ break;
+      case 'u': print_unquote_unescape(optarg); buf_println(OUTBUF); exit(0);
+      default: exit(1);
     }
   }
 
