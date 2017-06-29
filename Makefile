@@ -3,13 +3,12 @@
 ifeq (${VALGRIND}, 1)
 O_LEVEL = 0
 CFLAGS += -g -DJT_VALGRIND
+else ifneq (${OS}, Darwin)
+LDFLAGS += -static
+O_LEVEL = 3
 else
 O_LEVEL = 3
 endif
-
-#ifneq (${OS}, Darwin)
-#LDFLAGS = -static
-#endif
 
 OS      = $(shell uname -s)
 CFLAGS += -D_GNU_SOURCE=1 -O$(O_LEVEL) -Wall -Werror -Winline -pedantic-errors -std=c99

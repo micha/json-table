@@ -153,9 +153,13 @@ onto the gosub stack.</p></dd>
 <dt class="flush"><code>]</code></dt><dd><p>Restore the data stack to a saved state: pop the gosub stack and restore
 the data stack pointer to that state.</p></dd>
 <dt class="flush"><code>%</code></dt><dd><p>Push the value at the top of the data stack onto the output stack.</p></dd>
+<dt><code>%=</code><var>HEADING</var></dt><dd><p>Like <code>%</code>, but also sets the heading for this column to <var>HEADING</var>. Headers
+will be printed as the first line of output when this command has been used.</p></dd>
 <dt class="flush"><code>^</code></dt><dd><p>Push the value at the top of the index stack onto the output stack. Note
 that the index stack will always have at least one item: the index of the
 last JSON object read from stdin.</p></dd>
+<dt><code>^=</code><var>HEADING</var></dt><dd><p>Like <code>^</code>, but also sets the heading for this column to <var>HEADING</var>. Headers
+will be printed as the first line of output when this command has been used.</p></dd>
 <dt class="flush"><code>@</code></dt><dd><p>Print the keys of the object at the top of the data stack and exit.</p>
 
 <p>If the value at the top of the data stack is an array the first item in the
@@ -537,6 +541,27 @@ delimited by whitespace):</p>
 100     {"foo":"{\"bar\":100}","baz":200}
 200     {"foo":"{\"bar\":200}","baz":300}
 300     {"foo":"{\"bar\":300}","baz":400}
+</code></pre>
+
+<h3 id="Column-Headings">Column Headings</h3>
+
+<p>The <code>%=</code><var>HEADING</var> and <code>^=</code><var>HEADING</var> commands are like <code>%</code> and <code>^</code> above, but
+they also assign column headings:</p>
+
+<pre><code class="bash">$ jt [ foo %=Foo ] bar ^=Bar baz %=Baz &lt;&lt;EOT
+- {
+-   "foo": 100,
+-   "bar": [
+-     {"baz": 200},
+-     {"baz": 300},
+-     {"baz": 400}
+-   ]
+- }
+- EOT
+Foo     Bar     Baz
+100     0       200
+100     1       300
+100     2       400
 </code></pre>
 
 <h3 id="Joins">Joins</h3>

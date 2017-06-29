@@ -113,8 +113,16 @@ Restore the data stack to a saved state: pop the gosub stack and restore the dat
 Push the value at the top of the data stack onto the output stack\.
 .
 .TP
+\fB%=\fR\fIHEADING\fR
+Like \fB%\fR, but also sets the heading for this column to \fIHEADING\fR\. Headers will be printed as the first line of output when this command has been used\.
+.
+.TP
 \fB^\fR
 Push the value at the top of the index stack onto the output stack\. Note that the index stack will always have at least one item: the index of the last JSON object read from stdin\.
+.
+.TP
+\fB^=\fR\fIHEADING\fR
+Like \fB^\fR, but also sets the heading for this column to \fIHEADING\fR\. Headers will be printed as the first line of output when this command has been used\.
 .
 .TP
 \fB@\fR
@@ -633,6 +641,32 @@ $ jt [ foo + bar % ] % <<EOT
 100     {"foo":"{\e"bar\e":100}","baz":200}
 200     {"foo":"{\e"bar\e":200}","baz":300}
 300     {"foo":"{\e"bar\e":300}","baz":400}
+.
+.fi
+.
+.IP "" 0
+.
+.SS "Column Headings"
+The \fB%=\fR\fIHEADING\fR and \fB^=\fR\fIHEADING\fR commands are like \fB%\fR and \fB^\fR above, but they also assign column headings:
+.
+.IP "" 4
+.
+.nf
+
+$ jt [ foo %=Foo ] bar ^=Bar baz %=Baz <<EOT
+\- {
+\-   "foo": 100,
+\-   "bar": [
+\-     {"baz": 200},
+\-     {"baz": 300},
+\-     {"baz": 400}
+\-   ]
+\- }
+\- EOT
+Foo     Bar     Baz
+100     0       200
+100     1       300
+100     2       400
 .
 .fi
 .

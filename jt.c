@@ -8,7 +8,7 @@
 #include "util.h"
 
 #define STACKSIZE 256
-#define JT_VERSION "4.2.1"
+#define JT_VERSION "4.3.0"
 
 int left_join = 1;
 int auto_iter = 1;
@@ -121,7 +121,7 @@ void usage(int status) {
   fprintf(stderr, "Usage: jt -h\n");
   fprintf(stderr, "       jt -V\n");
   fprintf(stderr, "       jt -u <string>\n");
-  fprintf(stderr, "       jt [-aj] [COMMAND ...]\n\n");
+  fprintf(stderr, "       jt [-acj] [COMMAND ...]\n\n");
   fprintf(stderr, "Where COMMAND is one of `[', `]', `%%', `@', `.', `^', `+', or a property name.\n");
   exit(status);
 }
@@ -136,8 +136,8 @@ void version() {
   exit(0);
 }
 
-void parse_commands(int argc, char *argv[], word_t *wordv) {
-  int i, len, e;
+int parse_commands(int argc, char *argv[], word_t *wordv) {
+  int i, len, e, ret = 0;
   for (i = 0; i < argc; i++) {
     len = strlen(argv[i]);
     if (len == 1) {
@@ -150,6 +150,10 @@ void parse_commands(int argc, char *argv[], word_t *wordv) {
           wordv[i].cmd = '\0';
           wordv[i].text = argv[i];
       }
+    } else if (len >= 2 && (argv[i][0] == '%' || argv[i][0] == '^') && argv[i][1] == '=') {
+      wordv[i].cmd = argv[i][0];
+      wordv[i].text = argv[i] + 2;
+      ret = 1;
     } else {
       wordv[i].cmd = '\0';
       if ((e = (argv[i][0] == '[' && argv[i][len - 1] == ']')))
@@ -157,11 +161,21 @@ void parse_commands(int argc, char *argv[], word_t *wordv) {
       wordv[i].text = argv[i] + e;
     }
   }
+  return ret;
+}
+
+void print_headers(Buffer *b, word_t *wordv, size_t wordc, char sep) {
+  for (int i = 0; i < wordc; i++)
+    if (wordv[i].cmd == '%' || wordv[i].cmd == '^') {
+      if (wordv[i].text)
+        buf_append(b, wordv[i].text, strlen(wordv[i].text));
+      buf_write(b, sep);
+    }
+  (b->buf)[b->pos - 1] = '\n';
 }
 
 void unquote_unescape(Buffer *b, char *s, int csv) {
   int len = strlen(s), quoted = (len > 2 && s[0] == '\"' && s[len - 1] == '\"');
-
   if (csv) buf_write(b, '\"');
   js_unescape_string(b, quoted ? s+1 : s, quoted ? len-2 : len, csv);
   if (csv) buf_write(b, '\"');
@@ -215,7 +229,9 @@ int main(int argc, char *argv[]) {
 
   wordc = argc - optind;
   wordv = malloc(sizeof(word_t) * argc - optind);
-  parse_commands(argc - optind, argv + optind, wordv);
+
+  if (parse_commands(argc - optind, argv + optind, wordv))
+    print_headers(OUTBUF, wordv, wordc, opt_csv ? ',' : '\t');
 
   stack_alloc(&DAT, "data",     STACKSIZE);
   stack_alloc(&OUT, "output",   STACKSIZE);
@@ -308,12 +324,12 @@ int main(int argc, char *argv[]) {
             buf_write(OUTBUF, opt_csv ? ',' : '\t');
         }
         buf_println(OUTBUF);
+        buf_reset(OUTBUF, 0);
       }
 
       stack_pop_to(DAT, 0);
       stack_pop_to(OUT, -1);
       stack_pop_to(SUB, -1);
-      buf_reset(OUTBUF, 0);
     } while (stack_depth(ITR) > 0);
 
     // Restore parser to the saved state.
