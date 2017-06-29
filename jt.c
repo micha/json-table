@@ -150,13 +150,6 @@ void print_stack(Stack *s) {
   }
 }
 
-void print_unquote_unescape(char *s) {
-  int len = strlen(s), quoted = (len > 2 && s[0] == '\"' && s[len - 1] == '\"');
-  if (opt_csv) buf_write(OUTBUF, '\"');
-  js_unescape_string(OUTBUF, quoted ? s+1 : s, quoted ? len-2 : len, opt_csv);
-  if (opt_csv) buf_write(OUTBUF, '\"');
-}
-
 int parse_commands(int argc, char *argv[], word_t *wordv) {
   int i, len, e, have_headers = 0;
   for (i = 0; i < argc; i++) {
@@ -195,14 +188,14 @@ int parse_commands(int argc, char *argv[], word_t *wordv) {
  * main
  *****************************************************************************/
 
-void usage(int status) {
+void usage() {
   fprintf(stderr, "jt %s - transform JSON data into tab delimited lines of text.\n\n", JT_VERSION);
   fprintf(stderr, "Usage: jt -h\n");
   fprintf(stderr, "       jt -V\n");
   fprintf(stderr, "       jt -u <string>\n");
   fprintf(stderr, "       jt [-acj] [COMMAND ...]\n\n");
   fprintf(stderr, "Where COMMAND is one of `[', `]', `%%', `@', `.', `^', `+', or a property name.\n");
-  exit(status);
+  exit(0);
 }
 
 void version() {
@@ -212,6 +205,15 @@ void version() {
   fprintf(stdout, "Source code available <https://github.com/micha/json-table>.\n");
   fprintf(stdout, "This is free software: you are free to change and redistribute it.\n");
   fprintf(stdout, "There is NO WARRANTY, to the extent permitted by law.\n");
+  exit(0);
+}
+
+void unescape(char *s) {
+  int len = strlen(s), quoted = (len > 2 && s[0] == '\"' && s[len - 1] == '\"');
+  if (opt_csv) buf_write(OUTBUF, '\"');
+  js_unescape_string(OUTBUF, quoted ? s+1 : s, quoted ? len-2 : len, opt_csv);
+  if (opt_csv) buf_write(OUTBUF, '\"');
+  buf_println(OUTBUF);
   exit(0);
 }
 
@@ -228,18 +230,18 @@ int main(int argc, char *argv[]) {
 
   while ((opt = getopt(argc, argv, "+hVacjsu:")) != -1) {
     switch (opt) {
-      case 'h': usage(0);     break;
+      case 'h': usage();      break;
       case 'V': version();    break;
       case 'a': opt_iter = 1; break;
       case 'c': opt_csv  = 1; break;
       case 'j': opt_join = 1; break;
-      case 's': /* for compatibility -- this option is now redundant */ break;
-      case 'u': print_unquote_unescape(optarg); buf_println(OUTBUF); exit(0);
-      default: exit(1);
+      case 's': /* no-op */   break;
+      case 'u': unescape(optarg);
+      default:  exit(1);
     }
   }
 
-  if (argc - optind == 0) usage(0);
+  if (argc - optind == 0) usage();
 
   wordc = argc - optind;
   wordv = malloc(sizeof(word_t) * argc - optind);
