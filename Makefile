@@ -1,4 +1,4 @@
-.PHONY: all clean docs install dist test
+.PHONY: all clean docs install dist test benchmark memcheck
 
 ifeq (${VALGRIND}, 1)
 O_LEVEL = 0
