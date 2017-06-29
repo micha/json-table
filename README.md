@@ -129,7 +129,7 @@ instances in `test1` that are in service:
 
 ```bash
 jt asgs [ name % ] instances [ id % ] [ az % ] [ state % ] <<EOT \
-| awk -F\\t '$1 == "test1" && $4 == "InService" {print}'
+  | awk -F\\t '$1 == "test1" && $4 == "InService" {print}'
 {
   "asgs": [
     {
