@@ -5,7 +5,7 @@ jt(1) -- transform JSON data to tabular format
 
 `jt` `[-hV]`<br>
 `jt` `-u` <string><br>
-`jt` [`-aj`] [`COMMAND` ...]
+`jt` [`-acj`] [`COMMAND` ...]
 
 ## DESCRIPTION
 
@@ -43,16 +43,15 @@ to extract values from the JSON input for printing.
 Non-option arguments are words (commands) in a stack-based programming language.
 Commands operate on the stacks provided by the **jt** runtime:
 
-  * The `data stack` contains JSON values commands will operate on.
+  * The `DATA` stack contains JSON values commands will operate on.
 
-  * The `gosub stack` contains pointers into the data stack to save and restore
-    state.
+  * The `GOSUB` stack contains pointers into the data stack.
 
-  * The `index stack` contains pointers to current iterators during iteration.
+  * The `INDEX` stack contains pointers to iterators during iteration.
 
-  * The `loop stack` contains pointers to current iterators between iterations.
+  * The `LOOP` stack contains pointers to iterators between iterations.
 
-  * The `output stack` contains values to be printed after each iteration.
+  * The `OUTPUT` stack contains values to print after each iteration.
 
 When **jt** starts, the following happens:
 
@@ -93,8 +92,8 @@ This process is repeated until there is no more JSON to read.
   * `%`:
     Push the value at the top of the data stack onto the output stack.
 
-  * `%=`<HEADING>:
-    Like `%`, but also sets the heading for this column to <HEADING>. Headers
+  * `%=`<NAME>:
+    Like `%`, but also sets the heading for this column to <NAME>. Headers
     will be printed as the first line of output when this command has been used.
 
   * `^`:
@@ -102,8 +101,8 @@ This process is repeated until there is no more JSON to read.
     that the index stack will always have at least one item: the index of the
     last JSON object read from stdin.
 
-  * `^=`<HEADING>:
-    Like `^`, but also sets the heading for this column to <HEADING>. Headers
+  * `^=`<NAME>:
+    Like `^`, but also sets the heading for this column to <NAME>. Headers
     will be printed as the first line of output when this command has been used.
 
   * `@`:
@@ -167,7 +166,8 @@ Strings are printed verbatim, minus the enclosing double quotes. No unescaping
 is performed because tabs or newlines in JSON strings would break the tabular
 output format.
 
-If unescaped values are desired the `-u` option can be used:
+If unescaped values are desired either use the `-c` flag to enable CSV output
+(see **CSV** below) or use the `-u` option and pass the string as an argument:
 
     $ jt -u 'i love music \u266A'
     i love music ♪
@@ -195,7 +195,7 @@ strings containing tabs, newlines, etc.:
 
 ## EXIT STATUS
 
-**Jt** will exit with a status of 0 on success, 1 on error.
+**Jt** will exit with a status of 1 if an error occurred, or 0 otherwise.
 
 ## EXAMPLES
 
@@ -234,11 +234,14 @@ foo
 bar
 ```
 
-Otherwise, `@` prints the type of the item:
+Otherwise, `@` prints the type of the item, or <[none]> if there is no value:
 
 ```bash
 $ echo '"hello world"' | jt @
 [string]
+
+$ echo {} | jt foo @
+[none]
 ```
 
 ### Drill Down
@@ -266,6 +269,23 @@ brackets to drill down:
 $ jt [@] @ <<EOT
 - {
 -   "@": {
+-     "bar": 100,
+-     "baz": 200
+-   }
+- }
+- EOT
+bar
+baz
+```
+
+**Note:** The property name must be a JSON escaped string, so if the property
+name in the JSON input contains eg. tab characters they must be escaped in the
+command, like this:
+
+```bash
+$ jt 'foo\tbar' @ <<EOT
+- {
+-   "foo\tbar": {
 -     "bar": 100,
 -     "baz": 200
 -   }
@@ -390,8 +410,7 @@ $ jt [ foo % ] bar ^ baz % <<EOT
 100     2       400
 ```
 
-Note that `^` is scoped &mdash; it prints the index of the innermost enclosing
-loop:
+The `^` command is scoped to the innermost enclosing loop:
 
 ```bash
 $ jt foo ^ bar ^ % <<EOT
@@ -441,21 +460,6 @@ bar     200
 baz     300
 ```
 
-The scope of `^` is similar when iterating over objects:
-
-```bash
-$ jt . ^ . ^ % <<EOT
-- {
--   "foo": {
--     "bar": 100,
--     "baz": 200,
--   }
-- }
-- EOT
-foo     bar     100
-foo     baz     200
-```
-
 ### JSON Streams
 
 **Jt** automatically iterates over entities in a JSON stream (optionally
@@ -500,7 +504,7 @@ $ jt [ foo + bar % ] baz % <<EOT
 300     400
 ```
 
-Note that `+` does not modify the original JSON:
+**Note:** the `+` command does not modify the original JSON:
 
 ```bash
 $ jt [ foo + bar % ] % <<EOT
@@ -515,8 +519,8 @@ $ jt [ foo + bar % ] % <<EOT
 
 ### Column Headings
 
-The `%=`<HEADING> and `^=`<HEADING> commands are like `%` and `^` above, but
-they also assign column headings:
+The `%=`<NAME> and `^=`<NAME> commands are like `%` and `^` above, but they
+also assign column headings, which are printed as the first line of output:
 
 ```bash
 $ jt [ foo %=Foo ] bar ^=Bar baz %=Baz <<EOT
@@ -534,6 +538,10 @@ Foo     Bar     Baz
 100     1       300
 100     2       400
 ```
+
+**Note:** The heading <NAME> must be a JSON escaped string (eg. to have a
+column heading with embedded tab characters use `%=foo\tbar` instead of
+`"%=foo     bar"`).
 
 ### Joins
 

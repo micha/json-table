@@ -84,7 +84,7 @@
 
 <p><code>jt</code> <code>[-hV]</code><br />
 <code>jt</code> <code>-u</code> <var>string</var><br />
-<code>jt</code> [<code>-aj</code>] [<code>COMMAND</code> ...]</p>
+<code>jt</code> [<code>-acj</code>] [<code>COMMAND</code> ...]</p>
 
 <h2 id="DESCRIPTION">DESCRIPTION</h2>
 
@@ -113,12 +113,11 @@ are optional.</p></dd>
 Commands operate on the stacks provided by the <strong>jt</strong> runtime:</p>
 
 <ul>
-<li><p>The <code>data stack</code> contains JSON values commands will operate on.</p></li>
-<li><p>The <code>gosub stack</code> contains pointers into the data stack to save and restore
-state.</p></li>
-<li><p>The <code>index stack</code> contains pointers to current iterators during iteration.</p></li>
-<li><p>The <code>loop stack</code> contains pointers to current iterators between iterations.</p></li>
-<li><p>The <code>output stack</code> contains values to be printed after each iteration.</p></li>
+<li><p>The <code>DATA</code> stack contains JSON values commands will operate on.</p></li>
+<li><p>The <code>GOSUB</code> stack contains pointers into the data stack.</p></li>
+<li><p>The <code>INDEX</code> stack contains pointers to iterators during iteration.</p></li>
+<li><p>The <code>LOOP</code> stack contains pointers to iterators between iterations.</p></li>
+<li><p>The <code>OUTPUT</code> stack contains values to print after each iteration.</p></li>
 </ul>
 
 
@@ -153,12 +152,12 @@ onto the gosub stack.</p></dd>
 <dt class="flush"><code>]</code></dt><dd><p>Restore the data stack to a saved state: pop the gosub stack and restore
 the data stack pointer to that state.</p></dd>
 <dt class="flush"><code>%</code></dt><dd><p>Push the value at the top of the data stack onto the output stack.</p></dd>
-<dt><code>%=</code><var>HEADING</var></dt><dd><p>Like <code>%</code>, but also sets the heading for this column to <var>HEADING</var>. Headers
+<dt class="flush"><code>%=</code><var>NAME</var></dt><dd><p>Like <code>%</code>, but also sets the heading for this column to <var>NAME</var>. Headers
 will be printed as the first line of output when this command has been used.</p></dd>
 <dt class="flush"><code>^</code></dt><dd><p>Push the value at the top of the index stack onto the output stack. Note
 that the index stack will always have at least one item: the index of the
 last JSON object read from stdin.</p></dd>
-<dt><code>^=</code><var>HEADING</var></dt><dd><p>Like <code>^</code>, but also sets the heading for this column to <var>HEADING</var>. Headers
+<dt class="flush"><code>^=</code><var>NAME</var></dt><dd><p>Like <code>^</code>, but also sets the heading for this column to <var>NAME</var>. Headers
 will be printed as the first line of output when this command has been used.</p></dd>
 <dt class="flush"><code>@</code></dt><dd><p>Print the keys of the object at the top of the data stack and exit.</p>
 
@@ -215,7 +214,8 @@ precision, as long as they conform to the JSON parsing grammar.</p>
 is performed because tabs or newlines in JSON strings would break the tabular
 output format.</p>
 
-<p>If unescaped values are desired the <code>-u</code> option can be used:</p>
+<p>If unescaped values are desired either use the <code>-c</code> flag to enable CSV output
+(see <strong>CSV</strong> below) or use the <code>-u</code> option and pass the string as an argument:</p>
 
 <pre><code>$ jt -u 'i love music \u266A'
 i love music ♪
@@ -245,7 +245,7 @@ four","music ""♪"""
 
 <h2 id="EXIT-STATUS">EXIT STATUS</h2>
 
-<p><strong>Jt</strong> will exit with a status of 0 on success, 1 on error.</p>
+<p><strong>Jt</strong> will exit with a status of 1 if an error occurred, or 0 otherwise.</p>
 
 <h2 id="EXAMPLES">EXAMPLES</h2>
 
@@ -282,10 +282,13 @@ foo
 bar
 </code></pre>
 
-<p>Otherwise, <code>@</code> prints the type of the item:</p>
+<p>Otherwise, <code>@</code> prints the type of the item, or <var>[none]</var> if there is no value:</p>
 
 <pre><code class="bash">$ echo '"hello world"' | jt @
 [string]
+
+$ echo {} | jt foo @
+[none]
 </code></pre>
 
 <h3 id="Drill-Down">Drill Down</h3>
@@ -311,6 +314,22 @@ brackets to drill down:</p>
 <pre><code class="bash">$ jt [@] @ &lt;&lt;EOT
 - {
 -   "@": {
+-     "bar": 100,
+-     "baz": 200
+-   }
+- }
+- EOT
+bar
+baz
+</code></pre>
+
+<p><strong>Note:</strong> The property name must be a JSON escaped string, so if the property
+name in the JSON input contains eg. tab characters they must be escaped in the
+command, like this:</p>
+
+<pre><code class="bash">$ jt 'foo\tbar' @ &lt;&lt;EOT
+- {
+-   "foo\tbar": {
 -     "bar": 100,
 -     "baz": 200
 -   }
@@ -428,8 +447,7 @@ per iteration, records separated by newlines:</p>
 100     2       400
 </code></pre>
 
-<p>Note that <code>^</code> is scoped &mdash; it prints the index of the innermost enclosing
-loop:</p>
+<p>The <code>^</code> command is scoped to the innermost enclosing loop:</p>
 
 <pre><code class="bash">$ jt foo ^ bar ^ % &lt;&lt;EOT
 - {
@@ -476,20 +494,6 @@ bar     200
 baz     300
 </code></pre>
 
-<p>The scope of <code>^</code> is similar when iterating over objects:</p>
-
-<pre><code class="bash">$ jt . ^ . ^ % &lt;&lt;EOT
-- {
--   "foo": {
--     "bar": 100,
--     "baz": 200,
--   }
-- }
-- EOT
-foo     bar     100
-foo     baz     200
-</code></pre>
-
 <h3 id="JSON-Streams">JSON Streams</h3>
 
 <p><strong>Jt</strong> automatically iterates over entities in a JSON stream (optionally
@@ -531,7 +535,7 @@ delimited by whitespace):</p>
 300     400
 </code></pre>
 
-<p>Note that <code>+</code> does not modify the original JSON:</p>
+<p><strong>Note:</strong> the <code>+</code> command does not modify the original JSON:</p>
 
 <pre><code class="bash">$ jt [ foo + bar % ] % &lt;&lt;EOT
 - {"foo":"{\"bar\":100}","baz":200}
@@ -545,8 +549,8 @@ delimited by whitespace):</p>
 
 <h3 id="Column-Headings">Column Headings</h3>
 
-<p>The <code>%=</code><var>HEADING</var> and <code>^=</code><var>HEADING</var> commands are like <code>%</code> and <code>^</code> above, but
-they also assign column headings:</p>
+<p>The <code>%=</code><var>NAME</var> and <code>^=</code><var>NAME</var> commands are like <code>%</code> and <code>^</code> above, but they
+also assign column headings, which are printed as the first line of output:</p>
 
 <pre><code class="bash">$ jt [ foo %=Foo ] bar ^=Bar baz %=Baz &lt;&lt;EOT
 - {
@@ -563,6 +567,10 @@ Foo     Bar     Baz
 100     1       300
 100     2       400
 </code></pre>
+
+<p><strong>Note:</strong> The heading <var>NAME</var> must be a JSON escaped string (eg. to have a
+column heading with embedded tab characters use <code>%=foo\tbar</code> instead of
+<code>"%=foo     bar"</code>).</p>
 
 <h3 id="Joins">Joins</h3>
 

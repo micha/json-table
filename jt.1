@@ -13,7 +13,7 @@
 \fBjt\fR \fB\-u\fR \fIstring\fR
 .
 .br
-\fBjt\fR [\fB\-aj\fR] [\fBCOMMAND\fR \.\.\.]
+\fBjt\fR [\fB\-acj\fR] [\fBCOMMAND\fR \.\.\.]
 .
 .SH "DESCRIPTION"
 \fBJt\fR reads UTF\-8 encoded JSON forms from \fIstdin\fR and writes tab separated values (or CSV) to \fIstdout\fR\. A simple stack\-based programming language is used to extract values from the JSON input for printing\.
@@ -52,19 +52,19 @@ Unescape JSON \fIstring\fR, print it, and exit\. Double\-quotes around \fIstring
 Non\-option arguments are words (commands) in a stack\-based programming language\. Commands operate on the stacks provided by the \fBjt\fR runtime:
 .
 .IP "\(bu" 4
-The \fBdata stack\fR contains JSON values commands will operate on\.
+The \fBDATA\fR stack contains JSON values commands will operate on\.
 .
 .IP "\(bu" 4
-The \fBgosub stack\fR contains pointers into the data stack to save and restore state\.
+The \fBGOSUB\fR stack contains pointers into the data stack\.
 .
 .IP "\(bu" 4
-The \fBindex stack\fR contains pointers to current iterators during iteration\.
+The \fBINDEX\fR stack contains pointers to iterators during iteration\.
 .
 .IP "\(bu" 4
-The \fBloop stack\fR contains pointers to current iterators between iterations\.
+The \fBLOOP\fR stack contains pointers to iterators between iterations\.
 .
 .IP "\(bu" 4
-The \fBoutput stack\fR contains values to be printed after each iteration\.
+The \fBOUTPUT\fR stack contains values to print after each iteration\.
 .
 .IP "" 0
 .
@@ -113,16 +113,16 @@ Restore the data stack to a saved state: pop the gosub stack and restore the dat
 Push the value at the top of the data stack onto the output stack\.
 .
 .TP
-\fB%=\fR\fIHEADING\fR
-Like \fB%\fR, but also sets the heading for this column to \fIHEADING\fR\. Headers will be printed as the first line of output when this command has been used\.
+\fB%=\fR\fINAME\fR
+Like \fB%\fR, but also sets the heading for this column to \fINAME\fR\. Headers will be printed as the first line of output when this command has been used\.
 .
 .TP
 \fB^\fR
 Push the value at the top of the index stack onto the output stack\. Note that the index stack will always have at least one item: the index of the last JSON object read from stdin\.
 .
 .TP
-\fB^=\fR\fIHEADING\fR
-Like \fB^\fR, but also sets the heading for this column to \fIHEADING\fR\. Headers will be printed as the first line of output when this command has been used\.
+\fB^=\fR\fINAME\fR
+Like \fB^\fR, but also sets the heading for this column to \fINAME\fR\. Headers will be printed as the first line of output when this command has been used\.
 .
 .TP
 \fB@\fR
@@ -183,7 +183,7 @@ $ printf %\.0f 2\.99792458e9
 Strings are printed verbatim, minus the enclosing double quotes\. No unescaping is performed because tabs or newlines in JSON strings would break the tabular output format\.
 .
 .P
-If unescaped values are desired the \fB\-u\fR option can be used:
+If unescaped values are desired either use the \fB\-c\fR flag to enable CSV output (see \fBCSV\fR below) or use the \fB\-u\fR option and pass the string as an argument:
 .
 .IP "" 4
 .
@@ -221,7 +221,7 @@ four","music ""♪"""
 .IP "" 0
 .
 .SH "EXIT STATUS"
-\fBJt\fR will exit with a status of 0 on success, 1 on error\.
+\fBJt\fR will exit with a status of 1 if an error occurred, or 0 otherwise\.
 .
 .SH "EXAMPLES"
 Below are a number of examples demonstrating how to use \fBjt\fR commands to do some simple exploration and extraction of data from JSON and JSON streams\.
@@ -269,7 +269,7 @@ bar
 .IP "" 0
 .
 .P
-Otherwise, \fB@\fR prints the type of the item:
+Otherwise, \fB@\fR prints the type of the item, or \fI[none]\fR if there is no value:
 .
 .IP "" 4
 .
@@ -277,6 +277,9 @@ Otherwise, \fB@\fR prints the type of the item:
 
 $ echo \'"hello world"\' | jt @
 [string]
+
+$ echo {} | jt foo @
+[none]
 .
 .fi
 .
@@ -314,6 +317,28 @@ A property name that conflicts with a \fBjt\fR command may be wrapped with squar
 $ jt [@] @ <<EOT
 \- {
 \-   "@": {
+\-     "bar": 100,
+\-     "baz": 200
+\-   }
+\- }
+\- EOT
+bar
+baz
+.
+.fi
+.
+.IP "" 0
+.
+.P
+\fBNote:\fR The property name must be a JSON escaped string, so if the property name in the JSON input contains eg\. tab characters they must be escaped in the command, like this:
+.
+.IP "" 4
+.
+.nf
+
+$ jt \'foo\etbar\' @ <<EOT
+\- {
+\-   "foo\etbar": {
 \-     "bar": 100,
 \-     "baz": 200
 \-   }
@@ -477,7 +502,7 @@ $ jt [ foo % ] bar ^ baz % <<EOT
 .IP "" 0
 .
 .P
-Note that \fB^\fR is scoped \(em it prints the index of the innermost enclosing loop:
+The \fB^\fR command is scoped to the innermost enclosing loop:
 .
 .IP "" 4
 .
@@ -544,28 +569,6 @@ baz     300
 .
 .IP "" 0
 .
-.P
-The scope of \fB^\fR is similar when iterating over objects:
-.
-.IP "" 4
-.
-.nf
-
-$ jt \. ^ \. ^ % <<EOT
-\- {
-\-   "foo": {
-\-     "bar": 100,
-\-     "baz": 200,
-\-   }
-\- }
-\- EOT
-foo     bar     100
-foo     baz     200
-.
-.fi
-.
-.IP "" 0
-.
 .SS "JSON Streams"
 \fBJt\fR automatically iterates over entities in a JSON stream (optionally delimited by whitespace):
 .
@@ -627,7 +630,7 @@ $ jt [ foo + bar % ] baz % <<EOT
 .IP "" 0
 .
 .P
-Note that \fB+\fR does not modify the original JSON:
+\fBNote:\fR the \fB+\fR command does not modify the original JSON:
 .
 .IP "" 4
 .
@@ -647,7 +650,7 @@ $ jt [ foo + bar % ] % <<EOT
 .IP "" 0
 .
 .SS "Column Headings"
-The \fB%=\fR\fIHEADING\fR and \fB^=\fR\fIHEADING\fR commands are like \fB%\fR and \fB^\fR above, but they also assign column headings:
+The \fB%=\fR\fINAME\fR and \fB^=\fR\fINAME\fR commands are like \fB%\fR and \fB^\fR above, but they also assign column headings, which are printed as the first line of output:
 .
 .IP "" 4
 .
@@ -671,6 +674,9 @@ Foo     Bar     Baz
 .fi
 .
 .IP "" 0
+.
+.P
+\fBNote:\fR The heading \fINAME\fR must be a JSON escaped string (eg\. to have a column heading with embedded tab characters use \fB%=foo\etbar\fR instead of \fB"%=foo bar"\fR)\.
 .
 .SS "Joins"
 Notice the empty column \(em some objects don\'t have the \fIbar\fR key:
