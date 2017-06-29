@@ -24,7 +24,6 @@ void buf_append_unchecked(Buffer *b, const char *s, size_t len);
 void buf_append(Buffer *b, const char *s, size_t len);
 void buf_append_csv(Buffer *b, const char *s, size_t len);
 ssize_t buf_append_read(Buffer *b, FILE *in);
-void buf_unwrite(Buffer *b);
 void buf_reset(Buffer *b, size_t start);
 void buf_alloc(Buffer **b);
 void buf_free(Buffer **b);
