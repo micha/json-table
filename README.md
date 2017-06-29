@@ -56,9 +56,8 @@ EOT
 456     5.00
 ```
 
-**Jt** is simple to use (and *fast*) because that's all it does. From here we
-can process the values in the shell. For example, to compute the sum of the
-amounts for account 123:
+From here we can process the values in the shell. For example, to compute the
+sum of the amounts for account 123:
 
 ```bash
 jt [ account % ] amount % <<EOT | awk -F\\t '$1 == 123 {print $2}' | paste -sd+ |bc
