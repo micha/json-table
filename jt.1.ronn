@@ -504,7 +504,7 @@ $ jt [ foo + bar % ] baz % <<EOT
 300     400
 ```
 
-**Note:** the `+` command does not modify the original JSON:
+**Note:** The `+` command does not modify the original JSON:
 
 ```bash
 $ jt [ foo + bar % ] % <<EOT
