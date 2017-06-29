@@ -76,6 +76,10 @@ void buf_reset(Buffer *b, size_t start) {
   (b->buf)[b->pos] = '\0';
 }
 
+void buf_unwrite(Buffer *b) {
+  if (b->pos > 0) (b->buf)[b->pos -= 1] = '\0';
+}
+
 void buf_alloc(Buffer **b) {
   *b = jmalloc(sizeof(Buffer));
   (*b)->buf = jmalloc(BUFSIZ * 2.5);

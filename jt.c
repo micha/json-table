@@ -8,10 +8,12 @@
 #include "util.h"
 
 #define STACKSIZE 256
-#define JT_VERSION "4.3.0"
+#define JT_VERSION "4.3.1"
 
 int left_join = 1;
 int auto_iter = 1;
+
+FILE *devnull = NULL;
 
 Buffer *OUTBUF;
 
@@ -113,6 +115,82 @@ int run(jsparser_t *p, int wordc, word_t *wordv) {
 }
 
 /*
+ * helpers
+ *****************************************************************************/
+
+size_t parse_as_string(jsparser_t *p, const char *s) {
+  FILE *in = p->in;
+  size_t t;
+
+  p->in = devnull;
+
+  buf_write(p->js, '\"');
+  buf_append(p->js, s, strlen(s));
+  buf_write(p->js, '\"');
+
+  if (js_parse_one(p, &t))
+    die("can't parse JSON");
+
+  p->in = in;
+  return t;
+}
+
+void print_tok(Buffer *b, jsparser_t *p, size_t t, int csv) {
+  if (!t) return;
+  if (csv) buf_write(b, '\"');
+  js_print(p, t, b, 0, csv);
+  if (csv) buf_write(b, '\"');
+}
+
+void print_stack(Buffer *b, Stack *s, jsparser_t *p, int csv) {
+  for (int i = 0; i <= s->head; i++) {
+    print_tok(b, p, (s->items)[i], csv);
+    if (i < s->head) buf_write(b, csv ? ',' : '\t');
+  }
+}
+
+void unquote_unescape(Buffer *b, char *s, int csv) {
+  int len = strlen(s), quoted = (len > 2 && s[0] == '\"' && s[len - 1] == '\"');
+  if (csv) buf_write(b, '\"');
+  js_unescape_string(b, quoted ? s+1 : s, quoted ? len-2 : len, csv);
+  if (csv) buf_write(b, '\"');
+}
+
+int parse_commands(jsparser_t *p, Stack *s, int argc, char *argv[], word_t *wordv) {
+  int i, len, e, have_headers = 0;
+  for (i = 0; i < argc; i++) {
+    len = strlen(argv[i]);
+    if (len == 1) {
+      switch(argv[i][0]) {
+        case '[': case ']': case '@': case '.': case '+':
+          wordv[i].cmd = argv[i][0];
+          wordv[i].text = NULL;
+          break;
+        case '%': case '^':
+          wordv[i].cmd = argv[i][0];
+          wordv[i].text = NULL;
+          stack_push(s, parse_as_string(p, ""));
+          break;
+        default:
+          wordv[i].cmd = '\0';
+          wordv[i].text = argv[i];
+      }
+    } else if (len >= 2 && (argv[i][0] == '%' || argv[i][0] == '^') && argv[i][1] == '=') {
+      wordv[i].cmd = argv[i][0];
+      wordv[i].text = argv[i] + 2;
+      stack_push(s, parse_as_string(p, wordv[i].text));
+      have_headers = 1;
+    } else {
+      wordv[i].cmd = '\0';
+      if ((e = (argv[i][0] == '[' && argv[i][len - 1] == ']')))
+        argv[i][len -1] = '\0';
+      wordv[i].text = argv[i] + e;
+    }
+  }
+  return have_headers;
+}
+
+/*
  * main
  *****************************************************************************/
 
@@ -136,59 +214,12 @@ void version() {
   exit(0);
 }
 
-int parse_commands(int argc, char *argv[], word_t *wordv) {
-  int i, len, e, ret = 0;
-  for (i = 0; i < argc; i++) {
-    len = strlen(argv[i]);
-    if (len == 1) {
-      switch(argv[i][0]) {
-        case '[': case ']': case '%': case '^': case '@': case '.': case '+':
-          wordv[i].cmd = argv[i][0];
-          wordv[i].text = NULL;
-          break;
-        default:
-          wordv[i].cmd = '\0';
-          wordv[i].text = argv[i];
-      }
-    } else if (len >= 2 && (argv[i][0] == '%' || argv[i][0] == '^') && argv[i][1] == '=') {
-      wordv[i].cmd = argv[i][0];
-      wordv[i].text = argv[i] + 2;
-      ret = 1;
-    } else {
-      wordv[i].cmd = '\0';
-      if ((e = (argv[i][0] == '[' && argv[i][len - 1] == ']')))
-        argv[i][len -1] = '\0';
-      wordv[i].text = argv[i] + e;
-    }
-  }
-  return ret;
-}
-
-void print_headers(Buffer *b, word_t *wordv, size_t wordc, char sep) {
-  for (int i = 0; i < wordc; i++)
-    if (wordv[i].cmd == '%' || wordv[i].cmd == '^') {
-      if (wordv[i].text)
-        buf_append(b, wordv[i].text, strlen(wordv[i].text));
-      buf_write(b, sep);
-    }
-  (b->buf)[b->pos - 1] = '\n';
-}
-
-void unquote_unescape(Buffer *b, char *s, int csv) {
-  int len = strlen(s), quoted = (len > 2 && s[0] == '\"' && s[len - 1] == '\"');
-  if (csv) buf_write(b, '\"');
-  js_unescape_string(b, quoted ? s+1 : s, quoted ? len-2 : len, csv);
-  if (csv) buf_write(b, '\"');
-}
-
 int main(int argc, char *argv[]) {
-  size_t root = 0, item, idx = 0, wordc;
+  size_t root = 0, idx = 0, wordc = 0, bpos = 0, ppos = 0;
+  int opt, opt_csv = 0;
   word_t *wordv;
   jsparser_t *p;
   jserr_t err;
-  int opt, cols, i, opt_csv = 0;
-  size_t bpos = 0, ppos = 0;
-  FILE *devnull;
 
   if (! (devnull = fopen("/dev/null", "r")))
     die_err("can't open /dev/null");
@@ -220,8 +251,7 @@ int main(int argc, char *argv[]) {
         buf_println(OUTBUF);
         exit(0);
       default:
-        fprintf(stderr, "\n");
-        usage(1);
+        exit(1);
     }
   }
 
@@ -230,9 +260,6 @@ int main(int argc, char *argv[]) {
   wordc = argc - optind;
   wordv = malloc(sizeof(word_t) * argc - optind);
 
-  if (parse_commands(argc - optind, argv + optind, wordv))
-    print_headers(OUTBUF, wordv, wordc, opt_csv ? ',' : '\t');
-
   stack_alloc(&DAT, "data",     STACKSIZE);
   stack_alloc(&OUT, "output",   STACKSIZE);
   stack_alloc(&SUB, "gosub",    STACKSIZE);
@@ -240,6 +267,13 @@ int main(int argc, char *argv[]) {
   stack_alloc(&IDX, "index",    STACKSIZE);
 
   js_alloc(&p, stdin, 128);
+
+  if (parse_commands(p, OUT, argc - optind, argv + optind, wordv)) {
+    print_stack(OUTBUF, OUT, p, opt_csv);
+    buf_write(OUTBUF, '\n');
+  }
+  stack_pop_to(OUT, -1);
+  js_reset(p);
 
   while ((err = js_parse_one(p, &root)) != JS_EDONE) {
     if (err) die("can't parse JSON");
@@ -304,25 +338,12 @@ int main(int argc, char *argv[]) {
     p->pos = bpos;
     p->in = devnull;
 
-    // This index counts the JSON forms read from stdin.
-    item = js_create_index(p, idx++);
-
-    stack_push(IDX, item);
+    stack_push(IDX, js_create_index(p, idx++));
     stack_push(DAT, root);
 
     do {
-      cols = run(p, wordc, wordv);
-
-      if (cols > 0) {
-        for (i = 0; i <= OUT->head; i++) {
-          if ((item = (OUT->items)[i])) {
-            if (opt_csv) buf_write(OUTBUF, '\"');
-            js_print(p, item, OUTBUF, 0, opt_csv);
-            if (opt_csv) buf_write(OUTBUF, '\"');
-          }
-          if (i < OUT->head)
-            buf_write(OUTBUF, opt_csv ? ',' : '\t');
-        }
+      if (run(p, wordc, wordv) > 0) {
+        print_stack(OUTBUF, OUT, p, opt_csv);
         buf_println(OUTBUF);
         buf_reset(OUTBUF, 0);
       }
