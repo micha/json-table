@@ -19,3 +19,5 @@ target/
 /a.out
 /test.c
 /test/enron.json
+/build/
+/gmon.out

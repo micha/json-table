@@ -8,23 +8,23 @@
  * parser helpers
  *****************************************************************************/
 
-inline jstok_t *js_tok(jsparser_t *p, size_t t) {
+jstok_t *js_tok(jsparser_t *p, size_t t) {
   return p->toks + t;
 }
 
-inline char *js_buf(jsparser_t *p, size_t t) {
+char *js_buf(jsparser_t *p, size_t t) {
   return (p->js)->buf + js_tok(p, t)->start;
 }
 
-inline size_t js_len(jsparser_t *p, size_t t) {
+size_t js_len(jsparser_t *p, size_t t) {
   return js_tok(p, t)->end - js_tok(p, t)->start;
 }
 
-static inline const char *js(jsparser_t *p) {
+const char *js(jsparser_t *p) {
   return (p->js)->buf + p->pos;
 }
 
-static inline void init_tok(jstok_t *tok) {
+void init_tok(jstok_t *tok) {
   tok->type = JS_NONE;
   tok->start = 0;
   tok->end = 0;
@@ -42,7 +42,7 @@ static size_t js_next_tok(jsparser_t *p) {
   return p->curtok;
 }
 
-static inline void js_ensure_buf(jsparser_t *p, size_t n) {
+void js_ensure_buf(jsparser_t *p, size_t n) {
   while (p->pos + n + 1 >= (p->js)->pos)
     if (! buf_append_read(p->js, p->in)) break;
 }
@@ -75,31 +75,31 @@ static size_t js_scan_digits(jsparser_t *p) {
  * JSON type predicates
  *****************************************************************************/
 
-inline int js_is_string(jstok_t *tok) {
+int js_is_string(jstok_t *tok) {
   return tok->type == JS_STRING;
 }
 
-inline int js_is_array(jstok_t *tok) {
+int js_is_array(jstok_t *tok) {
   return tok->type == JS_ARRAY;
 }
 
-inline int js_is_object(jstok_t *tok) {
+int js_is_object(jstok_t *tok) {
   return tok->type == JS_OBJECT;
 }
 
-inline int js_is_pair(jstok_t *tok) {
+int js_is_pair(jstok_t *tok) {
   return tok->type == JS_PAIR;
 }
 
-inline int js_is_item(jstok_t *tok) {
+int js_is_item(jstok_t *tok) {
   return tok->type == JS_ITEM;
 }
 
-inline int js_is_collection(jstok_t *tok) {
+int js_is_collection(jstok_t *tok) {
   return js_is_array(tok) || js_is_object(tok);
 }
 
-inline int js_is_empty(jstok_t *tok) {
+int js_is_empty(jstok_t *tok) {
   return !tok->first_child;
 }
 

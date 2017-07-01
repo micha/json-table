@@ -7,7 +7,10 @@
 #include "js.h"
 #include "util.h"
 
-#define STACKSIZE 256
+#ifndef JT_STACKSIZE
+#define JT_STACKSIZE 256
+#endif
+
 #define JT_VERSION "4.3.1"
 
 int opt_join = 0;
@@ -43,7 +46,7 @@ int run(int wordc, word_t *wordv) {
     if (!js_is_collection(js_tok(p, d)) || js_is_empty(js_tok(p, d))) {
       stack_push(DAT, 0);
       run(wordc - e, wordv + e);
-      if (opt_join) cols = -STACKSIZE;
+      if (opt_join) cols = -JT_STACKSIZE;
     } else {
       if (stack_depth(ITR)) {
         itr = (size_t) stack_head(ITR);
@@ -96,10 +99,10 @@ int run(int wordc, word_t *wordv) {
           tmp = js_is_object(js_tok(p, d))
             ? js_obj_get(p, d, wordv[0].text)
             : js_array_get(p, d, strtosizet(wordv[0].text));
-          if (! (tmp || !opt_join)) return -STACKSIZE;
+          if (! (tmp || !opt_join)) return -JT_STACKSIZE;
           stack_push(DAT, tmp);
         } else {
-          if (opt_join) return -STACKSIZE;
+          if (opt_join) return -JT_STACKSIZE;
           stack_push(DAT, 0);
         }
         break;
@@ -199,12 +202,16 @@ void usage() {
 }
 
 void version() {
-  fprintf(stdout, "jt %s\n", JT_VERSION);
-  fprintf(stdout, "Copyright © 2017 Micha Niskin\n");
-  fprintf(stdout, "License EPL v1.0 <https://www.eclipse.org/legal/epl-v10.html>.\n");
-  fprintf(stdout, "Source code available <https://github.com/micha/json-table>.\n");
-  fprintf(stdout, "This is free software: you are free to change and redistribute it.\n");
-  fprintf(stdout, "There is NO WARRANTY, to the extent permitted by law.\n");
+#ifdef JT_SHA
+  printf("jt %s [git@%s]\n", JT_VERSION, JT_SHA);
+#else
+  printf("jt %s\n", JT_VERSION);
+#endif
+  printf("\n");
+  printf("Copyright © 2017 Micha Niskin <micha.niskin@gmail.com>, distributed under\n");
+  printf("the Eclipse Public License, version 1.0. This is free software: you are free\n");
+  printf("to change and redistribute it. There is NO WARRANTY, to the extent permitted\n");
+  printf("by law.\n");
   exit(0);
 }
 
@@ -244,13 +251,13 @@ int main(int argc, char *argv[]) {
   if (argc - optind == 0) usage();
 
   wordc = argc - optind;
-  wordv = malloc(sizeof(word_t) * argc - optind);
+  wordv = jmalloc(sizeof(word_t) * argc - optind);
 
-  stack_alloc(&DAT, "data",     STACKSIZE);
-  stack_alloc(&OUT, "output",   STACKSIZE);
-  stack_alloc(&SUB, "gosub",    STACKSIZE);
-  stack_alloc(&ITR, "iterator", STACKSIZE);
-  stack_alloc(&IDX, "index",    STACKSIZE);
+  stack_alloc(&DAT, "data",     JT_STACKSIZE);
+  stack_alloc(&OUT, "output",   JT_STACKSIZE);
+  stack_alloc(&SUB, "gosub",    JT_STACKSIZE);
+  stack_alloc(&ITR, "iterator", JT_STACKSIZE);
+  stack_alloc(&IDX, "index",    JT_STACKSIZE);
 
   js_alloc(&p, stdin, 128);
 

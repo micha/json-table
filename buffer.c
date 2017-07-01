@@ -13,17 +13,17 @@ void buf_println(Buffer *b) {
   printf("%s\n", b->buf);
 }
 
-inline void buf_check(Buffer *b, const size_t len) {
+void buf_check(Buffer *b, const size_t len) {
   while (b->size <= b->pos + len + 1)
     b->buf = jrealloc(b->buf, (b->size *= 2.5));
 }
 
-inline void buf_write_unchecked(Buffer *b, const char c) {
+void buf_write_unchecked(Buffer *b, const char c) {
   (b->buf)[b->pos] = c;
   (b->buf)[b->pos += 1] = '\0';
 }
 
-inline void buf_append_unchecked(Buffer *b, const char *s, const size_t len) {
+void buf_append_unchecked(Buffer *b, const char *s, const size_t len) {
   strncpy(b->buf + b->pos, s, len);
   (b->buf)[b->pos += len] = '\0';
 }
