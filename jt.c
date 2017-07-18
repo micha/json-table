@@ -11,7 +11,7 @@
 #define JT_STACKSIZE 256
 #endif
 
-#define JT_VERSION "4.3.1"
+#define JT_VERSION "4.3.2"
 
 int opt_join = 0;
 int opt_iter = 0;
@@ -67,6 +67,11 @@ int run(int wordc, word_t *wordv) {
     return cols;
   } else {
     switch (wordv[0].cmd) {
+      case '.':
+        // can only get here if top of stack is null
+        if (opt_join) return -JT_STACKSIZE;
+        stack_push(DAT, 0);
+        break;
       case '^':
         cols = 1;
         stack_push(OUT, stack_head(IDX));

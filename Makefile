@@ -16,7 +16,7 @@ all: jt docs
 clean:
 	rm -f jt *.o *.a *.out
 	rm -rf build
-	rm test/enron.json
+	rm -f test/enron.json
 
 %.o: %.c
 	$(CC) -c $(CFLAGS) -DJT_SHA=\"$(SHA)\" $< -o $@
