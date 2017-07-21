@@ -1,14 +1,15 @@
 .PHONY: all clean docs install dist test benchmark memcheck profile
 
+OS     := $(shell uname -s)
+
 ifneq (${OS}, Darwin)
 LDFLAGS += -static
 endif
 
-OS     := $(shell uname -s)
 CFLAGS += -D_GNU_SOURCE=1 -O3 -Wall -Werror -Winline -pedantic-errors -std=c99
 PREFIX := /usr/local
 BINDIR := $(PREFIX)/bin
-MANDIR := $(PREFIX)/man/man1
+MANDIR := $(PREFIX)/share/man/man1
 SHA    := $(shell git rev-parse HEAD)
 
 all: jt docs
@@ -53,7 +54,7 @@ install: jt jt.1
 
 jt.tar: jt jt.1
 	tar cf $@ --transform 's@^@bin/@' jt
-	tar uf $@ --transform 's@^@man/man1/@' jt.1
+	tar uf $@ --transform 's@^@share/man/man1/@' jt.1
 
 %.tar.gz: %.tar
 	gzip -f $^

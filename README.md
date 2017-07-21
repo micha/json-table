@@ -169,6 +169,11 @@ Otherwise, build from source:
 make && make test && sudo make install
 ```
 
+> **NOTE:** Previous versions installed the **jt** manual in the `$PREFIX/man/`
+> directory, which was incorrect. They are now installed into `$PREFIX/share/man/`.
+> If you have installed **jt** previously you will probably want to delete those
+> old man pages from the `$PREFIX/man/` directory if you install a newer version.
+
 ## DOCUMENTATION
 
 See the [man page][man] or `man jt` in your terminal.
