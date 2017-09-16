@@ -182,8 +182,13 @@ See the [man page][man] or `man jt` in your terminal.
 
 The [man page][man] has many examples.
 
+## SEE ALSO
+
+**Jt** is based on ideas from the excellent [jshon][jshon] tool.
+
 ## COPYRIGHT
 
 Copyright © 2017 Micha Niskin. Distributed under the Eclipse Public License.
 
 [man]: http://htmlpreview.github.io/?https://raw.githubusercontent.com/micha/json-table/master/jt.1.html
+[jshon]: http://kmkeen.com/jshon/

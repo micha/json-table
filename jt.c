@@ -11,7 +11,7 @@
 #define JT_STACKSIZE 256
 #endif
 
-#define JT_VERSION "4.3.2"
+#define JT_VERSION "4.3.3"
 
 int opt_join = 0;
 int opt_iter = 0;
@@ -42,8 +42,11 @@ int run(int wordc, word_t *wordv) {
 
   if (wordc <= 0) return 0;
 
-  if (d && ((js_is_array(js_tok(p, d)) && !opt_iter) || (e = (wordv[0].cmd == '.')))) {
-    if (!js_is_collection(js_tok(p, d)) || js_is_empty(js_tok(p, d))) {
+  if ((e = (wordv[0].cmd == '.')) || (d && js_is_array(js_tok(p, d)) && !opt_iter)) {
+    if (!d) {
+      stack_push(DAT, 0);
+      if (opt_join) cols = -JT_STACKSIZE;
+    } else if (!js_is_collection(js_tok(p, d)) || js_is_empty(js_tok(p, d))) {
       stack_push(DAT, 0);
       run(wordc - e, wordv + e);
       if (opt_join) cols = -JT_STACKSIZE;
@@ -67,11 +70,6 @@ int run(int wordc, word_t *wordv) {
     return cols;
   } else {
     switch (wordv[0].cmd) {
-      case '.':
-        // can only get here if top of stack is null
-        if (opt_join) return -JT_STACKSIZE;
-        stack_push(DAT, 0);
-        break;
       case '^':
         cols = 1;
         stack_push(OUT, stack_head(IDX));
@@ -213,7 +211,7 @@ void version() {
   printf("jt %s\n", JT_VERSION);
 #endif
   printf("\n");
-  printf("Copyright © 2017 Micha Niskin <micha.niskin@gmail.com>, distributed under\n");
+  printf("Copyright © 2017 by Micha Niskin <micha.niskin@gmail.com>, distributed under\n");
   printf("the Eclipse Public License, version 1.0. This is free software: you are free\n");
   printf("to change and redistribute it. There is NO WARRANTY, to the extent permitted\n");
   printf("by law.\n");

@@ -211,4 +211,8 @@ assert $LINENO \
 EOT
 )"
 
+assert $LINENO \
+  "$(echo '{}' |$jt . % && echo OK)" \
+  OK
+
 [[ $fails == 0 ]] || exit 1

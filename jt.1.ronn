@@ -237,10 +237,27 @@ bar
 Otherwise, `@` prints the type of the item, or <[none]> if there is no value:
 
 ```bash
-$ echo '"hello world"' | jt @
+$ echo '["hello", "world"]' | jt @
 [string]
+```
 
-$ echo {} | jt foo @
+```bash
+$ echo '[1, 2]' | jt @
+[number]
+```
+
+```bash
+$ echo '[true, false]' | jt @
+[boolean]
+```
+
+```bash
+$ echo '[null, null]' | jt @
+[null]
+```
+
+```bash
+$ echo '[]' | jt @
 [none]
 ```
 
@@ -324,7 +341,7 @@ $ jt foo bar % <<EOT
 100
 ```
 
-The `%` command can be used multiple times. The printed values will be delimited
+The `%` command can be used multiple times. The printed values will be separated
 by tabs:
 
 ```bash
@@ -340,10 +357,14 @@ $ jt % foo % bar % <<EOT
 
 ### Save / Restore
 
-The `[` and `]` commands provide a sort of `GOSUB` facility. Use `[` to save
-the data stack's state on the gosub stack. Then drill down and print a value.
-The `]` command pops the gosub stack and restores the data stack to that state.
-Now it is possible to drill down into a different path to print another value:
+The `[` and `]` commands provide a way to save the data stack's state before
+performing some operations and restore it afterwards. This makes it possible
+to drill down into one part of an object and then "rewind" to drill down into
+another part of the same object.
+
+The `[` command saves the state of the data stack and the `]` command restores
+the data stack to the corresponding saved state. It is an error to use the `]`
+command without a corresponding `[` command.
 
 ```bash
 $ jt [ foo % ] bar % <<EOT
@@ -686,6 +707,16 @@ $ jt -a . ^ . ^ . ^ % <<EOT
 foo     0       bar     100
 foo     1       bar     200
 ```
+
+## SEE ALSO
+
+**Jt** is based on ideas from the excellent **jshon** tool, which can be found
+at <http://kmkeen.com/jshon/>. Source code for **jt** is available at
+<https://github.com/micha/json-table>.
+
+## BUGS
+
+Please open an issue here: <https://github.com/micha/json-table/issues>.
 
 ## COPYRIGHT
 

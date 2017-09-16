@@ -66,6 +66,8 @@
     <a href="#OUTPUT-FORMAT">OUTPUT FORMAT</a>
     <a href="#EXIT-STATUS">EXIT STATUS</a>
     <a href="#EXAMPLES">EXAMPLES</a>
+    <a href="#SEE-ALSO">SEE ALSO</a>
+    <a href="#BUGS">BUGS</a>
     <a href="#COPYRIGHT">COPYRIGHT</a>
   </div>
 
@@ -284,10 +286,23 @@ bar
 
 <p>Otherwise, <code>@</code> prints the type of the item, or <var>[none]</var> if there is no value:</p>
 
-<pre><code class="bash">$ echo '"hello world"' | jt @
+<pre><code class="bash">$ echo '["hello", "world"]' | jt @
 [string]
+</code></pre>
 
-$ echo {} | jt foo @
+<pre><code class="bash">$ echo '[1, 2]' | jt @
+[number]
+</code></pre>
+
+<pre><code class="bash">$ echo '[true, false]' | jt @
+[boolean]
+</code></pre>
+
+<pre><code class="bash">$ echo '[null, null]' | jt @
+[null]
+</code></pre>
+
+<pre><code class="bash">$ echo '[]' | jt @
 [none]
 </code></pre>
 
@@ -366,7 +381,7 @@ removed):</p>
 100
 </code></pre>
 
-<p>The <code>%</code> command can be used multiple times. The printed values will be delimited
+<p>The <code>%</code> command can be used multiple times. The printed values will be separated
 by tabs:</p>
 
 <pre><code class="bash">$ jt % foo % bar % &lt;&lt;EOT
@@ -381,10 +396,14 @@ by tabs:</p>
 
 <h3 id="Save-Restore">Save / Restore</h3>
 
-<p>The <code>[</code> and <code>]</code> commands provide a sort of <code>GOSUB</code> facility. Use <code>[</code> to save
-the data stack's state on the gosub stack. Then drill down and print a value.
-The <code>]</code> command pops the gosub stack and restores the data stack to that state.
-Now it is possible to drill down into a different path to print another value:</p>
+<p>The <code>[</code> and <code>]</code> commands provide a way to save the data stack's state before
+performing some operations and restore it afterwards. This makes it possible
+to drill down into one part of an object and then "rewind" to drill down into
+another part of the same object.</p>
+
+<p>The <code>[</code> command saves the state of the data stack and the <code>]</code> command restores
+the data stack to the corresponding saved state. It is an error to use the <code>]</code>
+command without a corresponding <code>[</code> command.</p>
 
 <pre><code class="bash">$ jt [ foo % ] bar % &lt;&lt;EOT
 - {
@@ -706,6 +725,16 @@ foo     bar     200
 foo     0       bar     100
 foo     1       bar     200
 </code></pre>
+
+<h2 id="SEE-ALSO">SEE ALSO</h2>
+
+<p><strong>Jt</strong> is based on ideas from the excellent <strong>jshon</strong> tool, which can be found
+at <a href="http://kmkeen.com/jshon/" data-bare-link="true">http://kmkeen.com/jshon/</a>. Source code for <strong>jt</strong> is available at
+<a href="https://github.com/micha/json-table" data-bare-link="true">https://github.com/micha/json-table</a>.</p>
+
+<h2 id="BUGS">BUGS</h2>
+
+<p>Please open an issue here: <a href="https://github.com/micha/json-table/issues" data-bare-link="true">https://github.com/micha/json-table/issues</a>.</p>
 
 <h2 id="COPYRIGHT">COPYRIGHT</h2>
 
