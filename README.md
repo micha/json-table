@@ -4,6 +4,31 @@
 values (or CSV) to `stdout`. A simple stack-based programming language is used
 to extract values from the JSON input for printing.
 
+## INSTALL
+
+Linux users can install prebuilt binaries from the release tarball:
+
+```
+sudo bash -c "cd /usr/local && wget -O - https://github.com/micha/json-table/raw/master/jt.tar.gz | tar xzvf -"
+```
+
+macOS users can install the latest release using [Homebrew](https://brew.sh/):
+
+```
+brew install json-table
+```
+
+Otherwise, build from source:
+
+```
+make && make test && sudo make install
+```
+
+> **NOTE:** Previous versions installed the **jt** manual in the `$PREFIX/man/`
+> directory, which was incorrect. They are now installed into `$PREFIX/share/man/`.
+> If you have installed **jt** previously you will probably want to delete those
+> old man pages from the `$PREFIX/man/` directory if you install a newer version.
+
 ## OVERVIEW
 
 Extracting information from deeply nested JSON data is difficult and unreliable
@@ -154,25 +179,6 @@ EOT
 test1   i-9fb75dc       us-east-1a      InService
 test1   i-241fd0b       us-east-1b      InService
 ```
-
-## INSTALL
-
-Linux users can install prebuilt binaries from the release tarball:
-
-```
-sudo bash -c "cd /usr/local && wget -O - https://github.com/micha/json-table/raw/master/jt.tar.gz | tar xzvf -"
-```
-
-Otherwise, build from source:
-
-```
-make && make test && sudo make install
-```
-
-> **NOTE:** Previous versions installed the **jt** manual in the `$PREFIX/man/`
-> directory, which was incorrect. They are now installed into `$PREFIX/share/man/`.
-> If you have installed **jt** previously you will probably want to delete those
-> old man pages from the `$PREFIX/man/` directory if you install a newer version.
 
 ## DOCUMENTATION
 
