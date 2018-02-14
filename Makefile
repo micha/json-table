@@ -51,6 +51,8 @@ install: jt jt.1
 	mkdir -p $(BINDIR) $(MANDIR)
 	cp jt $(BINDIR)
 	cp jt.1 $(MANDIR)
+	cat $(PREFIX)/man/man1/jt.1 2>&1 |grep -q 'micha\\\.niskin@gmail\\\.com' \
+		&& rm -f $(PREFIX)/man/man1/jt.1 || true
 
 jt.tar: jt jt.1
 	tar cf $@ --transform 's@^@bin/@' jt

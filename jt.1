@@ -275,10 +275,51 @@ Otherwise, \fB@\fR prints the type of the item, or \fI[none]\fR if there is no v
 .
 .nf
 
-$ echo \'"hello world"\' | jt @
+$ echo \'["hello", "world"]\' | jt @
 [string]
+.
+.fi
+.
+.IP "" 0
+.
+.IP "" 4
+.
+.nf
 
-$ echo {} | jt foo @
+$ echo \'[1, 2]\' | jt @
+[number]
+.
+.fi
+.
+.IP "" 0
+.
+.IP "" 4
+.
+.nf
+
+$ echo \'[true, false]\' | jt @
+[boolean]
+.
+.fi
+.
+.IP "" 0
+.
+.IP "" 4
+.
+.nf
+
+$ echo \'[null, null]\' | jt @
+[null]
+.
+.fi
+.
+.IP "" 0
+.
+.IP "" 4
+.
+.nf
+
+$ echo \'[]\' | jt @
 [none]
 .
 .fi
@@ -391,7 +432,7 @@ $ jt foo bar % <<EOT
 .IP "" 0
 .
 .P
-The \fB%\fR command can be used multiple times\. The printed values will be delimited by tabs:
+The \fB%\fR command can be used multiple times\. The printed values will be separated by tabs:
 .
 .IP "" 4
 .
@@ -411,7 +452,10 @@ $ jt % foo % bar % <<EOT
 .IP "" 0
 .
 .SS "Save / Restore"
-The \fB[\fR and \fB]\fR commands provide a sort of \fBGOSUB\fR facility\. Use \fB[\fR to save the data stack\'s state on the gosub stack\. Then drill down and print a value\. The \fB]\fR command pops the gosub stack and restores the data stack to that state\. Now it is possible to drill down into a different path to print another value:
+The \fB[\fR and \fB]\fR commands provide a way to save the data stack\'s state before performing some operations and restore it afterwards\. This makes it possible to drill down into one part of an object and then "rewind" to drill down into another part of the same object\.
+.
+.P
+The \fB[\fR command saves the state of the data stack and the \fB]\fR command restores the data stack to the corresponding saved state\. It is an error to use the \fB]\fR command without a corresponding \fB[\fR command\.
 .
 .IP "" 4
 .
@@ -876,6 +920,12 @@ foo     1       bar     200
 .fi
 .
 .IP "" 0
+.
+.SH "SEE ALSO"
+\fBJt\fR is based on ideas from the excellent \fBjshon\fR tool, which can be found at \fIhttp://kmkeen\.com/jshon/\fR\. Source code for \fBjt\fR is available at \fIhttps://github\.com/micha/json\-table\fR\.
+.
+.SH "BUGS"
+Please open an issue here: \fIhttps://github\.com/micha/json\-table/issues\fR\.
 .
 .SH "COPYRIGHT"
 Copyright © 2017 Micha Niskin \fB<micha\.niskin@gmail\.com>\fR, distributed under the Eclipse Public License, version 1\.0\. This is free software: you are free to change and redistribute it\. There is NO WARRANTY, to the extent permitted by law\.
